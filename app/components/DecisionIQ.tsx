@@ -454,37 +454,49 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
               {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
             </>
           ) : (
-            <>
-              <div className="rounded-lg border border-zinc-800 p-4">
-                <p className="text-xs text-zinc-500 mb-3 leading-relaxed">
-                  Paste any public YouTube game link. Works with highlights, full games, and clips.
-                </p>
-                <input
-                  className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={ytUrl}
-                  onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
-                />
-                {ytError && <p className="mt-2 text-xs text-red-400">{ytError}</p>}
+            <div className="rounded-lg border border-zinc-800 p-4 space-y-3">
+              <p className="text-sm font-medium text-white">How to analyze a YouTube video</p>
+              <div className="space-y-2">
+                {[
+                  { num: "1", text: "Go to cobalt.tools" },
+                  { num: "2", text: "Paste your YouTube link and download the video as MP4" },
+                  { num: "3", text: 'Switch to "Video File" tab above and upload it' },
+                ].map(s => (
+                  <div key={s.num} className="flex items-start gap-3">
+                    <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-400">{s.num}</span>
+                    <p className="text-sm text-zinc-400">{s.text}</p>
+                  </div>
+                ))}
               </div>
-            </>
+              <a
+                href="https://cobalt.tools"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full rounded-lg border border-zinc-700 py-2.5 text-center text-sm font-semibold text-white hover:bg-zinc-800 transition-colors"
+              >
+                Open cobalt.tools
+              </a>
+              <p className="text-xs text-zinc-600">Free, no account needed. Works with YouTube, Instagram, TikTok, and more.</p>
+            </div>
           )}
 
-          <div className="mt-4 space-y-2">
-            <input
-              className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-              placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport — optional, will detect from video"}
-              value={sport}
-              onChange={e => setSport(e.target.value)}
-            />
-            <button
-              onClick={inputTab === "youtube" ? analyzeYouTube : analyzeVideo}
-              disabled={loading || (inputTab === "file" ? !videoFile : !ytUrl.trim())}
-              className="w-full rounded-lg bg-white py-3 text-sm font-semibold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors"
-            >
-              {loading ? "Analyzing…" : "Analyze"}
-            </button>
-          </div>
+          {inputTab === "file" && (
+            <div className="mt-4 space-y-2">
+              <input
+                className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport — optional, will detect from video"}
+                value={sport}
+                onChange={e => setSport(e.target.value)}
+              />
+              <button
+                onClick={analyzeVideo}
+                disabled={loading || !videoFile}
+                className="w-full rounded-lg bg-white py-3 text-sm font-semibold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors"
+              >
+                {loading ? "Analyzing…" : "Analyze"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Results */}
