@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat } from "../lib/types";
-import {
-  gradeClass, sportIcon, formatTime, formatDate,
-  TEAM_PALETTE, extractTeamName, buildTeamColorMap,
-} from "../lib/decisioniq-helpers";
+import { gradeClass, formatTime, formatDate, TEAM_PALETTE, extractTeamName, buildTeamColorMap } from "../lib/decisioniq-helpers";
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
@@ -16,7 +13,7 @@ function extractGrade(text: string) {
 function parsePlayerBlocks(text: string): PlayerDecision[] {
   return text.split(/===\s*PLAYER\s*===/i).slice(1).map((block) => {
     const clean = block.replace(/===\s*END\s*===/i, "").trim();
-    const field = (l: string) => clean.match(new RegExp(`^${l}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
+    const field   = (l: string) => clean.match(new RegExp(`^${l}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
     const section = (l: string) => clean.match(new RegExp(`${l}:\\s*([\\s\\S]*?)(?=\\n[A-Z][\\w ]+:|===|$)`, "i"))?.[1]?.trim() ?? "";
     return {
       player: field("Player"), role: field("Role"), action: field("Action"),
@@ -30,10 +27,8 @@ function parsePlayerBlocks(text: string): PlayerDecision[] {
 }
 
 function parseGameReport(text: string): GameReport {
-  const extract = (label: string) =>
-    text.match(new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\n[A-Z#][\\w &]+:|$)`, "i"))?.[1]?.trim() ?? "";
-  const extractList = (label: string) =>
-    extract(label).split("\n").map(l => l.replace(/^[-•*\d.]\s*/, "").trim()).filter(Boolean);
+  const extract     = (label: string) => text.match(new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\n[A-Z#][\\w &]+:|$)`, "i"))?.[1]?.trim() ?? "";
+  const extractList = (label: string) => extract(label).split("\n").map(l => l.replace(/^[-•*\d.]\s*/, "").trim()).filter(Boolean);
   const playerStats: PlayerStat[] = extract("Player Stats")
     .split("\n").map(l => l.replace(/^[-•*]\s*/, "").trim())
     .filter(l => l && !l.toLowerCase().includes("no jersey"))
@@ -93,35 +88,41 @@ async function extractFramesAdaptive(file: File): Promise<{ frames: FrameWithTim
   });
 }
 
-// ─── UI Components ────────────────────────────────────────────────────────────
+// ─── Shared UI ────────────────────────────────────────────────────────────────
 
-function GradePill({ grade }: { grade: string }) {
+function GradeBadge({ grade, large }: { grade: string; large?: boolean }) {
   return (
-    <span className={`inline-block rounded-lg px-2.5 py-0.5 text-sm font-black ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
+    <span className={`inline-flex items-center justify-center rounded-md font-bold tabular-nums ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")} ${large ? "px-3 py-1 text-base" : "px-2 py-0.5 text-xs"}`}>
       {grade}
     </span>
   );
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{children}</p>;
+}
+
 function ProgressBar({ current, total, label }: { current: number; total: number; label: string }) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs text-zinc-400"><span>{label}</span><span>{pct}%</span></div>
-      <div className="h-2 w-full rounded-full bg-zinc-800">
-        <div className="h-2 rounded-full bg-white transition-all duration-300" style={{ width: `${pct}%` }} />
+    <div className="space-y-1.5">
+      <div className="flex justify-between text-xs text-zinc-600"><span>{label}</span><span>{pct}%</span></div>
+      <div className="h-px w-full bg-zinc-800">
+        <div className="h-px bg-white transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
 }
 
+// ─── Player Card ──────────────────────────────────────────────────────────────
+
 const DECISION_FIELDS = [
-  { key: "whatHappened" as const,     label: "What Happened",      icon: "🎬" },
-  { key: "decisionRead" as const,     label: "Coach's Read",       icon: "🧠" },
-  { key: "bestAlternative" as const,  label: "Next Time",          icon: "✅" },
-  { key: "whyBetter" as const,        label: "Why It Was Better",  icon: "💡" },
-  { key: "patternToImprove" as const, label: "Pattern To Improve", icon: "📈" },
-  { key: "practiceFocus" as const,    label: "Practice This Week", icon: "🎯" },
+  { key: "whatHappened"     as const, label: "What Happened"      },
+  { key: "decisionRead"     as const, label: "Coach's Read"       },
+  { key: "bestAlternative"  as const, label: "Next Time"          },
+  { key: "whyBetter"        as const, label: "Why It Was Better"  },
+  { key: "patternToImprove" as const, label: "Pattern To Improve" },
+  { key: "practiceFocus"    as const, label: "Practice This Week" },
 ];
 
 function PlayerCard({ decision, teamColor, defaultOpen = false }: {
@@ -130,47 +131,52 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
-  const grade = decision.grade || "N/A";
+  const grade       = decision.grade || "N/A";
   const displayTeam = decision.player.match(/\(([^)]+)\)/)?.[1] ?? null;
+
   return (
-    <div className={`rounded-2xl border border-zinc-800 bg-black border-l-4 ${teamColor.border}`}>
-      <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-3 p-4 text-left min-h-[64px]">
-        <GradePill grade={grade} />
+    <div className={`border border-zinc-800 bg-zinc-950 rounded-xl border-l-2 ${teamColor.border} overflow-hidden`}>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left">
+        <GradeBadge grade={grade} />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-bold text-white">{decision.player || "Unknown Player"}</p>
-            {displayTeam && <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${teamColor.bg} text-white`}>{displayTeam}</span>}
-          </div>
-          <p className="text-xs text-zinc-400 truncate">{[decision.role, decision.action, decision.sport].filter(Boolean).join(" · ")}</p>
-        </div>
-        <span className="shrink-0 text-zinc-500 text-xs">{open ? "▲" : "▼"}</span>
-      </button>
-      {open && (
-        <div className="border-t border-zinc-800 p-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {DECISION_FIELDS.map(({ key, label, icon }) => {
-              const val = decision[key];
-              if (!val) return null;
-              return (
-                <div key={key} className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">{icon} {label}</p>
-                  <p className="text-sm leading-relaxed text-gray-200">{val as string}</p>
-                </div>
-              );
-            })}
-            {decision.otherOptions.length > 0 && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 sm:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">🔀 Other Options</p>
-                <ul className="space-y-1">
-                  {decision.otherOptions.map((opt, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-200">
-                      <span className="text-zinc-500 mt-0.5 shrink-0">—</span>{opt}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
+            {displayTeam && (
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${teamColor.bg} text-white`}>{displayTeam}</span>
             )}
           </div>
+          <p className="text-xs text-zinc-600 truncate mt-0.5">
+            {[decision.role, decision.action, decision.sport].filter(Boolean).join("  ·  ")}
+          </p>
+        </div>
+        <span className="shrink-0 text-[10px] text-zinc-700">{open ? "HIDE" : "MORE"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-zinc-800 px-4 py-4 grid gap-3 sm:grid-cols-2">
+          {DECISION_FIELDS.map(({ key, label }) => {
+            const val = decision[key];
+            if (!val) return null;
+            return (
+              <div key={key} className="border border-zinc-800 rounded-lg p-3">
+                <SectionLabel>{label}</SectionLabel>
+                <p className="text-sm text-zinc-300 leading-relaxed">{val as string}</p>
+              </div>
+            );
+          })}
+          {decision.otherOptions.length > 0 && (
+            <div className="border border-zinc-800 rounded-lg p-3 sm:col-span-2">
+              <SectionLabel>Other Options</SectionLabel>
+              <ul className="space-y-1.5">
+                {decision.otherOptions.map((opt, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                    <span className="text-zinc-700 mt-0.5 shrink-0">–</span>{opt}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -180,60 +186,80 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
 function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
   const colorMap = buildTeamColorMap(decisions);
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {decisions.map((d, i) => (
-        <PlayerCard key={i} decision={d} teamColor={colorMap.get(extractTeamName(d.player)) ?? TEAM_PALETTE[0]} defaultOpen={i === 0} />
+        <PlayerCard key={i} decision={d}
+          teamColor={colorMap.get(extractTeamName(d.player)) ?? TEAM_PALETTE[0]}
+          defaultOpen={i === 0} />
       ))}
     </div>
   );
 }
 
+// ─── Game Report ──────────────────────────────────────────────────────────────
+
 const GAME_SECTIONS = [
-  { key: "gameSummary" as const,     label: "Game Summary",          icon: "🏟️" },
-  { key: "periodBreakdown" as const, label: "Period Breakdown",       icon: "⏱️" },
-  { key: "foulPatterns" as const,    label: "Foul & Call Patterns",   icon: "🚨" },
-  { key: "decisionTrends" as const,  label: "Decision Trends",        icon: "📊" },
-  { key: "practiceFocus" as const,   label: "Practice This Week",     icon: "🎯" },
+  { key: "gameSummary"     as const, label: "Game Summary"         },
+  { key: "periodBreakdown" as const, label: "Period Breakdown"      },
+  { key: "foulPatterns"    as const, label: "Foul & Call Patterns"  },
+  { key: "decisionTrends"  as const, label: "Decision Trends"       },
+  { key: "practiceFocus"   as const, label: "Practice This Week"    },
 ];
 
 function GameReportCard({ report }: { report: GameReport }) {
   return (
-    <div className="space-y-4">
-      <div className={`inline-flex flex-col items-center rounded-2xl px-6 py-3 ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
-        <span className="text-xs font-semibold uppercase tracking-widest opacity-80">Overall Grade</span>
-        <span className="text-4xl font-black leading-none">{report.overallGrade}</span>
+    <div className="space-y-3">
+      <div className={`inline-flex flex-col items-center rounded-lg px-5 py-2.5 ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
+        <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">Overall Grade</span>
+        <span className="text-3xl font-bold leading-tight">{report.overallGrade}</span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {GAME_SECTIONS.map(({ key, label, icon }) => {
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {GAME_SECTIONS.map(({ key, label }) => {
           const val = report[key]; if (!val) return null;
           return (
-            <div key={key} className="rounded-2xl border border-zinc-800 bg-black p-4">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">{icon} {label}</p>
-              <p className="text-sm leading-relaxed text-gray-200">{val as string}</p>
+            <div key={key} className="border border-zinc-800 rounded-lg p-3">
+              <SectionLabel>{label}</SectionLabel>
+              <p className="text-sm text-zinc-300 leading-relaxed">{val as string}</p>
             </div>
           );
         })}
+
         {report.strengths.length > 0 && (
-          <div className="rounded-2xl border border-emerald-900 bg-black p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-emerald-500">✅ Strengths</p>
-            <ul className="space-y-1">{report.strengths.map((s, i) => <li key={i} className="flex items-start gap-2 text-sm text-gray-200"><span className="text-emerald-500 shrink-0">+</span>{s}</li>)}</ul>
+          <div className="border border-zinc-800 rounded-lg p-3">
+            <SectionLabel>Strengths</SectionLabel>
+            <ul className="space-y-1.5">
+              {report.strengths.map((s, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                  <span className="text-emerald-600 shrink-0 mt-0.5">+</span>{s}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
+
         {report.improvements.length > 0 && (
-          <div className="rounded-2xl border border-orange-900 bg-black p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-orange-500">📉 Work On</p>
-            <ul className="space-y-1">{report.improvements.map((s, i) => <li key={i} className="flex items-start gap-2 text-sm text-gray-200"><span className="text-orange-500 shrink-0">→</span>{s}</li>)}</ul>
+          <div className="border border-zinc-800 rounded-lg p-3">
+            <SectionLabel>Work On</SectionLabel>
+            <ul className="space-y-1.5">
+              {report.improvements.map((s, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                  <span className="text-orange-600 shrink-0 mt-0.5">→</span>{s}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
+
       {report.playerStats.length > 0 && (
-        <div className="rounded-2xl border border-zinc-700 bg-black p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">👤 Player Stats</p>
+        <div className="border border-zinc-800 rounded-lg p-3">
+          <SectionLabel>Player Stats</SectionLabel>
           <div className="space-y-2">
             {report.playerStats.map((p, i) => (
-              <div key={i} className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3">
-                <p className="text-xs font-bold text-white mb-0.5">{p.label}</p>
-                <p className="text-xs text-zinc-400 leading-relaxed">{p.raw.replace(/^#\d+[^|]*\|\s*/, "")}</p>
+              <div key={i} className="border border-zinc-800 rounded-lg px-3 py-2.5">
+                <p className="text-xs font-semibold text-white mb-0.5">{p.label}</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">{p.raw.replace(/^#\d+[^|]*\|\s*/, "")}</p>
               </div>
             ))}
           </div>
@@ -243,68 +269,43 @@ function GameReportCard({ report }: { report: GameReport }) {
   );
 }
 
-// ─── DecisionIQ Main ──────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function DecisionIQ({
-  profile,
-  reviews,
-  onReviewsChange,
-}: {
-  profile: Profile;
-  reviews: Review[];
-  onReviewsChange: (r: Review[]) => void;
+export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
+  profile: Profile; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
 }) {
-  const [fileName, setFileName] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [sport, setSport] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [progressLabel, setProgressLabel] = useState("");
+  const [fileName,   setFileName]   = useState("");
+  const [videoUrl,   setVideoUrl]   = useState("");
+  const [videoFile,  setVideoFile]  = useState<File | null>(null);
+  const [sport,      setSport]      = useState("");
+  const [loading,    setLoading]    = useState(false);
+  const [progressLabel,   setProgressLabel]   = useState("");
   const [progressCurrent, setProgressCurrent] = useState(0);
-  const [progressTotal, setProgressTotal] = useState(0);
-
-  const [decisions, setDecisions] = useState<PlayerDecision[]>([]);
-  const [gameReport, setGameReport] = useState<GameReport | null>(null);
-  const [resultMode, setResultMode] = useState<"clip" | "game" | null>(null);
-
+  const [progressTotal,   setProgressTotal]   = useState(0);
+  const [decisions,   setDecisions]   = useState<PlayerDecision[]>([]);
+  const [gameReport,  setGameReport]  = useState<GameReport | null>(null);
+  const [resultMode,  setResultMode]  = useState<"clip" | "game" | null>(null);
   const [expandedReview, setExpandedReview] = useState<number | null>(null);
 
-  function saveReviews(newReviews: Review[]) {
-    onReviewsChange(newReviews);
-    localStorage.setItem("decisioniq-reviews", JSON.stringify(newReviews));
-  }
-
-  function deleteReview(id: string) {
-    saveReviews(reviews.filter(r => r.id !== id));
-    setExpandedReview(null);
-  }
+  function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
+  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
 
   async function analyzeVideo() {
     if (!videoFile) return;
     setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
     setProgressCurrent(0); setProgressTotal(0);
-
     try {
       setProgressLabel("Extracting frames…");
       const { frames, mode } = await extractFramesAdaptive(videoFile);
 
       if (mode === "clip") {
-        setProgressLabel("Analyzing all players…"); setProgressTotal(1);
-        const res = await fetch("/api/analyze", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip" }),
-        });
-        const data = await res.json();
-        setProgressCurrent(1);
-        const parsed = parsePlayerBlocks(data.feedback ?? "");
+        setProgressLabel("Analyzing players…"); setProgressTotal(1);
+        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip" }) });
+        const data = await res.json(); setProgressCurrent(1);
+        const parsed       = parsePlayerBlocks(data.feedback ?? "");
         const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
         setDecisions(parsed); setResultMode("clip");
-        saveReviews([{
-          id: crypto.randomUUID(), fileName: fileName || "Untitled clip",
-          sport: detectedSport, mode: "clip",
-          grade: parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
-        }, ...reviews]);
+        saveReviews([{ id: crypto.randomUUID(), fileName: fileName || "Untitled clip", sport: detectedSport, mode: "clip", grade: parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
 
       } else {
         const CHUNK_SIZE = 6;
@@ -312,36 +313,21 @@ export default function DecisionIQ({
         for (let i = 0; i < frames.length; i += CHUNK_SIZE) chunks.push(frames.slice(i, i + CHUNK_SIZE));
         setProgressTotal(chunks.length + 1);
         const chunkSummaries: ChunkSummary[] = [];
-
         for (let i = 0; i < chunks.length; i++) {
           const chunk = chunks[i];
           const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
-          setProgressLabel(`Analyzing segment ${i + 1} of ${chunks.length} (${start}–${end})…`);
-          const res = await fetch("/api/analyze", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end }),
-          });
+          setProgressLabel(`Segment ${i + 1} of ${chunks.length} (${start}–${end})…`);
+          const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end }) });
           const data = await res.json();
-          chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" });
-          setProgressCurrent(i + 1);
+          chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
         }
-
-        setProgressLabel("Generating full game report…");
-        const synthRes = await fetch("/api/synthesize", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries }),
-        });
-        const synthData = await synthRes.json();
-        setProgressCurrent(chunks.length + 1);
+        setProgressLabel("Building game report…");
+        const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries }) });
+        const synthData = await synthRes.json(); setProgressCurrent(chunks.length + 1);
         const report = parseGameReport(synthData.report ?? "");
-        const detectedGameSport = sport || profile.sport ||
-          chunkSummaries.map(c => c.text.match(/Sport:\s*(.+)/i)?.[1]?.trim()).find(Boolean) || "Unknown";
+        const detectedGameSport = sport || profile.sport || chunkSummaries.map(c => c.text.match(/Sport:\s*(.+)/i)?.[1]?.trim()).find(Boolean) || "Unknown";
         setGameReport(report); setResultMode("game");
-        saveReviews([{
-          id: crypto.randomUUID(), fileName: fileName || "Untitled game",
-          sport: detectedGameSport, mode: "game",
-          grade: report.overallGrade, timestamp: Date.now(), gameReport: report,
-        }, ...reviews]);
+        saveReviews([{ id: crypto.randomUUID(), fileName: fileName || "Untitled game", sport: detectedGameSport, mode: "game", grade: report.overallGrade, timestamp: Date.now(), gameReport: report }, ...reviews]);
       }
     } catch (err) { console.error(err); }
     setLoading(false); setProgressLabel("");
@@ -350,34 +336,39 @@ export default function DecisionIQ({
   const overallGrade = resultMode === "game" ? gameReport?.overallGrade ?? "N/A" : decisions[0]?.grade ?? "N/A";
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-5">
+
+      {/* Upload + Results */}
+      <div className="grid gap-5 lg:grid-cols-2">
+
         {/* Upload */}
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
-          <h2 className="mb-4 text-xl font-bold sm:text-2xl">Upload</h2>
-          <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-zinc-700 p-6 text-center hover:border-white transition-colors">
+        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
+          <p className="mb-4 text-sm font-semibold text-white">Upload</p>
+
+          <label className="block cursor-pointer rounded-lg border border-dashed border-zinc-800 p-6 text-center hover:border-zinc-600 transition-colors">
             <input type="file" accept="video/*" className="hidden" onChange={(e) => {
               const file = e.target.files?.[0]; if (!file) return;
               setVideoFile(file); setFileName(file.name);
               setVideoUrl(URL.createObjectURL(file));
               setDecisions([]); setGameReport(null); setResultMode(null);
             }} />
-            <div className="text-4xl mb-2">📹</div>
-            <p className="font-semibold">Choose video</p>
-            <p className="mt-1 text-sm text-gray-400">Clip or full game — adapts automatically</p>
+            <p className="text-sm font-medium text-zinc-400">Choose video</p>
+            <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
           </label>
-          {videoUrl && <video className="mt-4 w-full rounded-2xl border border-zinc-800" src={videoUrl} controls />}
-          {fileName && <p className="mt-3 text-sm text-green-400 truncate">📎 {fileName}</p>}
-          <div className="mt-5 space-y-3">
+
+          {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
+          {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
+
+          <div className="mt-4 space-y-2">
             <input
-              className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-sm placeholder-zinc-500 focus:outline-none focus:border-white transition-colors"
-              placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional — will detect from video)"}
+              className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+              placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport — optional, will detect from video"}
               value={sport}
-              onChange={(e) => setSport(e.target.value)}
+              onChange={e => setSport(e.target.value)}
             />
             <button
               onClick={analyzeVideo} disabled={loading || !videoFile}
-              className="w-full rounded-2xl bg-white py-4 text-base font-bold text-black disabled:opacity-40 hover:bg-gray-100 transition-colors active:scale-95"
+              className="w-full rounded-lg bg-white py-3 text-sm font-semibold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors"
             >
               {loading ? "Analyzing…" : "Analyze"}
             </button>
@@ -385,30 +376,33 @@ export default function DecisionIQ({
         </div>
 
         {/* Results */}
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold sm:text-2xl">{resultMode === "game" ? "Game Report" : "Player Decisions"}</h2>
+            <p className="text-sm font-semibold text-white">
+              {resultMode === "game" ? "Game Report" : "Player Decisions"}
+            </p>
             {resultMode && !loading && (
-              <div className={`flex flex-col items-center rounded-xl px-4 py-2 ${gradeClass(overallGrade, "bg")} ${gradeClass(overallGrade, "text")}`}>
-                <span className="text-xs font-semibold opacity-80">{resultMode === "game" ? "Overall" : "Top"}</span>
-                <span className="text-2xl font-black leading-none">{overallGrade}</span>
-              </div>
+              <GradeBadge grade={overallGrade} large />
             )}
           </div>
+
           {loading && (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl border border-zinc-800 bg-black" />)}
+            <div className="space-y-4 py-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-lg border border-zinc-800 bg-black" />
+              ))}
               <ProgressBar current={progressCurrent} total={progressTotal} label={progressLabel} />
             </div>
           )}
+
           {!loading && !resultMode && (
-            <div className="flex h-56 flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-800 bg-black">
-              <span className="text-5xl">🎬</span>
-              <p className="text-center text-sm text-zinc-500 px-4">
-                {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]}.` : "Upload a clip or full game and click Analyze"}
+            <div className="flex h-52 items-center justify-center rounded-lg border border-zinc-800">
+              <p className="text-sm text-zinc-600">
+                {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]}.` : "Upload a clip or game to get started."}
               </p>
             </div>
           )}
+
           {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}
           {!loading && resultMode === "game" && gameReport && <GameReportCard report={gameReport} />}
         </div>
@@ -416,39 +410,51 @@ export default function DecisionIQ({
 
       {/* History */}
       {reviews.length > 0 && (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold sm:text-2xl">History</h2>
-            <span className="text-sm text-zinc-500">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
+            <p className="text-sm font-semibold text-white">History</p>
+            <span className="text-xs text-zinc-600">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
           </div>
-          <div className="space-y-3">
+
+          <div className="space-y-2">
             {reviews.map((review, index) => {
               const isOpen = expandedReview === index;
               return (
-                <div key={review.id} className="rounded-2xl border border-zinc-800 bg-black">
-                  <div className="flex w-full items-center gap-3 p-4">
-                    <span className="text-2xl shrink-0">{sportIcon(review.sport)}</span>
+                <div key={review.id} className="border border-zinc-800 rounded-lg overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3">
                     <button onClick={() => setExpandedReview(isOpen ? null : index)} className="flex-1 min-w-0 text-left">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold capitalize">{review.sport}</p>
-                        <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{review.mode === "game" ? "Full Game" : "Clip"}</span>
+                        <span className="text-sm font-semibold text-white capitalize">{review.sport}</span>
+                        <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                          {review.mode === "game" ? "Game" : "Clip"}
+                        </span>
                         {review.mode === "clip" && review.decisions && (
-                          <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{review.decisions.length} player{review.decisions.length !== 1 ? "s" : ""}</span>
+                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                            {review.decisions.length}p
+                          </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500 truncate">{review.fileName}</p>
-                      <p className="text-xs text-zinc-600">{formatDate(review.timestamp)}</p>
+                      <p className="text-xs text-zinc-600 truncate mt-0.5">{formatDate(review.timestamp)}</p>
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
-                      <GradePill grade={review.grade} />
-                      <button onClick={() => setExpandedReview(isOpen ? null : index)} className="px-1 text-xs text-zinc-500">{isOpen ? "▲" : "▼"}</button>
-                      <button onClick={() => deleteReview(review.id)} className="rounded-lg px-2 py-1 text-xs text-zinc-600 hover:text-red-400 hover:bg-zinc-900 transition-colors">✕</button>
+                      <GradeBadge grade={review.grade} />
+                      <button onClick={() => setExpandedReview(isOpen ? null : index)}
+                        className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1">
+                        {isOpen ? "HIDE" : "VIEW"}
+                      </button>
+                      <button onClick={() => deleteReview(review.id)}
+                        className="text-[10px] text-zinc-700 hover:text-red-500 transition-colors px-1">
+                        DEL
+                      </button>
                     </div>
                   </div>
+
                   {isOpen && (
                     <div className="border-t border-zinc-800 p-4">
-                      {review.mode === "clip" && review.decisions ? <PlayerCardList decisions={review.decisions} />
-                        : review.mode === "game" && review.gameReport ? <GameReportCard report={review.gameReport} />
+                      {review.mode === "clip" && review.decisions
+                        ? <PlayerCardList decisions={review.decisions} />
+                        : review.mode === "game" && review.gameReport
+                        ? <GameReportCard report={review.gameReport} />
                         : null}
                     </div>
                   )}
