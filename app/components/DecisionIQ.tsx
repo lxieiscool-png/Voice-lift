@@ -274,9 +274,12 @@ function GameReportCard({ report }: { report: GameReport }) {
 export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
   profile: Profile; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
 }) {
+  const [inputTab,   setInputTab]   = useState<"file" | "youtube">("file");
   const [fileName,   setFileName]   = useState("");
   const [videoUrl,   setVideoUrl]   = useState("");
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
+  const [ytUrl,      setYtUrl]      = useState("");
+  const [ytError,    setYtError]    = useState("");
   const [sport,      setSport]      = useState("");
   const [loading,    setLoading]    = useState(false);
   const [progressLabel,   setProgressLabel]   = useState("");
@@ -290,6 +293,116 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
 
+  // Extract individual frames from storyboard sheets using canvas
+  async function extractFramesFromSheets(sheets: string[], rows: number, cols: number, frameWidth: number, frameHeight: number, frameCount: number): Promise<string[]> {
+    const frames: string[] = [];
+    const canvas = document.createElement("canvas");
+    canvas.width = frameWidth;
+    canvas.height = frameHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return frames;
+
+    // Target ~24 frames spread across all sheets
+    const totalFrames = Math.min(frameCount, sheets.length * rows * cols);
+    const targetFrames = Math.min(24, totalFrames);
+    const step = Math.max(1, Math.floor(totalFrames / targetFrames));
+
+    let frameIdx = 0;
+    for (const sheetDataUrl of sheets) {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = sheetDataUrl;
+      }).catch(() => null);
+      if (!img) continue;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (frameIdx % step === 0) {
+            ctx.drawImage(img, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+            frames.push(canvas.toDataURL("image/jpeg", 0.85));
+          }
+          frameIdx++;
+          if (frames.length >= targetFrames) break;
+        }
+        if (frames.length >= targetFrames) break;
+      }
+      if (frames.length >= targetFrames) break;
+    }
+    return frames;
+  }
+
+  async function analyzeYouTube() {
+    if (!ytUrl.trim()) return;
+    setYtError("");
+    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
+    setProgressCurrent(0); setProgressTotal(0);
+
+    try {
+      setProgressLabel("Loading YouTube video…");
+      const res  = await fetch("/api/youtube-frames", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: ytUrl }),
+      });
+      const data = await res.json();
+
+      if (data.error) { setYtError(data.error); setLoading(false); return; }
+
+      setProgressLabel("Extracting frames from video…");
+      const frames = await extractFramesFromSheets(
+        data.sheets, data.rows, data.cols, data.frameWidth, data.frameHeight, data.frameCount
+      );
+
+      if (frames.length === 0) {
+        setYtError("Could not extract frames from this video.");
+        setLoading(false); return;
+      }
+
+      const mode: "clip" | "game" = data.mode;
+      const videoTitle = `YouTube — ${ytUrl}`;
+
+      await runAnalysis(frames.map(f => ({ dataUrl: f, timestamp: 0 })), mode, videoTitle);
+    } catch (err) {
+      console.error(err);
+      setYtError("Something went wrong. Try a different video.");
+    }
+    setLoading(false); setProgressLabel("");
+  }
+
+  async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string) {
+    if (mode === "clip") {
+      setProgressLabel("Analyzing players…"); setProgressTotal(1);
+      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip" }) });
+      const data = await res.json(); setProgressCurrent(1);
+      const parsed        = parsePlayerBlocks(data.feedback ?? "");
+      const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
+      setDecisions(parsed); setResultMode("clip");
+      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip", grade: parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
+    } else {
+      const CHUNK_SIZE = 6;
+      const chunks: { dataUrl: string; timestamp: number }[][] = [];
+      for (let i = 0; i < frames.length; i += CHUNK_SIZE) chunks.push(frames.slice(i, i + CHUNK_SIZE));
+      setProgressTotal(chunks.length + 1);
+      const chunkSummaries: ChunkSummary[] = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
+        setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
+        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end }) });
+        const data = await res.json();
+        chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
+      }
+      setProgressLabel("Building game report…");
+      const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries }) });
+      const synthData = await synthRes.json(); setProgressCurrent(chunks.length + 1);
+      const report = parseGameReport(synthData.report ?? "");
+      const detectedGameSport = sport || profile.sport || "Unknown";
+      setGameReport(report); setResultMode("game");
+      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedGameSport, mode: "game", grade: report.overallGrade, timestamp: Date.now(), gameReport: report }, ...reviews]);
+    }
+  }
+
   async function analyzeVideo() {
     if (!videoFile) return;
     setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
@@ -298,37 +411,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
       setProgressLabel("Extracting frames…");
       const { frames, mode } = await extractFramesAdaptive(videoFile);
 
-      if (mode === "clip") {
-        setProgressLabel("Analyzing players…"); setProgressTotal(1);
-        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip" }) });
-        const data = await res.json(); setProgressCurrent(1);
-        const parsed       = parsePlayerBlocks(data.feedback ?? "");
-        const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
-        setDecisions(parsed); setResultMode("clip");
-        saveReviews([{ id: crypto.randomUUID(), fileName: fileName || "Untitled clip", sport: detectedSport, mode: "clip", grade: parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
-
-      } else {
-        const CHUNK_SIZE = 6;
-        const chunks: FrameWithTime[][] = [];
-        for (let i = 0; i < frames.length; i += CHUNK_SIZE) chunks.push(frames.slice(i, i + CHUNK_SIZE));
-        setProgressTotal(chunks.length + 1);
-        const chunkSummaries: ChunkSummary[] = [];
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i];
-          const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
-          setProgressLabel(`Segment ${i + 1} of ${chunks.length} (${start}–${end})…`);
-          const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end }) });
-          const data = await res.json();
-          chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
-        }
-        setProgressLabel("Building game report…");
-        const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries }) });
-        const synthData = await synthRes.json(); setProgressCurrent(chunks.length + 1);
-        const report = parseGameReport(synthData.report ?? "");
-        const detectedGameSport = sport || profile.sport || chunkSummaries.map(c => c.text.match(/Sport:\s*(.+)/i)?.[1]?.trim()).find(Boolean) || "Unknown";
-        setGameReport(report); setResultMode("game");
-        saveReviews([{ id: crypto.randomUUID(), fileName: fileName || "Untitled game", sport: detectedGameSport, mode: "game", grade: report.overallGrade, timestamp: Date.now(), gameReport: report }, ...reviews]);
-      }
+      await runAnalysis(frames, mode, fileName || "Untitled");
     } catch (err) { console.error(err); }
     setLoading(false); setProgressLabel("");
   }
@@ -345,19 +428,47 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
         <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
           <p className="mb-4 text-sm font-semibold text-white">Upload</p>
 
-          <label className="block cursor-pointer rounded-lg border border-dashed border-zinc-800 p-6 text-center hover:border-zinc-600 transition-colors">
-            <input type="file" accept="video/*" className="hidden" onChange={(e) => {
-              const file = e.target.files?.[0]; if (!file) return;
-              setVideoFile(file); setFileName(file.name);
-              setVideoUrl(URL.createObjectURL(file));
-              setDecisions([]); setGameReport(null); setResultMode(null);
-            }} />
-            <p className="text-sm font-medium text-zinc-400">Choose video</p>
-            <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
-          </label>
+          {/* Tab switcher */}
+          <div className="mb-4 flex gap-1 rounded-lg border border-zinc-800 bg-black p-0.5">
+            {(["file", "youtube"] as const).map(tab => (
+              <button key={tab} onClick={() => { setInputTab(tab); setYtError(""); }}
+                className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}>
+                {tab === "file" ? "Video File" : "YouTube Link"}
+              </button>
+            ))}
+          </div>
 
-          {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
-          {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
+          {inputTab === "file" ? (
+            <>
+              <label className="block cursor-pointer rounded-lg border border-dashed border-zinc-800 p-6 text-center hover:border-zinc-600 transition-colors">
+                <input type="file" accept="video/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setVideoFile(file); setFileName(file.name);
+                  setVideoUrl(URL.createObjectURL(file));
+                  setDecisions([]); setGameReport(null); setResultMode(null);
+                }} />
+                <p className="text-sm font-medium text-zinc-400">Choose video</p>
+                <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
+              </label>
+              {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
+              {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
+            </>
+          ) : (
+            <>
+              <div className="rounded-lg border border-zinc-800 p-4">
+                <p className="text-xs text-zinc-500 mb-3 leading-relaxed">
+                  Paste any public YouTube game link. Works with highlights, full games, and clips.
+                </p>
+                <input
+                  className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={ytUrl}
+                  onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
+                />
+                {ytError && <p className="mt-2 text-xs text-red-400">{ytError}</p>}
+              </div>
+            </>
+          )}
 
           <div className="mt-4 space-y-2">
             <input
@@ -367,7 +478,8 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
               onChange={e => setSport(e.target.value)}
             />
             <button
-              onClick={analyzeVideo} disabled={loading || !videoFile}
+              onClick={inputTab === "youtube" ? analyzeYouTube : analyzeVideo}
+              disabled={loading || (inputTab === "file" ? !videoFile : !ytUrl.trim())}
               className="w-full rounded-lg bg-white py-3 text-sm font-semibold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors"
             >
               {loading ? "Analyzing…" : "Analyze"}
