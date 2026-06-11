@@ -83,7 +83,7 @@ Pattern To Improve:
 [One habit to work on, spoken as a coach: "The thing to keep working on is..."]
 
 Practice Focus:
-[One specific drill or rep: "In your next practice, focus on..."]
+[One specific drill the athlete can do ALONE with no equipment or basic household items. No cones, no pads, no teammates required. Make it something they can do in their driveway, backyard, bedroom, or a park. Be specific: name the drill, how many reps, and what to focus on mentally while doing it.]
 === END ===
 
 Sport: ${sport || "auto-detect from frames"}

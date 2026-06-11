@@ -55,7 +55,7 @@ Top 3 Areas To Improve:
 - [Area 3]
 
 Game-Level Practice Focus:
-[One high-priority thing to work on this week. Make it feel like a real coaching assignment.]
+[One solo drill the athlete can do completely alone with no equipment or basic household items — no cones, no pads, no teammates. Something they can do in a driveway, park, bedroom, or backyard. Name the drill, the reps, and what to focus on mentally.]
 
 Player Stats:
 - [#NUMBER (TEAM) | Decisions: X good / Y poor | Fouls: Z | Key plays: brief note]
