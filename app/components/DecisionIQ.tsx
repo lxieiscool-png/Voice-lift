@@ -458,9 +458,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
               <p className="text-sm font-medium text-white">How to analyze a YouTube video</p>
               <div className="space-y-2">
                 {[
-                  { num: "1", text: "Go to yt1s.com or y2mate.com" },
-                  { num: "2", text: "Paste your YouTube link and download the video as MP4" },
-                  { num: "3", text: 'Switch to "Video File" tab above and upload it' },
+                  { num: "1", text: "Open the YouTube video in Safari or Chrome" },
+                  { num: "2", text: 'Screen record the clip you want to analyze (Mac: Cmd+Shift+5, iPhone: swipe Control Center)' },
+                  { num: "3", text: 'Switch to "Video File" tab and upload the recording' },
                 ].map(s => (
                   <div key={s.num} className="flex items-start gap-3">
                     <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-400">{s.num}</span>
@@ -468,17 +468,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
                   </div>
                 ))}
               </div>
-              <div className="flex gap-2">
-                <a href="https://yt1s.com" target="_blank" rel="noopener noreferrer"
-                  className="flex-1 rounded-lg border border-zinc-700 py-2.5 text-center text-sm font-semibold text-white hover:bg-zinc-800 transition-colors">
-                  yt1s.com
-                </a>
-                <a href="https://y2mate.com" target="_blank" rel="noopener noreferrer"
-                  className="flex-1 rounded-lg border border-zinc-700 py-2.5 text-center text-sm font-semibold text-white hover:bg-zinc-800 transition-colors">
-                  y2mate.com
-                </a>
-              </div>
-              <p className="text-xs text-zinc-600">Free tools — paste the YouTube link, download as MP4, then upload here.</p>
+              <p className="text-xs text-zinc-600">Screen recording works on any device and captures exactly what you see — no downloads needed.</p>
             </div>
           )}
 
