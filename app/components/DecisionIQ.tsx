@@ -458,7 +458,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
               <p className="text-sm font-medium text-white">How to analyze a YouTube video</p>
               <div className="space-y-2">
                 {[
-                  { num: "1", text: "Go to cobalt.tools" },
+                  { num: "1", text: "Go to yt1s.com or y2mate.com" },
                   { num: "2", text: "Paste your YouTube link and download the video as MP4" },
                   { num: "3", text: 'Switch to "Video File" tab above and upload it' },
                 ].map(s => (
@@ -468,15 +468,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
                   </div>
                 ))}
               </div>
-              <a
-                href="https://cobalt.tools"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full rounded-lg border border-zinc-700 py-2.5 text-center text-sm font-semibold text-white hover:bg-zinc-800 transition-colors"
-              >
-                Open cobalt.tools
-              </a>
-              <p className="text-xs text-zinc-600">Free, no account needed. Works with YouTube, Instagram, TikTok, and more.</p>
+              <div className="flex gap-2">
+                <a href="https://yt1s.com" target="_blank" rel="noopener noreferrer"
+                  className="flex-1 rounded-lg border border-zinc-700 py-2.5 text-center text-sm font-semibold text-white hover:bg-zinc-800 transition-colors">
+                  yt1s.com
+                </a>
+                <a href="https://y2mate.com" target="_blank" rel="noopener noreferrer"
+                  className="flex-1 rounded-lg border border-zinc-700 py-2.5 text-center text-sm font-semibold text-white hover:bg-zinc-800 transition-colors">
+                  y2mate.com
+                </a>
+              </div>
+              <p className="text-xs text-zinc-600">Free tools — paste the YouTube link, download as MP4, then upload here.</p>
             </div>
           )}
 
