@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Profile, Review } from "./lib/types";
 import { averageGrade, gradeClass, formatDate, GRADE_VALUE } from "./lib/shared";
+import { createClient } from "./lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 const DecisionIQ = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ    = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
@@ -210,13 +212,16 @@ function HowItWorks({ activeModule }: { activeModule: ModuleId }) {
 
 // ─── Settings Panel ───────────────────────────────────────────────────────────
 
-function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClearHistory }: {
+function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClearHistory, user, onSignIn, onSignOut }: {
   open: boolean;
   onClose: () => void;
   profile: Profile;
   onSaveProfile: (p: Profile) => void;
   reviews: Review[];
   onClearHistory: () => void;
+  user: User | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
 }) {
   const [draft, setDraft] = useState(profile);
   const [saved, setSaved] = useState(false);
@@ -322,13 +327,29 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
               </div>
             </div>
 
-            {/* Account — placeholder */}
+            {/* Account */}
             <div>
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Account</p>
-              <div className="rounded-lg border border-zinc-800 p-4">
-                <p className="text-sm font-semibold text-white mb-1">Sign in coming soon</p>
-                <p className="text-xs text-zinc-500">Google login will let you access your history from any device.</p>
-              </div>
+              {user ? (
+                <div className="space-y-2">
+                  <div className="rounded-lg border border-zinc-800 p-3">
+                    <p className="text-xs text-zinc-500 mb-0.5">Signed in as</p>
+                    <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                  </div>
+                  <button onClick={onSignOut}
+                    className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-400 hover:text-red-400 hover:border-red-900 transition-colors">
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-zinc-500">Sign in to save your history across all devices.</p>
+                  <button onClick={onSignIn}
+                    className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                    Sign in with Google
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* About */}
@@ -355,13 +376,57 @@ export default function Reel() {
   const [profile,       setProfile]       = useState<Profile>(DEFAULT_PROFILE);
   const [reviews,       setReviews]       = useState<Review[]>([]);
   const [settingsOpen,  setSettingsOpen]  = useState(false);
+  const [user,          setUser]          = useState<User | null>(null);
+  const [authLoading,   setAuthLoading]   = useState(true);
+
+  const supabase = createClient();
 
   useEffect(() => {
+    // Load local data
     const p = localStorage.getItem("decisioniq-profile");
     if (p) setProfile(JSON.parse(p));
     const r = localStorage.getItem("decisioniq-reviews");
     if (r) setReviews(JSON.parse(r));
+
+    // Check auth session
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setAuthLoading(false);
+      if (user) loadUserData(user.id);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) loadUserData(session.user.id);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  async function loadUserData(userId: string) {
+    // Load profile from Supabase
+    const { data: profileData } = await supabase
+      .from("profiles").select("*").eq("id", userId).single();
+    if (profileData) {
+      const p = { name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "" };
+      setProfile(p);
+      localStorage.setItem("decisioniq-profile", JSON.stringify(p));
+    }
+
+    // Load reviews from Supabase
+    const { data: reviewsData } = await supabase
+      .from("reviews").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+    if (reviewsData && reviewsData.length > 0) {
+      const mapped: Review[] = reviewsData.map(r => ({
+        id: r.id, fileName: r.file_name, sport: r.sport, mode: r.mode,
+        grade: r.grade, timestamp: new Date(r.created_at).getTime(),
+        ...(r.data || {}),
+      }));
+      setReviews(mapped);
+      localStorage.setItem("decisioniq-reviews", JSON.stringify(mapped));
+    }
+  }
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
@@ -371,14 +436,30 @@ export default function Reel() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  function saveProfile(p: Profile) {
+  async function signInWithGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setUser(null);
+  }
+
+  async function saveProfile(p: Profile) {
     setProfile(p);
     localStorage.setItem("decisioniq-profile", JSON.stringify(p));
+    if (user) {
+      await supabase.from("profiles").upsert({ id: user.id, ...p });
+    }
   }
 
   function clearHistory() {
     setReviews([]);
     localStorage.removeItem("decisioniq-reviews");
+    if (user) supabase.from("reviews").delete().eq("user_id", user.id);
   }
 
   return (
@@ -392,6 +473,9 @@ export default function Reel() {
         onSaveProfile={saveProfile}
         reviews={reviews}
         onClearHistory={clearHistory}
+        user={user}
+        onSignIn={signInWithGoogle}
+        onSignOut={signOut}
       />
 
       {/* Nav */}
@@ -419,7 +503,9 @@ export default function Reel() {
 
           <button onClick={() => setSettingsOpen(true)}
             className="flex items-center gap-2 rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
-            {profile.name
+            {user
+              ? <><span className="h-5 w-5 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold">{(user.email || "?").charAt(0).toUpperCase()}</span><span className="hidden sm:block">{profile.name ? profile.name.split(" ")[0] : "Account"}</span></>
+              : profile.name
               ? <><span className="h-5 w-5 flex items-center justify-center rounded-full bg-white text-black text-[10px] font-bold">{profile.name.charAt(0).toUpperCase()}</span><span className="hidden sm:block">{profile.name.split(" ")[0]}</span></>
               : <span>Settings</span>
             }
