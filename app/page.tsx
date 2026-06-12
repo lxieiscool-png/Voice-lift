@@ -369,6 +369,188 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
   );
 }
 
+// ─── Landing Page ─────────────────────────────────────────────────────────────
+
+function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterApp: () => void }) {
+  return (
+    <div className="min-h-screen bg-black text-white">
+
+      {/* Nav */}
+      <header className="border-b border-zinc-900 px-6 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <span className="text-2xl font-black tracking-tight">Reel</span>
+          <div className="flex items-center gap-3">
+            <button onClick={onEnterApp} className="text-sm text-zinc-500 hover:text-white transition-colors">
+              Try without account
+            </button>
+            <button onClick={onSignIn}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+              Sign in
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-6 py-24 text-center">
+        <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
+          Coaching for every athlete
+        </p>
+        <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight sm:text-7xl">
+          Every athlete deserves<br />
+          <span className="text-zinc-400">a great coach.</span>
+        </h1>
+        <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-500 leading-relaxed">
+          Reel gives any athlete access to the kind of coaching that used to cost hundreds of dollars an hour — film analysis, personalized practice plans, and tactical feedback — completely free.
+        </p>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <button onClick={onSignIn}
+            className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors sm:w-auto">
+            Get started free
+          </button>
+          <button onClick={onEnterApp}
+            className="w-full rounded-xl border border-zinc-800 px-8 py-4 text-base font-semibold text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors sm:w-auto">
+            Try it out
+          </button>
+        </div>
+      </section>
+
+      {/* Mission */}
+      <section className="border-t border-zinc-900">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <div className="grid gap-12 lg:grid-cols-2 items-center">
+            <div>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Our Mission</p>
+              <h2 className="mb-5 text-3xl font-black tracking-tight sm:text-4xl">
+                Talent is everywhere.<br />
+                <span className="text-zinc-500">Opportunity isn't.</span>
+              </h2>
+              <p className="text-zinc-500 leading-relaxed mb-4">
+                A private coach can cost $100–300 an hour. Most young athletes — especially those from low-income families, rural areas, or underserved communities — never get access to that level of feedback.
+              </p>
+              <p className="text-zinc-400 leading-relaxed">
+                Reel was built to change that. Upload any clip or game, and get the same quality of tactical analysis and personalized coaching that elite athletes pay thousands for — for free, for everyone.
+              </p>
+            </div>
+            <div className="grid gap-4">
+              {[
+                { stat: "Free", desc: "No subscriptions, no paywalls. Always free for athletes." },
+                { stat: "Any sport", desc: "Basketball, soccer, football, water polo, and more — Reel adapts automatically." },
+                { stat: "Any level", desc: "From middle school to college. Beginners to advanced. Everyone gets coached." },
+              ].map(({ stat, desc }) => (
+                <div key={stat} className="border border-zinc-800 rounded-xl p-5">
+                  <p className="text-2xl font-black text-white mb-1">{stat}</p>
+                  <p className="text-sm text-zinc-500">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="border-t border-zinc-900">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 text-center">The Platform</p>
+          <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Two tools. One mission.</h2>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* DecisionIQ */}
+            <div className="border border-zinc-800 rounded-2xl p-8">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Film Analysis</p>
+              <h3 className="mb-4 text-2xl font-black">DecisionIQ</h3>
+              <p className="mb-6 text-zinc-500 leading-relaxed">
+                Upload a clip or a full game. DecisionIQ analyzes every player on screen — offense and defense — grades each decision, and tells you exactly what the better option was and why.
+              </p>
+              <div className="space-y-3">
+                {[
+                  "Grades every player, not just the ball handler",
+                  "Works on full games — period breakdowns, foul patterns, player stats",
+                  "Auto-detects sport, teams, and jersey numbers",
+                  "Tracks your grade trend over time",
+                ].map(f => (
+                  <div key={f} className="flex items-start gap-3">
+                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
+                    <p className="text-sm text-zinc-400">{f}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CoachIQ */}
+            <div className="border border-zinc-800 rounded-2xl p-8">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Personal Coaching</p>
+              <h3 className="mb-4 text-2xl font-black">CoachIQ</h3>
+              <p className="mb-6 text-zinc-500 leading-relaxed">
+                Your personal coach, available 24/7. Ask anything about technique, strategy, or mindset. Or build a full weekly practice plan — specific drills, reps, and explanations, all tailored to your game.
+              </p>
+              <div className="space-y-3">
+                {[
+                  "Knows your sport, position, and recent film patterns",
+                  "Builds personalized weekly practice plans",
+                  "All drills are solo — no gym, no equipment, no teammates needed",
+                  "Speaks directly to you, like a real coach would",
+                ].map(f => (
+                  <div key={f} className="flex items-start gap-3">
+                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
+                    <p className="text-sm text-zinc-400">{f}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-t border-zinc-900">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 text-center">Simple by design</p>
+          <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Start in 30 seconds.</h2>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {[
+              { num: "01", title: "Upload your clip", desc: "Drop in any video from your phone or camera. A 10-second clip or a full game — Reel handles both." },
+              { num: "02", title: "Get real feedback", desc: "Every player gets graded. Every decision gets broken down. You see exactly what happened and what to do differently." },
+              { num: "03", title: "Train smarter", desc: "Take your feedback to CoachIQ. Build a practice plan that directly targets the weaknesses your film revealed." },
+            ].map(s => (
+              <div key={s.num} className="border border-zinc-800 rounded-xl p-6">
+                <p className="mb-3 text-3xl font-black text-zinc-800">{s.num}</p>
+                <p className="mb-2 text-base font-bold text-white">{s.title}</p>
+                <p className="text-sm text-zinc-500 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Motto / CTA */}
+      <section className="border-t border-zinc-900">
+        <div className="mx-auto max-w-4xl px-6 py-24 text-center">
+          <h2 className="mb-6 text-4xl font-black tracking-tight sm:text-6xl">
+            Your film room.<br />Your coach.<br />
+            <span className="text-zinc-600">Your edge.</span>
+          </h2>
+          <p className="mb-10 text-zinc-500 text-lg">
+            No experience required. No equipment needed. No cost — ever.
+          </p>
+          <button onClick={onSignIn}
+            className="rounded-xl bg-white px-10 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors">
+            Start for free
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-900 px-6 py-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <span className="text-sm font-bold text-zinc-700">Reel</span>
+          <p className="text-xs text-zinc-700">Coaching for every athlete.</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
 export default function Reel() {
@@ -378,6 +560,7 @@ export default function Reel() {
   const [settingsOpen,  setSettingsOpen]  = useState(false);
   const [user,          setUser]          = useState<User | null>(null);
   const [authLoading,   setAuthLoading]   = useState(true);
+  const [showApp,       setShowApp]       = useState(false);
 
   const supabase = createClient();
 
@@ -392,13 +575,13 @@ export default function Reel() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       setAuthLoading(false);
-      if (user) loadUserData(user.id);
+      if (user) { setShowApp(true); loadUserData(user.id); }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) loadUserData(session.user.id);
+      if (session?.user) { setShowApp(true); loadUserData(session.user.id); }
     });
 
     return () => subscription.unsubscribe();
@@ -460,6 +643,20 @@ export default function Reel() {
     setReviews([]);
     localStorage.removeItem("decisioniq-reviews");
     if (user) supabase.from("reviews").delete().eq("user_id", user.id);
+  }
+
+  // Show loading spinner briefly
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <p className="text-zinc-700 text-sm animate-pulse">Loading…</p>
+      </div>
+    );
+  }
+
+  // Show landing page if not signed in and hasn't clicked "try"
+  if (!showApp) {
+    return <LandingPage onSignIn={signInWithGoogle} onEnterApp={() => setShowApp(true)} />;
   }
 
   return (
