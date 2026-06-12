@@ -371,6 +371,15 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
+const ATHLETE_PHOTOS = [
+  { id: "1546519638405-a2c1c7ab71e3", alt: "Basketball" },
+  { id: "1504450758481-7338eba7524a", alt: "Basketball player" },
+  { id: "1574629810360-7efbbe195018", alt: "Soccer" },
+  { id: "1552674605-db6ffd4facb5", alt: "Athlete" },
+  { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
+  { id: "1517649763962-0c623066013b", alt: "Sport" },
+];
+
 function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterApp: () => void }) {
   return (
     <div className="min-h-screen bg-black text-white">
@@ -392,26 +401,58 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-6 py-24 text-center">
-        <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">
-          Coaching for every athlete
-        </p>
-        <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight sm:text-7xl">
-          Every athlete deserves<br />
-          <span className="text-zinc-400">a great coach.</span>
-        </h1>
-        <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-500 leading-relaxed">
-          Reel gives any athlete access to the kind of coaching that used to cost hundreds of dollars an hour — film analysis, personalized practice plans, and tactical feedback — completely free.
-        </p>
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <button onClick={onSignIn}
-            className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors sm:w-auto">
-            Get started free
-          </button>
-          <button onClick={onEnterApp}
-            className="w-full rounded-xl border border-zinc-800 px-8 py-4 text-base font-semibold text-zinc-400 hover:text-white hover:border-zinc-600 transition-colors sm:w-auto">
-            Try it out
-          </button>
+      <section className="relative overflow-hidden">
+        {/* Background image grid */}
+        <div className="absolute inset-0 grid grid-cols-3 gap-0 opacity-20">
+          {ATHLETE_PHOTOS.map(({ id, alt }) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={id}
+              src={`https://images.unsplash.com/photo-${id}?w=600&q=60&fit=crop&crop=center`}
+              alt={alt}
+              className="h-full w-full object-cover"
+            />
+          ))}
+        </div>
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
+
+        <div className="relative mx-auto max-w-6xl px-6 py-32 text-center">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+            Coaching for every athlete
+          </p>
+          <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight sm:text-7xl">
+            Every athlete deserves<br />
+            <span className="text-zinc-400">a great coach.</span>
+          </h1>
+          <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 leading-relaxed">
+            Reel gives any athlete access to the kind of coaching that used to cost hundreds of dollars an hour — film analysis, personalized practice plans, and tactical feedback — completely free.
+          </p>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <button onClick={onSignIn}
+              className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors sm:w-auto">
+              Get started free
+            </button>
+            <button onClick={onEnterApp}
+              className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors sm:w-auto">
+              Try it out
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Photo strip */}
+      <section className="border-t border-zinc-900 overflow-hidden">
+        <div className="flex h-48 sm:h-64">
+          {ATHLETE_PHOTOS.map(({ id, alt }) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={id}
+              src={`https://images.unsplash.com/photo-${id}?w=400&q=70&fit=crop&crop=center`}
+              alt={alt}
+              className="flex-1 object-cover grayscale hover:grayscale-0 transition-all duration-500"
+            />
+          ))}
         </div>
       </section>
 
