@@ -435,8 +435,8 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
         {[
           { id: "1574629810360-7efbbe195018", alt: "Soccer" },
           { id: "1552674605-db6ffd4facb5", alt: "Athletes running" },
-          { id: "1504450758481-7338eba7524a", alt: "Basketball dunk" },
           { id: "1560272564-c83b66b1ad12", alt: "Football" },
+          { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
         ].map(({ id, alt }) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
