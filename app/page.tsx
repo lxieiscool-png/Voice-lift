@@ -395,11 +395,11 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       <section className="relative h-screen min-h-[600px] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://images.unsplash.com/photo-1546519638405-a2c1c7ab71e3?w=1600&q=85&fit=crop&crop=center"
+          src="https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=1600&q=85&fit=crop&crop=center"
           alt="Basketball"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10" />
 
         <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
           <p className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
