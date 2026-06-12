@@ -243,7 +243,7 @@ export default function Reel() {
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
-            <span className="text-base font-bold tracking-tight">Reel</span>
+            <span className="text-2xl font-black tracking-tight">Reel</span>
             <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-zinc-700 sm:block">
               Coaching for every athlete
             </span>
