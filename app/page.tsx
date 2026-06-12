@@ -208,12 +208,153 @@ function HowItWorks({ activeModule }: { activeModule: ModuleId }) {
   );
 }
 
+// ─── Settings Panel ───────────────────────────────────────────────────────────
+
+function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClearHistory }: {
+  open: boolean;
+  onClose: () => void;
+  profile: Profile;
+  onSaveProfile: (p: Profile) => void;
+  reviews: Review[];
+  onClearHistory: () => void;
+}) {
+  const [draft, setDraft] = useState(profile);
+  const [saved, setSaved] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  useEffect(() => { setDraft(profile); }, [profile]);
+
+  function save() {
+    onSaveProfile(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  function exportHistory() {
+    const blob = new Blob([JSON.stringify(reviews, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = "reel-history.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      {open && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />}
+
+      {/* Drawer */}
+      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-zinc-950 border-l border-zinc-800 transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="flex h-full flex-col overflow-y-auto">
+
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
+            <p className="text-sm font-semibold text-white">Settings</p>
+            <button onClick={onClose} className="text-xs text-zinc-600 hover:text-white transition-colors">Close</button>
+          </div>
+
+          <div className="flex-1 space-y-6 p-5">
+
+            {/* Profile */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Profile</p>
+              <div className="space-y-2">
+                {(["name", "sport", "team"] as const).map(k => (
+                  <input key={k}
+                    className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    placeholder={k === "name" ? "Your name" : k === "sport" ? "Primary sport" : "Team / school"}
+                    value={draft[k]}
+                    onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))}
+                  />
+                ))}
+                <button onClick={save}
+                  className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                  {saved ? "Saved" : "Save Profile"}
+                </button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Your Stats</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Total Reviews", value: reviews.length },
+                  { label: "Clips", value: reviews.filter(r => r.mode === "clip").length },
+                  { label: "Games", value: reviews.filter(r => r.mode === "game").length },
+                  { label: "Sports", value: new Set(reviews.map(r => r.sport.toLowerCase())).size },
+                ].map(({ label, value }) => (
+                  <div key={label} className="rounded-lg border border-zinc-800 px-3 py-2.5">
+                    <p className="text-[10px] text-zinc-600 mb-0.5">{label}</p>
+                    <p className="text-lg font-bold text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Data */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Data</p>
+              <div className="space-y-2">
+                <button onClick={exportHistory} disabled={reviews.length === 0}
+                  className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900 disabled:opacity-30 transition-colors">
+                  Export History
+                </button>
+                {!confirmClear
+                  ? <button onClick={() => setConfirmClear(true)} disabled={reviews.length === 0}
+                      className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-500 hover:text-red-400 hover:border-red-900 disabled:opacity-30 transition-colors">
+                      Clear All History
+                    </button>
+                  : <div className="rounded-lg border border-red-900 p-3 space-y-2">
+                      <p className="text-xs text-zinc-400">Delete all {reviews.length} reviews? This can't be undone.</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => { onClearHistory(); setConfirmClear(false); onClose(); }}
+                          className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors">
+                          Delete All
+                        </button>
+                        <button onClick={() => setConfirmClear(false)}
+                          className="flex-1 rounded-lg border border-zinc-700 py-2 text-xs text-zinc-400 hover:text-white transition-colors">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                }
+              </div>
+            </div>
+
+            {/* Account — placeholder */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Account</p>
+              <div className="rounded-lg border border-zinc-800 p-4">
+                <p className="text-sm font-semibold text-white mb-1">Sign in coming soon</p>
+                <p className="text-xs text-zinc-500">Google login will let you access your history from any device.</p>
+              </div>
+            </div>
+
+            {/* About */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">About</p>
+              <div className="rounded-lg border border-zinc-800 p-4 space-y-1">
+                <p className="text-sm font-semibold text-white">Reel</p>
+                <p className="text-xs text-zinc-500">Coaching for every athlete — any sport, any level.</p>
+                <p className="text-xs text-zinc-700 mt-2">Built with DecisionIQ + CoachIQ</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
 export default function Reel() {
-  const [activeModule, setActiveModule] = useState<ModuleId>("decision");
-  const [profile,      setProfile]      = useState<Profile>(DEFAULT_PROFILE);
-  const [reviews,      setReviews]      = useState<Review[]>([]);
+  const [activeModule,  setActiveModule]  = useState<ModuleId>("decision");
+  const [profile,       setProfile]       = useState<Profile>(DEFAULT_PROFILE);
+  const [reviews,       setReviews]       = useState<Review[]>([]);
+  const [settingsOpen,  setSettingsOpen]  = useState(false);
 
   useEffect(() => {
     const p = localStorage.getItem("decisioniq-profile");
@@ -235,11 +376,26 @@ export default function Reel() {
     localStorage.setItem("decisioniq-profile", JSON.stringify(p));
   }
 
+  function clearHistory() {
+    setReviews([]);
+    localStorage.removeItem("decisioniq-reviews");
+  }
+
   return (
     <main className="min-h-screen bg-black text-white">
 
+      {/* Settings panel */}
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        profile={profile}
+        onSaveProfile={saveProfile}
+        reviews={reviews}
+        onClearHistory={clearHistory}
+      />
+
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black/95 backdrop-blur px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-zinc-900 bg-black/95 backdrop-blur px-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
@@ -261,12 +417,13 @@ export default function Reel() {
             ))}
           </nav>
 
-          {profile.name
-            ? <div className="h-7 w-7 shrink-0 flex items-center justify-center rounded-full bg-white text-black text-xs font-bold">
-                {profile.name.charAt(0).toUpperCase()}
-              </div>
-            : <div className="w-7" />
-          }
+          <button onClick={() => setSettingsOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+            {profile.name
+              ? <><span className="h-5 w-5 flex items-center justify-center rounded-full bg-white text-black text-[10px] font-bold">{profile.name.charAt(0).toUpperCase()}</span><span className="hidden sm:block">{profile.name.split(" ")[0]}</span></>
+              : <span>Settings</span>
+            }
+          </button>
         </div>
       </header>
 
