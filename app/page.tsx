@@ -395,7 +395,7 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       <section className="relative h-screen min-h-[600px] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1600&q=85&fit=crop&crop=center"
+          src="https://images.unsplash.com/photo-1546519638405-a2c1c7ab71e3?w=1600&q=85&fit=crop&crop=center"
           alt="Basketball"
           className="absolute inset-0 h-full w-full object-cover"
         />
@@ -433,10 +433,10 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       {/* Photo grid */}
       <section className="grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
         {[
+          { id: "1574629810360-7efbbe195018", alt: "Soccer" },
+          { id: "1552674605-db6ffd4facb5", alt: "Athletes running" },
           { id: "1504450758481-7338eba7524a", alt: "Basketball dunk" },
-          { id: "1431324155629-1a5dcdfd2e1c", alt: "Soccer stadium" },
-          { id: "1461896836934-ffe607ba8211", alt: "Athletes" },
-          { id: "1508098682722-e99c43a406b2", alt: "Football" },
+          { id: "1560272564-c83b66b1ad12", alt: "Football" },
         ].map(({ id, alt }) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
