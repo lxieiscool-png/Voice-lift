@@ -371,25 +371,16 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-const ATHLETE_PHOTOS = [
-  { id: "1546519638405-a2c1c7ab71e3", alt: "Basketball" },
-  { id: "1504450758481-7338eba7524a", alt: "Basketball player" },
-  { id: "1574629810360-7efbbe195018", alt: "Soccer" },
-  { id: "1552674605-db6ffd4facb5", alt: "Athlete" },
-  { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
-  { id: "1517649763962-0c623066013b", alt: "Sport" },
-];
-
 function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterApp: () => void }) {
   return (
     <div className="min-h-screen bg-black text-white">
 
       {/* Nav */}
-      <header className="border-b border-zinc-900 px-6 py-4">
+      <header className="absolute top-0 left-0 right-0 z-20 px-6 py-5">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <span className="text-2xl font-black tracking-tight">Reel</span>
           <div className="flex items-center gap-3">
-            <button onClick={onEnterApp} className="text-sm text-zinc-500 hover:text-white transition-colors">
+            <button onClick={onEnterApp} className="text-sm text-zinc-400 hover:text-white transition-colors">
               Try without account
             </button>
             <button onClick={onSignIn}
@@ -400,35 +391,28 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        {/* Background image grid */}
-        <div className="absolute inset-0 grid grid-cols-3 gap-0 opacity-20">
-          {ATHLETE_PHOTOS.map(({ id, alt }) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={id}
-              src={`https://images.unsplash.com/photo-${id}?w=600&q=60&fit=crop&crop=center`}
-              alt={alt}
-              className="h-full w-full object-cover"
-            />
-          ))}
-        </div>
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
+      {/* Hero — full bleed image */}
+      <section className="relative h-screen min-h-[600px] overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=1600&q=80&fit=crop&crop=center"
+          alt="Basketball player"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
 
-        <div className="relative mx-auto max-w-6xl px-6 py-32 text-center">
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+        <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
+          <p className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
             Coaching for every athlete
           </p>
-          <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight sm:text-7xl">
-            Every athlete deserves<br />
-            <span className="text-zinc-400">a great coach.</span>
+          <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight sm:text-7xl lg:text-8xl">
+            Every athlete<br />deserves a<br />
+            <span className="text-zinc-400">great coach.</span>
           </h1>
-          <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 leading-relaxed">
-            Reel gives any athlete access to the kind of coaching that used to cost hundreds of dollars an hour — film analysis, personalized practice plans, and tactical feedback — completely free.
+          <p className="mx-auto mb-10 max-w-xl text-base text-zinc-400 leading-relaxed sm:text-lg">
+            Film analysis. Personalized coaching. Practice plans built around your game. All free — for every athlete, everywhere.
           </p>
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
             <button onClick={onSignIn}
               className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors sm:w-auto">
               Get started free
@@ -439,21 +423,29 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
             </button>
           </div>
         </div>
+
+        {/* Scroll hint */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
+          <div className="h-8 w-px bg-white" />
+        </div>
       </section>
 
-      {/* Photo strip */}
-      <section className="border-t border-zinc-900 overflow-hidden">
-        <div className="flex h-48 sm:h-64">
-          {ATHLETE_PHOTOS.map(({ id, alt }) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={id}
-              src={`https://images.unsplash.com/photo-${id}?w=400&q=70&fit=crop&crop=center`}
-              alt={alt}
-              className="flex-1 object-cover grayscale hover:grayscale-0 transition-all duration-500"
-            />
-          ))}
-        </div>
+      {/* Photo grid */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
+        {[
+          { id: "1546519638405-a2c1c7ab71e3", alt: "Basketball arena" },
+          { id: "1574629810360-7efbbe195018", alt: "Soccer" },
+          { id: "1552674605-db6ffd4facb5", alt: "Running athletes" },
+          { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
+        ].map(({ id, alt }) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={id}
+            src={`https://images.unsplash.com/photo-${id}?w=500&q=70&fit=crop&crop=center`}
+            alt={alt}
+            className="h-full w-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-100 transition-all duration-700"
+          />
+        ))}
       </section>
 
       {/* Mission */}
