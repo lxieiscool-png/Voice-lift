@@ -434,7 +434,7 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       <section className="grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
         {[
           { id: "1574629810360-7efbbe195018", alt: "Soccer" },
-          { id: "1552674605-db6ffd4facb5", alt: "Athletes running" },
+          { id: "1558618666-fcd25c85cd64", alt: "Basketball" },
           { id: "1560272564-c83b66b1ad12", alt: "Football" },
           { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
         ].map(({ id, alt }) => (
