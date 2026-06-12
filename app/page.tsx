@@ -395,8 +395,8 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       <section className="relative h-screen min-h-[600px] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=1600&q=80&fit=crop&crop=center"
-          alt="Basketball player"
+          src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1600&q=85&fit=crop&crop=center"
+          alt="Basketball"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
@@ -433,10 +433,10 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       {/* Photo grid */}
       <section className="grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
         {[
-          { id: "1546519638405-a2c1c7ab71e3", alt: "Basketball arena" },
-          { id: "1574629810360-7efbbe195018", alt: "Soccer" },
-          { id: "1552674605-db6ffd4facb5", alt: "Running athletes" },
-          { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
+          { id: "1504450758481-7338eba7524a", alt: "Basketball dunk" },
+          { id: "1431324155629-1a5dcdfd2e1c", alt: "Soccer stadium" },
+          { id: "1461896836934-ffe607ba8211", alt: "Athletes" },
+          { id: "1508098682722-e99c43a406b2", alt: "Football" },
         ].map(({ id, alt }) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
