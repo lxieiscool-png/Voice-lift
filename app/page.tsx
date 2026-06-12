@@ -210,7 +210,7 @@ function HowItWorks({ activeModule }: { activeModule: ModuleId }) {
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
-export default function VoiceLift() {
+export default function Reel() {
   const [activeModule, setActiveModule] = useState<ModuleId>("decision");
   const [profile,      setProfile]      = useState<Profile>(DEFAULT_PROFILE);
   const [reviews,      setReviews]      = useState<Review[]>([]);
@@ -243,7 +243,7 @@ export default function VoiceLift() {
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
-            <span className="text-base font-bold tracking-tight">VoiceLift</span>
+            <span className="text-base font-bold tracking-tight">Reel</span>
             <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-zinc-700 sm:block">
               Coaching for every athlete
             </span>
@@ -277,7 +277,7 @@ export default function VoiceLift() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
-            <span className="ml-2 text-base font-normal text-zinc-600">by VoiceLift</span>
+            <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             {activeModule === "decision"
