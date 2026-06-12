@@ -468,7 +468,7 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
             <div className="grid gap-4">
               {[
                 { stat: "Free", desc: "No subscriptions, no paywalls. Always free for athletes." },
-                { stat: "Any sport", desc: "Basketball, soccer, football, water polo, and more — Reel adapts automatically." },
+                { stat: "Any sport", desc: "Basketball, soccer, football, water polo, lacrosse, volleyball, hockey, and more." },
                 { stat: "Any level", desc: "From middle school to college. Beginners to advanced. Everyone gets coached." },
               ].map(({ stat, desc }) => (
                 <div key={stat} className="border border-zinc-800 rounded-xl p-5">
