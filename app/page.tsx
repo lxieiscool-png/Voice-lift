@@ -7,13 +7,15 @@ import { averageGrade, gradeClass, formatDate, GRADE_VALUE } from "./lib/shared"
 import { createClient } from "./lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-const DecisionIQ = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
-const CoachIQ    = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
+const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
+const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
+const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
 
 const DEFAULT_PROFILE: Profile = { name: "", sport: "", team: "" };
 const MODULES = [
-  { id: "decision", label: "DecisionIQ",  sub: "Film analysis"     },
-  { id: "coach",    label: "CoachIQ",     sub: "Personal coaching" },
+  { id: "decision", label: "DecisionIQ", sub: "Film analysis"     },
+  { id: "coach",    label: "CoachIQ",    sub: "Personal coaching" },
+  { id: "library",  label: "Library",    sub: "Past reviews"      },
 ] as const;
 type ModuleId = typeof MODULES[number]["id"];
 
@@ -153,7 +155,7 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
-const HOW_STEPS: Record<ModuleId, { num: string; title: string; desc: string }[]> = {
+const HOW_STEPS: Record<"decision" | "coach", { num: string; title: string; desc: string }[]> = {
   decision: [
     { num: "01", title: "Upload your footage",      desc: "Drop in a short clip or a full game. DecisionIQ figures out the sport, the teams, and the situation automatically." },
     { num: "02", title: "Every player is reviewed", desc: "Every player on screen, offense and defense, gets their own grade, breakdown, and feedback based on what they did and what they could have done instead." },
@@ -167,7 +169,7 @@ const HOW_STEPS: Record<ModuleId, { num: string; title: string; desc: string }[]
   ],
 };
 
-function HowItWorks({ activeModule }: { activeModule: ModuleId }) {
+function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
   const [open, setOpen] = useState(true);
   const steps = HOW_STEPS[activeModule];
 
@@ -1003,13 +1005,11 @@ export default function Reel() {
           </nav>
 
           <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center justify-center h-9 w-9 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
-            {user
-              ? <span className="h-7 w-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[11px] font-bold">{(user.email || "?").charAt(0).toUpperCase()}</span>
-              : profile.name
-              ? <span className="h-7 w-7 flex items-center justify-center rounded-full bg-white text-black text-[11px] font-bold">{profile.name.charAt(0).toUpperCase()}</span>
-              : <span className="text-xs">☰</span>
-            }
+            className="flex items-center justify-center h-9 w-9 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors"
+            aria-label="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.113a7.047 7.047 0 0 1 0-2.228L1.821 7.773a1 1 0 0 1-.205-1.251l1.18-2.044a1 1 0 0 1 1.186-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+            </svg>
           </button>
         </div>
       </header>
@@ -1017,31 +1017,41 @@ export default function Reel() {
       {/* Body */}
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
 
-        {/* Module header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
-            <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {activeModule === "decision"
-              ? "Upload a clip or full game. Every player gets analyzed: offense, defense, and everything in between."
-              : "Your personal coach. Ask anything, or build a custom practice plan tailored to your game."}
-          </p>
-        </div>
-
-        <HowItWorks activeModule={activeModule} />
-        <ProfileCard profile={profile} onSave={saveProfile} />
-
-        {activeModule === "decision" && (
+        {activeModule === "library" ? (
           <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Library
+                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500">All your past film sessions — search, filter, and replay any review.</p>
+            </div>
             <StatsBar reviews={reviews} />
             {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
+            <FilmLibrary reviews={reviews} onReviewsChange={setReviews} />
+          </>
+        ) : (
+          <>
+            {/* Module header */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
+                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500">
+                {activeModule === "decision"
+                  ? "Upload a clip or full game. Every player gets analyzed: offense, defense, and everything in between."
+                  : "Your personal coach. Ask anything, or build a custom practice plan tailored to your game."}
+              </p>
+            </div>
+
+            <HowItWorks activeModule={activeModule as "decision" | "coach"} />
+            <ProfileCard profile={profile} onSave={saveProfile} />
+
+            {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} />}
+            {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} />}
           </>
         )}
-
-        {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} />}
-        {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} />}
       </div>
     </main>
   );

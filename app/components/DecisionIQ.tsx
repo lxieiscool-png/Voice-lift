@@ -665,40 +665,35 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
         </div>
       </div>
 
-      {/* Film Library */}
-      {reviews.length > 0 && (
-        <FilmLibrary
-          reviews={reviews}
-          expandedReview={expandedReview}
-          onToggle={i => setExpandedReview(expandedReview === i ? null : i)}
-          onDelete={deleteReview}
-        />
-      )}
     </div>
   );
 }
 
-// ─── Film Library ─────────────────────────────────────────────────────────────
+// ─── Film Library (exported — rendered as its own top-level section) ───────────
 
-function FilmLibrary({ reviews, expandedReview, onToggle, onDelete }: {
+export function FilmLibrary({ reviews, onReviewsChange }: {
   reviews: Review[];
-  expandedReview: number | null;
-  onToggle: (i: number) => void;
-  onDelete: (id: string) => void;
+  onReviewsChange: (r: Review[]) => void;
 }) {
-  const [search,     setSearch]     = useState("");
-  const [modeFilter, setModeFilter] = useState<"all" | "clip" | "game">("all");
+  const [expandedReview, setExpandedReview] = useState<number | null>(null);
+  const [search,      setSearch]      = useState("");
+  const [modeFilter,  setModeFilter]  = useState<"all" | "clip" | "game">("all");
   const [gradeFilter, setGradeFilter] = useState<"all" | "good" | "mid" | "poor">("all");
-  const [sharing,    setSharing]    = useState<string | null>(null);
+  const [sharing,     setSharing]     = useState<string | null>(null);
 
-  const GRADE_VALUE: Record<string, number> = {
+  function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
+  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
+  function onToggle(i: number) { setExpandedReview(expandedReview === i ? null : i); }
+  function onDelete(id: string) { deleteReview(id); }
+
+  const GRADE_NUM: Record<string, number> = {
     "A+": 13, "A": 12, "A-": 11, "B+": 10, "B": 9, "B-": 8,
     "C+": 7, "C": 6, "C-": 5, "D+": 4, "D": 3, "D-": 2, "F": 1,
   };
 
   const filtered = reviews.filter(r => {
     if (modeFilter !== "all" && r.mode !== modeFilter) return false;
-    const v = GRADE_VALUE[r.grade] ?? 0;
+    const v = GRADE_NUM[r.grade] ?? 0;
     if (gradeFilter === "good" && v < 9) return false;
     if (gradeFilter === "mid"  && (v < 5 || v >= 9)) return false;
     if (gradeFilter === "poor" && v >= 5) return false;
