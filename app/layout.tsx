@@ -13,8 +13,48 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Reel — Coaching for every athlete",
-  description: "Upload a clip or full game. Reel analyzes every player, grades every decision, and builds you a personalized practice plan.",
+  title: "Reel — Free AI Sports Coaching for Every Athlete",
+  description: "Upload your game film and get instant AI coaching. Reel analyzes every player, grades every decision, and builds a personalized practice plan. Free for every athlete.",
+  keywords: [
+    "sports coaching app",
+    "AI sports coach",
+    "game film analysis",
+    "free sports coaching",
+    "basketball film analysis",
+    "soccer film analysis",
+    "football film analysis",
+    "athlete practice plan",
+    "sports decision making",
+    "youth sports coaching",
+    "free coaching app",
+    "Reel app",
+  ],
+  authors: [{ name: "Reel" }],
+  creator: "Reel",
+  metadataBase: new URL("https://getreelapp.vercel.app"),
+  alternates: {
+    canonical: "https://getreelapp.vercel.app",
+  },
+  openGraph: {
+    type: "website",
+    url: "https://getreelapp.vercel.app",
+    title: "Reel — Free AI Sports Coaching for Every Athlete",
+    description: "Upload your game film and get instant AI coaching. Reel analyzes every player, grades every decision, and builds a personalized practice plan. Free for every athlete.",
+    siteName: "Reel",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Reel — Free AI Sports Coaching for Every Athlete",
+    description: "Upload your game film and get instant AI coaching. Free for every athlete, everywhere.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
 export default function RootLayout({
