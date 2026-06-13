@@ -508,7 +508,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-function LandingPage({ onSignIn, onSignUp, onEnterApp }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onEnterApp: () => void }) {
+function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
   const [showSignUp, setShowSignUp] = useState(false);
   return (
     <div className="min-h-screen bg-black text-white">
@@ -528,12 +528,12 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp }: { onSignIn: () => void;
             <button onClick={onEnterApp} className="text-sm text-zinc-400 hover:text-white transition-colors">
               Try without account
             </button>
-            <button onClick={onSignIn}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors">
-              Log in
+            <button onClick={onSignIn} disabled={signingIn}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50">
+              {signingIn ? "Redirecting…" : "Log in"}
             </button>
-            <button onClick={() => setShowSignUp(true)}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+            <button onClick={() => setShowSignUp(true)} disabled={signingIn}
+              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors disabled:opacity-50">
               Sign up
             </button>
           </div>
@@ -562,19 +562,20 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp }: { onSignIn: () => void;
             Film analysis. Personalized coaching. Practice plans built around your game. All free — for every athlete, everywhere.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <button onClick={() => setShowSignUp(true)}
-              className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors sm:w-auto">
+            <button onClick={() => setShowSignUp(true)} disabled={signingIn}
+              className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors disabled:opacity-50 sm:w-auto">
               Create free account
             </button>
-            <button onClick={onSignIn}
-              className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors sm:w-auto">
-              Log in
+            <button onClick={onSignIn} disabled={signingIn}
+              className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50 sm:w-auto">
+              {signingIn ? "Redirecting to Google…" : "Log in"}
             </button>
-            <button onClick={onEnterApp}
+            <button onClick={onEnterApp} disabled={signingIn}
               className="w-full rounded-xl px-8 py-4 text-base font-semibold text-zinc-500 hover:text-zinc-300 transition-colors sm:w-auto">
               Try without account
             </button>
           </div>
+          {authError && <p className="mt-3 text-sm text-red-400">{authError}</p>}
         </div>
 
         {/* Scroll hint */}
@@ -747,6 +748,8 @@ export default function Reel() {
   const [user,          setUser]          = useState<User | null>(null);
   const [authLoading,   setAuthLoading]   = useState(true);
   const [showApp,       setShowApp]       = useState(false);
+  const [authError,     setAuthError]     = useState("");
+  const [signingIn,     setSigningIn]     = useState(false);
 
   const supabase = createClient();
 
@@ -757,20 +760,26 @@ export default function Reel() {
     const r = localStorage.getItem("decisioniq-reviews");
     if (r) setReviews(JSON.parse(r));
 
-    // Check auth session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setAuthLoading(false);
-      if (user) { setShowApp(true); loadUserData(user.id); }
+    // Listen for auth changes — this fires immediately with INITIAL_SESSION
+    // which covers both existing sessions and post-OAuth redirects
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        setAuthLoading(false);
+        if (u) { setShowApp(true); loadUserData(u.id); }
+        else setAuthLoading(false);
+      }
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setShowApp(false);
+      }
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) { setShowApp(true); loadUserData(session.user.id); }
-    });
+    // Fallback: if onAuthStateChange never fires (e.g. no session), stop loading
+    const fallback = setTimeout(() => setAuthLoading(false), 2000);
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); clearTimeout(fallback); };
   }, []);
 
   async function loadUserData(userId: string) {
@@ -821,19 +830,24 @@ export default function Reel() {
   }, []);
 
   async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
+    setSigningIn(true);
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+    if (error) { setAuthError("Couldn't connect to Google. Try again."); setSigningIn(false); }
   }
 
   async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[] }) {
-    // Store signup data so we can save it to their profile after OAuth redirect
+    setSigningIn(true);
+    setAuthError("");
     localStorage.setItem("reel-signup-data", JSON.stringify(data));
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
+    if (error) { setAuthError("Couldn't connect to Google. Try again."); setSigningIn(false); }
   }
 
   async function signOut() {
@@ -866,7 +880,7 @@ export default function Reel() {
 
   // Show landing page if not signed in and hasn't clicked "try"
   if (!showApp) {
-    return <LandingPage onSignIn={signInWithGoogle} onSignUp={signUpWithGoogle} onEnterApp={() => setShowApp(true)} />;
+    return <LandingPage onSignIn={signInWithGoogle} onSignUp={signUpWithGoogle} onEnterApp={() => setShowApp(true)} signingIn={signingIn} authError={authError} />;
   }
 
   return (
