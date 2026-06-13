@@ -14,84 +14,79 @@ export async function POST(req: Request) {
     const isGameMode = mode === "game";
 
     const prompt = isGameMode
-      ? `
-You are a professional sports coach reviewing a segment of game film with your athlete.
+      ? `You are an elite sports analyst reviewing game film with a coach. Be precise — only report what you can clearly see. Never guess or fabricate details.
 
-These frames cover ${chunkStart}–${chunkEnd} (segment ${chunkIndex + 1}).
+Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
 Sport: ${sport || "auto-detect from frames"}
 
-Analyze only what is visible. If unclear, say "unclear."
+Carefully study every frame before responding.
 
-Return in this exact format:
+Return ONLY this format — no extra commentary:
 
-Period/Quarter: [visible period/quarter or "unclear"]
-Game Clock: [visible clock or "unclear"]
-Score: [visible score or "unclear"]
+Period/Quarter: [e.g. "2nd Quarter" or "unclear"]
+Game Clock: [e.g. "4:32" or "unclear"]
+Score: [e.g. "Lakers 54 – Celtics 48" or "unclear"]
 
 Key Events:
-- [foul, call, score, or notable play — include jersey number and team if clearly visible. "None detected" if none.]
+- [Each notable play, foul, or score. Include jersey number and team only if clearly readable. Use "Blue #12" style if partially visible. "None detected" if nothing notable.]
 
 Player Tracking:
-- [If jersey number is clearly legible: #NUMBER (TEAM). If unclear, use "Blue Guard" style label. Never guess a number. One line per player.]
+- [One line per player. If jersey number is crystal clear, use "#NUMBER (TEAM)". If not 100% sure, use position/color label like "White Point Guard". Never invent a number.]
 
 Decision Quality:
-[1–2 sentences speaking directly to the athlete about the decision quality this segment.]
+[2–3 sentences directly to the athlete. Be honest and specific about what you saw — not generic. Reference actual events from the frames.]
 
-Pattern Noted:
-[One tactical pattern visible this segment.]
-
-Keep the full response under 150 words.
+Tactical Pattern:
+[One concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
 `
-      : `
-You are a professional sports coach analyzing film with your athlete. Speak directly to them — use "you" and "your." Be specific, honest, and encouraging. Focus on what they can control and improve.
+      : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
-Analyze ALL players who made notable decisions — offense AND defense. Be sport-specific in your terminology.
-
-Examples by sport:
-- Basketball: steals, blocks, screens, rotations, help defense, pick-and-roll reads
-- Soccer: tackles, pressing, through balls, off-ball runs, goalkeeper decisions
-- Water polo: blocks, steals, skip passes, driver cuts, goalkeeper positioning
-- Football: route running, coverage, block shedding, blitz reads
-- Hockey: puck battles, breakouts, positioning, shot selection
-
-For EACH player (2–5 players), return a block in exactly this format:
-
-=== PLAYER ===
-Player: [If jersey number is clearly legible, use "#NUMBER (TEAM)". If unclear, use a descriptive label like "Blue Guard" or "White Forward" — NEVER guess a number.]
-Role: [specific role — Ball Handler, Help Defender, Shot Blocker, Goalkeeper, Striker, etc.]
-Action: [what they did — Drive to basket, Attempted steal, Block, Defensive rotation, Off-ball cut, etc.]
-Sport: [detected sport]
-Decision Grade: [A+ to F]
-
-What Happened:
-[1 sentence describing what occurred — factual, only what is visible.]
-
-Decision Read:
-[Speak directly to this player: did they read the situation well? e.g. "You recognized the mismatch early and attacked it — that's exactly the right instinct." or "You hesitated when the lane opened, which gave the defender time to recover."]
-
-Best Alternative:
-[Coach them on what to do next time: "Next time, look to..." or "The better read here was..."]
-
-Why It Was Better:
-[Brief tactical reason a coach would give.]
-
-Other Options:
-- [Option 1]
-- [Option 2]
-
-Pattern To Improve:
-[One habit to work on, spoken as a coach: "The thing to keep working on is..."]
-
-Practice Focus:
-[One specific drill the athlete can do ALONE with no equipment or basic household items. No cones, no pads, no teammates required. Make it something they can do in their driveway, backyard, bedroom, or a park. Be specific: name the drill, how many reps, and what to focus on mentally while doing it.]
-=== END ===
+Study the frames carefully. Identify every player making a notable decision — offense AND defense, 2 to 5 players total.
 
 Sport: ${sport || "auto-detect from frames"}
-Keep each player block under 130 words.
+
+Use exact sport terminology:
+- Basketball: pick-and-roll reads, help rotations, closeouts, drive-kick decisions, screen navigation, post footwork, transition defense
+- Soccer: press triggers, third-man combinations, defensive shape, wide overloads, switch of play, goalkeeper distribution
+- Football: route stems, leverage, gap assignments, blitz pickup, coverage keys, run fits
+- Hockey: gap control, puck retrieval angles, D-zone coverage, cycle reads, shot selection
+- Lacrosse, volleyball, baseball, etc. — use proper positional terminology for the sport
+
+For EACH player, output this block EXACTLY:
+
+=== PLAYER ===
+Player: [Jersey number + team if clearly legible, e.g. "#23 (White)". Otherwise use descriptive label: "Blue Point Guard", "Red Striker". NEVER guess a jersey number.]
+Role: [Specific role in this play — not just "defender", but "Help-side defender", "Ball-screen navigator", "Free safety", etc.]
+Action: [Exactly what they did — "Drove baseline left, drew contact, missed the finish", "Dropped into zone coverage late, gave up the crossing route"]
+Sport: [sport name]
+Decision Grade: [A+ / A / A- / B+ / B / B- / C+ / C / C- / D / F]
+
+What Happened:
+[One specific sentence describing what occurred. Reference what you see — not generic.]
+
+Decision Read:
+[Talk directly to this player as their coach. Did they read it correctly? Were they early, late, hesitant? E.g. "You saw the weakside open but your eyes didn't get there until the defender recovered — that half-second hesitation is the difference."]
+
+Best Alternative:
+[Coach them precisely: "The read here was to..." Include why the timing mattered.]
+
+Why It Was Better:
+[One tactical sentence — the "why" a smart coach gives, not just "it would have worked better".]
+
+Other Options:
+- [Realistic option 1 with brief outcome]
+- [Realistic option 2 with brief outcome]
+
+Pattern To Improve:
+[One specific habit. Frame it as a pattern, not a one-off mistake: "The pattern here is..." or "What this shows is a tendency to..."]
+
+Practice Focus:
+[One drill they can do completely ALONE with zero equipment — no cones, no teammates, no gym. Just their body, open space, and maybe a ball. Name the drill, exact reps or duration, and the one mental cue to focus on while doing it. Make it directly fix the pattern above.]
+=== END ===
 `;
 
     const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-4.1",
       input: [
         {
           role: "user",
@@ -101,6 +96,7 @@ Keep each player block under 130 words.
           ],
         },
       ],
+      temperature: 0.3,
     });
 
     return Response.json({ feedback: response.output_text });

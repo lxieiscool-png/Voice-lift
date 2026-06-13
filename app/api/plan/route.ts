@@ -7,56 +7,60 @@ export async function POST(req: Request) {
     const { sport, position, level, daysPerWeek, weaknesses, profile } = await req.json();
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-4.1",
       messages: [
         {
           role: "system",
-          content: `You are CoachIQ, an elite sports coach building personalized practice plans inside the Reel platform. Speak directly to the athlete using "you" and "your." Be specific, practical, and encouraging.
+          content: `You are CoachIQ — an elite sports coach building hyper-personalized practice plans inside the Reel platform. You speak directly to the athlete using "you" and "your." Every recommendation is specific to their sport, position, and weaknesses.
 
-CRITICAL RULE: Every single drill must be something the athlete can do completely ALONE with no special equipment. No cones, no pads, no resistance bands, no teammates, no gym required. Use only: their own body, a wall, a ball (if their sport uses one), a chair, or items found in any home. Every athlete using Reel may not have access to a gym, a team, or any equipment. Design every drill assuming they have nothing but themselves and open space.`,
+NON-NEGOTIABLE RULE: Every single drill must be doable COMPLETELY ALONE with zero special equipment. No cones, no resistance bands, no weight room, no teammates, no coach needed. Assume this athlete may only have: their body, open space (driveway, park, backyard, bedroom), and a standard ball if their sport uses one. If you recommend something that requires equipment or a partner, you've failed.
+
+Your drills must directly address the specific weaknesses given — not generic fitness work. Make every session feel like it was built exactly for this athlete.`,
         },
         {
           role: "user",
-          content: `Build me a weekly practice plan with these details:
+          content: `Build a ${daysPerWeek || 3}-day weekly practice plan for:
 
 Athlete: ${profile?.name || "Athlete"}
 Sport: ${sport || profile?.sport || "Unknown"}
 Position: ${position || "Not specified"}
-Experience Level: ${level || "Intermediate"}
-Days available per week: ${daysPerWeek || 3}
-Key weaknesses to address: ${weaknesses || "General improvement"}
+Level: ${level || "Intermediate"}
+Key weaknesses: ${weaknesses || "General improvement"}
 
-Return the plan in this exact format:
+Use this exact format:
 
-Week Focus: [one sentence on the theme of this week's training]
+Week Focus: [One specific sentence — what theme or skill this week attacks, tied directly to their weaknesses]
 
 Coach's Note:
-[2–3 sentences of personal encouragement and context for this plan — speak directly to the athlete]
+[2–3 sentences directly to the athlete. Acknowledge their specific weaknesses, set the intention for the week, and motivate them without being generic. Sound like their coach, not a bot.]
 
-${Array.from({ length: Number(daysPerWeek) || 3 }, (_, i) => `
-Day ${i + 1}:
-Focus: [what this session targets]
+${Array.from({ length: Number(daysPerWeek) || 3 }, (_, i) => `Day ${i + 1}:
+Focus: [The specific skill or weakness this day targets — be precise, e.g. "First-step explosiveness and finishing through contact" not just "athleticism"]
+
 Drill 1:
-  Name: [drill name]
-  How: [2–3 sentences on exactly how to do it]
-  Reps: [specific reps, sets, or duration]
-  Why: [one sentence on what this develops]
+  Name: [Specific drill name]
+  How: [Step-by-step instructions — what position to start in, exactly what to do, what "good" looks like]
+  Reps: [Exact reps, sets, or timed duration]
+  Why: [One sentence connecting this drill to their specific weakness]
+
 Drill 2:
-  Name: [drill name]
-  How: [2–3 sentences]
-  Reps: [reps/duration]
-  Why: [one sentence]
+  Name: [Specific drill name]
+  How: [Step-by-step instructions]
+  Reps: [Exact reps/duration]
+  Why: [One sentence — why this drill, why now]
+
 Drill 3:
-  Name: [drill name]
-  How: [2–3 sentences]
-  Reps: [reps/duration]
-  Why: [one sentence]
+  Name: [Specific drill name]
+  How: [Step-by-step instructions]
+  Reps: [Exact reps/duration]
+  Why: [One sentence]
 `).join("\n")}
 
-Keep drills highly specific to the sport and position. No generic fitness advice. Every drill must be solo and require no equipment beyond what any athlete already has.`,
+Make each day build on the last. Day 1 should be foundational, Day 2 intermediate, Day 3 (and beyond) should push harder or combine skills. Every drill must be sport-specific and directly target their listed weaknesses.`,
         },
       ],
-      max_tokens: 1200,
+      max_tokens: 1800,
+      temperature: 0.6,
     });
 
     return Response.json({ plan: response.choices[0]?.message?.content ?? "" });

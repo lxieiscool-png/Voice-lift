@@ -13,60 +13,58 @@ export async function POST(req: Request) {
       .join("\n\n");
 
     const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-4.1",
       input: [
         {
           role: "user",
           content: [
             {
               type: "input_text",
-              text: `
-You are a professional sports coach delivering a full game review to your athlete after watching game film together. Speak directly to them — use "you" and "your." Be specific, honest, encouraging, and growth-focused. This athlete may not have access to a real coach — your feedback could make a real difference.
+              text: `You are an elite sports coach delivering a full post-game film review to your athlete. You've just watched their entire game together. Speak directly to them — use "you" and "your." Be honest, specific, and growth-focused. Reference actual events and patterns you observed. Never be generic.
 
 Sport: ${sport || "auto-detected"}
 
-Segment summaries:
+Film segments:
 ${summaryText}
 
-Produce a complete Game Report in this exact format:
+Synthesize everything into a complete Game Report in this exact format:
 
-Overall Decision Grade: [A+ to F]
+Overall Decision Grade: [A+ to F — based on the full game, not just highlights]
 
 Game Summary:
-[2–3 sentences talking directly to the athlete about their overall game — what stood out, how the game flowed for them.]
+[3–4 sentences speaking directly to the athlete. Reference specific moments from the film. What defined their game? What was the story arc? Be honest but constructive.]
 
 Period Breakdown:
-[Walk through each period or quarter as a coach would. If periods were unclear, break into early/middle/late game.]
+[Walk through the game period by period or early/mid/late. For each, name 1–2 specific moments and what they revealed about the athlete's decision-making and energy.]
 
 Foul & Call Patterns:
-[Coach them on foul trends — what fouls they drew, committed, or missed. Be specific.]
+[Be specific. What types of fouls? When in the game did they occur? Was there a pattern — fouling when tired, reaching on defense, losing positioning? Coach them on it.]
 
 Decision Trends:
-[How did your decision-making change as the game went on? Speak to the athlete about what you noticed.]
+[How did their decision-making evolve during the game? Did they start slow and find their rhythm? Did they tighten up under pressure? Get specific about the shift you noticed and why it matters.]
 
 Top 3 Strengths:
-- [Strength 1 — specific and encouraging]
-- [Strength 2]
-- [Strength 3]
+- [Strength 1 — name a specific moment or pattern that showed this, then explain why it's valuable]
+- [Strength 2 — same format]
+- [Strength 3 — same format]
 
 Top 3 Areas To Improve:
-- [Area 1 — specific and actionable]
-- [Area 2]
-- [Area 3]
+- [Area 1 — specific pattern you saw, why it's costing them, what to do differently]
+- [Area 2 — same format]
+- [Area 3 — same format]
 
 Game-Level Practice Focus:
-[One solo drill the athlete can do completely alone with no equipment or basic household items — no cones, no pads, no teammates. Something they can do in a driveway, park, bedroom, or backyard. Name the drill, the reps, and what to focus on mentally.]
+[One solo drill they can do completely alone with no equipment. Name it, give exact reps/duration, and connect it directly to the most important area they need to improve from this game. Include the one mental cue to focus on.]
 
 Player Stats:
-- [#NUMBER (TEAM) | Decisions: X good / Y poor | Fouls: Z | Key plays: brief note]
-- [Repeat for every player identified by jersey number. "No jersey numbers detected." if none.]
-
-Keep the full response under 400 words.
+- [#NUMBER (TEAM) | Decisions: X sharp / Y costly | Fouls: Z | Standout moment: one-line note]
+- [Repeat for each identified player. "No jersey numbers clearly visible." if none could be confirmed.]
 `,
             },
           ],
         },
       ],
+      temperature: 0.3,
     });
 
     return Response.json({ report: response.output_text });
