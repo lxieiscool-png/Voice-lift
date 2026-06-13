@@ -83,6 +83,24 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
 
 // ─── Stats Bar ────────────────────────────────────────────────────────────────
 
+function calcStreak(reviews: Review[]): number {
+  if (reviews.length === 0) return 0;
+  const days = Array.from(new Set(
+    reviews.map(r => new Date(r.timestamp).toDateString())
+  )).map(d => new Date(d).getTime()).sort((a, b) => b - a);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayMs = today.getTime();
+  const MS_DAY = 86400000;
+  // streak starts only if uploaded today or yesterday
+  if (days[0] < todayMs - MS_DAY) return 0;
+  let streak = 1;
+  for (let i = 1; i < days.length; i++) {
+    if (days[i - 1] - days[i] === MS_DAY) streak++;
+    else break;
+  }
+  return streak;
+}
+
 function StatsBar({ reviews }: { reviews: Review[] }) {
   if (reviews.length === 0) return null;
   const allGrades = reviews.map(r => r.grade).filter(g => g && g !== "N/A");
@@ -93,22 +111,23 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
     sportCounts[s] = (sportCounts[s] ?? 0) + 1;
   }
   const topSport = Object.entries(sportCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+  const streak = calcStreak(reviews);
 
   const stats = [
-    { label: "Clips",      value: String(reviews.filter(r => r.mode === "clip").length), grade: false },
-    { label: "Games",      value: String(reviews.filter(r => r.mode === "game").length), grade: false },
-    { label: "Avg Grade",  value: avg,     grade: true  },
-    { label: "Top Sport",  value: topSport, grade: false },
+    { label: "Clips",      value: String(reviews.filter(r => r.mode === "clip").length), grade: false, fire: false },
+    { label: "Games",      value: String(reviews.filter(r => r.mode === "game").length), grade: false, fire: false },
+    { label: "Avg Grade",  value: avg,      grade: true,  fire: false },
+    { label: "This Week",  value: streak > 0 ? `${streak} day${streak !== 1 ? "s" : ""}` : topSport, grade: false, fire: streak > 1 },
   ];
 
   return (
     <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {stats.map(({ label, value, grade }) => (
+      {stats.map(({ label, value, grade, fire }) => (
         <div key={label} className="border border-zinc-800 bg-zinc-950 rounded-xl px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-1">{label}</p>
           {grade
             ? <span className={`inline-block rounded-md px-2.5 py-0.5 text-lg font-bold ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="text-xl font-bold text-white capitalize">{value}</p>
+            : <p className="text-xl font-bold text-white capitalize">{value}{fire ? " 🔥" : ""}</p>
           }
         </div>
       ))}
@@ -171,12 +190,22 @@ const HOW_STEPS: Record<"decision" | "coach", { num: string; title: string; desc
 };
 
 function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
-  const [open, setOpen] = useState(true);
+  const key = `reel-how-open-${activeModule}`;
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem(key);
+    return saved === null ? true : saved === "1";
+  });
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    localStorage.setItem(key, next ? "1" : "0");
+  }
   const steps = HOW_STEPS[activeModule];
 
   return (
     <div className="mb-6 border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden">
-      <button onClick={() => setOpen(o => !o)}
+      <button onClick={toggle}
         className="flex w-full items-center justify-between px-5 py-4 text-left">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-0.5">How it works</p>

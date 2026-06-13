@@ -100,78 +100,128 @@ const GRADE_COLOR: Record<string, string> = {
 
 async function shareGradeCard(opts: {
   name: string; grade: string; sport: string; role?: string;
-  headline: string; insight: string;
+  headline: string; insight: string; format?: "landscape" | "story";
 }) {
-  const W = 800, H = 420;
+  const isStory = opts.format === "story";
+  const W = isStory ? 1080 : 800;
+  const H = isStory ? 1920 : 420;
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+
+  const gradeColor = GRADE_COLOR[opts.grade] ?? "#71717a";
+  const F = isStory ? 2.2 : 1; // scale factor for story
 
   // Background
   ctx.fillStyle = "#09090b";
   ctx.fillRect(0, 0, W, H);
 
-  // Subtle grid lines
-  ctx.strokeStyle = "#18181b";
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // Grid lines
+  const grid = Math.round(40 * F);
+  ctx.strokeStyle = "#18181b"; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += grid) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += grid) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-  // Grade pill
-  const gradeColor = GRADE_COLOR[opts.grade] ?? "#71717a";
-  const gradeX = 56, gradeY = 56;
-  const gradeW = 96, gradeH = 56;
-  ctx.fillStyle = gradeColor + "22";
-  ctx.beginPath(); ctx.roundRect(gradeX, gradeY, gradeW, gradeH, 10); ctx.fill();
-  ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = gradeColor;
-  ctx.textAlign = "center";
-  ctx.fillText(opts.grade, gradeX + gradeW / 2, gradeY + gradeH - 13);
+  const pad   = Math.round(56 * F);
+  const innerW = W - pad * 2;
 
-  // Name
-  ctx.textAlign = "left";
-  ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(opts.name || "Player", gradeX + gradeW + 20, gradeY + 30);
+  if (isStory) {
+    // ── Story layout: centered, vertical ──
+    const centerY = H * 0.38;
 
-  // Sport / role
-  ctx.font = "14px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#71717a";
-  ctx.fillText([opts.sport, opts.role].filter(Boolean).join("  ·  "), gradeX + gradeW + 20, gradeY + 52);
+    // Big grade
+    const gSize = 220;
+    ctx.fillStyle = gradeColor + "22";
+    ctx.beginPath(); ctx.roundRect(W/2 - gSize/2, centerY - gSize/2, gSize, gSize, 20); ctx.fill();
+    ctx.font = "bold 120px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = gradeColor; ctx.textAlign = "center";
+    ctx.fillText(opts.grade, W/2, centerY + 42);
 
-  // Divider
-  ctx.strokeStyle = "#27272a";
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(56, 134); ctx.lineTo(W - 56, 134); ctx.stroke();
+    // Name
+    ctx.font = "bold 56px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(opts.name || "Player", W/2, centerY + gSize/2 + 80);
 
-  // Headline
-  ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#a1a1aa";
-  ctx.fillText("WHAT HAPPENED", 56, 168);
-  ctx.font = "16px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#e4e4e7";
-  wrapText(ctx, opts.headline, 56, 192, W - 112, 24, 3);
+    // Sport / role
+    ctx.font = "36px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#71717a";
+    ctx.fillText([opts.sport, opts.role].filter(Boolean).join("  ·  "), W/2, centerY + gSize/2 + 130);
 
-  // Insight
-  ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#a1a1aa";
-  ctx.fillText("NEXT TIME", 56, 300);
-  ctx.font = "16px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#e4e4e7";
-  wrapText(ctx, opts.insight, 56, 324, W - 112, 24, 2);
+    // Divider
+    ctx.strokeStyle = "#27272a"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad, centerY + gSize/2 + 170); ctx.lineTo(W - pad, centerY + gSize/2 + 170); ctx.stroke();
 
-  // Branding
-  ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "right";
-  ctx.fillText("Reel", W - 56, H - 24);
-  ctx.font = "13px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = "#3f3f46";
-  ctx.fillText("getreelapp.vercel.app", W - 56, H - 44);
+    // Headline
+    const textY = centerY + gSize/2 + 230;
+    ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#a1a1aa"; ctx.textAlign = "left";
+    ctx.fillText("WHAT HAPPENED", pad, textY);
+    ctx.font = "34px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#e4e4e7";
+    wrapText(ctx, opts.headline, pad, textY + 44, innerW, 44, 3);
+
+    // Insight
+    const ins = textY + 44 + 3 * 44 + 60;
+    ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#a1a1aa"; ctx.textAlign = "left";
+    ctx.fillText("NEXT TIME", pad, ins);
+    ctx.font = "34px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#e4e4e7";
+    wrapText(ctx, opts.insight, pad, ins + 44, innerW, 44, 2);
+
+    // Branding
+    ctx.font = "bold 32px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#ffffff"; ctx.textAlign = "center";
+    ctx.fillText("REEL", W/2, H - 80);
+    ctx.font = "26px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#3f3f46";
+    ctx.fillText("getreelapp.vercel.app", W/2, H - 40);
+
+  } else {
+    // ── Landscape layout (original) ──
+    const gradeX = pad, gradeY = pad;
+    const gradeW = 96, gradeH = 56;
+    ctx.fillStyle = gradeColor + "22";
+    ctx.beginPath(); ctx.roundRect(gradeX, gradeY, gradeW, gradeH, 10); ctx.fill();
+    ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = gradeColor; ctx.textAlign = "center";
+    ctx.fillText(opts.grade, gradeX + gradeW / 2, gradeY + gradeH - 13);
+
+    ctx.textAlign = "left";
+    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(opts.name || "Player", gradeX + gradeW + 20, gradeY + 30);
+    ctx.font = "14px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#71717a";
+    ctx.fillText([opts.sport, opts.role].filter(Boolean).join("  ·  "), gradeX + gradeW + 20, gradeY + 52);
+
+    ctx.strokeStyle = "#27272a"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, 134); ctx.lineTo(W - pad, 134); ctx.stroke();
+
+    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#a1a1aa";
+    ctx.fillText("WHAT HAPPENED", pad, 168);
+    ctx.font = "16px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#e4e4e7";
+    wrapText(ctx, opts.headline, pad, 192, W - pad * 2, 24, 3);
+
+    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#a1a1aa";
+    ctx.fillText("NEXT TIME", pad, 300);
+    ctx.font = "16px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#e4e4e7";
+    wrapText(ctx, opts.insight, pad, 324, W - pad * 2, 24, 2);
+
+    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#ffffff"; ctx.textAlign = "right";
+    ctx.fillText("Reel", W - pad, H - 24);
+    ctx.font = "13px system-ui, -apple-system, sans-serif";
+    ctx.fillStyle = "#3f3f46";
+    ctx.fillText("getreelapp.vercel.app", W - pad, H - 44);
+  }
 
   // Border
-  ctx.strokeStyle = "#27272a";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#27272a"; ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, W - 2, H - 2);
 
   const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
@@ -252,7 +302,7 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
   const [open,    setOpen]    = useState(defaultOpen);
   const [sharing, setSharing] = useState(false);
 
-  async function handleShare(e: React.MouseEvent) {
+  async function handleShare(e: React.MouseEvent, format: "landscape" | "story" = "landscape") {
     e.stopPropagation();
     setSharing(true);
     await shareGradeCard({
@@ -262,6 +312,7 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
       role: decision.role,
       headline: decision.whatHappened,
       insight: decision.bestAlternative,
+      format,
     });
     setSharing(false);
   }
@@ -285,9 +336,14 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={handleShare} disabled={sharing}
+          <button onClick={e => handleShare(e, "landscape")} disabled={sharing}
             className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1 disabled:opacity-40">
             {sharing ? "…" : "SHARE"}
+          </button>
+          <button onClick={e => handleShare(e, "story")} disabled={sharing}
+            className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1 disabled:opacity-40"
+            title="Share as Story (9:16)">
+            STORY
           </button>
           <span className="text-[10px] text-zinc-700">{open ? "HIDE" : "MORE"}</span>
         </div>
@@ -409,6 +465,67 @@ function GameReportCard({ report }: { report: GameReport }) {
   );
 }
 
+// ─── Analysis Loader ──────────────────────────────────────────────────────────
+
+const ANALYSIS_STEPS = [
+  { key: "extract",    label: "Extracting frames"      },
+  { key: "analyzing",  label: "Reading players"         },
+  { key: "segment",    label: "Analyzing segments"      },
+  { key: "report",     label: "Building report"         },
+];
+
+function AnalysisLoader({ label, current, total }: { label: string; current: number; total: number }) {
+  // Map the live progress label to a step index
+  const stepIndex = label.toLowerCase().includes("extracting") ? 0
+    : label.toLowerCase().includes("analyzing player") ? 1
+    : label.toLowerCase().includes("segment") ? 2
+    : label.toLowerCase().includes("report") || label.toLowerCase().includes("building") ? 3
+    : 1;
+
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+
+  return (
+    <div className="flex flex-col items-center justify-center py-10 gap-8">
+      {/* Animated orb */}
+      <div className="relative flex items-center justify-center">
+        <div className="h-16 w-16 rounded-full border-2 border-zinc-800 animate-ping absolute opacity-20" />
+        <div className="h-10 w-10 rounded-full bg-white/10 border border-zinc-700 flex items-center justify-center">
+          <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div className="w-full space-y-2">
+        {ANALYSIS_STEPS.map((step, i) => {
+          const done    = i < stepIndex;
+          const active  = i === stepIndex;
+          const pending = i > stepIndex;
+          return (
+            <div key={step.key} className={`flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all ${active ? "border border-zinc-700 bg-zinc-900" : "opacity-30"}`}>
+              <div className={`h-4 w-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
+                done ? "bg-white text-black" : active ? "border border-white" : "border border-zinc-700"
+              }`}>
+                {done ? "✓" : active ? <span className="animate-pulse">●</span> : ""}
+              </div>
+              <span className={`text-sm ${active ? "text-white font-semibold" : pending ? "text-zinc-700" : "text-zinc-500"}`}>
+                {step.label}
+              </span>
+              {active && total > 1 && (
+                <span className="ml-auto text-xs text-zinc-600 tabular-nums">{pct}%</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Sub-label for segment progress */}
+      {label && total > 1 && (
+        <p className="text-xs text-zinc-600 text-center">{label}</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
@@ -416,6 +533,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
 }) {
   const [inputTab,   setInputTab]   = useState<"file" | "youtube">("file");
   const [fileName,   setFileName]   = useState("");
+  const [clipTitle,  setClipTitle]  = useState("");
   const [videoUrl,   setVideoUrl]   = useState("");
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
   const [ytUrl,      setYtUrl]      = useState("");
@@ -564,7 +682,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
       try {
         setProgressLabel("Extracting frames…");
         const { frames, mode } = await extractFramesAdaptive(videoFile!);
-        await runAnalysis(frames, mode, fileName || "Untitled");
+        await runAnalysis(frames, mode, clipTitle.trim() || fileName || "Untitled");
       } catch (err) {
         console.error(err);
         const msg = err instanceof Error ? err.message : "Something went wrong.";
@@ -606,7 +724,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
               <label className="block cursor-pointer rounded-xl border-2 border-dashed border-zinc-800 p-8 text-center hover:border-zinc-600 active:border-zinc-500 transition-colors">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
-                  setVideoFile(file); setFileName(file.name);
+                  setVideoFile(file); setFileName(file.name); setClipTitle("");
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
@@ -638,6 +756,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
 
           {inputTab === "file" && (
             <div className="mt-4 space-y-3">
+              {videoFile && (
+                <input
+                  className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  placeholder="Name this clip (e.g. Playoff game vs Lincoln)"
+                  value={clipTitle}
+                  onChange={e => setClipTitle(e.target.value)}
+                />
+              )}
               <input
                 className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
                 placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
@@ -667,12 +793,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
           </div>
 
           {loading && (
-            <div className="space-y-4 py-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-14 animate-pulse rounded-lg border border-zinc-800 bg-black" />
-              ))}
-              <ProgressBar current={progressCurrent} total={progressTotal} label={progressLabel} />
-            </div>
+            <AnalysisLoader label={progressLabel} current={progressCurrent} total={progressTotal} />
           )}
 
           {!loading && analyzeError && (
