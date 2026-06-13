@@ -995,7 +995,8 @@ export default function Reel() {
           <nav className="flex gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
             {MODULES.map(mod => (
               <button key={mod.id} onClick={() => setActiveModule(mod.id)}
-                className={`rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
+                data-module={mod.id}
+                className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 ${
                   activeModule === mod.id ? "bg-white text-black" : "text-zinc-500 hover:text-white"
                 }`}
               >
@@ -1005,9 +1006,18 @@ export default function Reel() {
           </nav>
 
           <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center justify-center h-9 w-9 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors"
+            className="flex items-center gap-2 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors h-9 px-2"
             aria-label="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+            {user?.user_metadata?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.user_metadata.avatar_url} alt="Your avatar"
+                className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
+            ) : user ? (
+              <span className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
+                {(user.email || "?").charAt(0).toUpperCase()}
+              </span>
+            ) : null}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
               <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.113a7.047 7.047 0 0 1 0-2.228L1.821 7.773a1 1 0 0 1-.205-1.251l1.18-2.044a1 1 0 0 1 1.186-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
             </svg>
           </button>

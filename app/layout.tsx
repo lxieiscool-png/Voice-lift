@@ -13,6 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Reel",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192" }],
+  },
   title: "Reel — Free AI Sports Coaching for Every Athlete",
   description: "Upload your game film and get instant AI coaching. Reel analyzes every player, grades every decision, and builds a personalized practice plan. Free for every athlete.",
   keywords: [

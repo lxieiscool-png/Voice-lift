@@ -425,10 +425,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
   const [progressLabel,   setProgressLabel]   = useState("");
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal,   setProgressTotal]   = useState(0);
-  const [decisions,   setDecisions]   = useState<PlayerDecision[]>([]);
-  const [gameReport,  setGameReport]  = useState<GameReport | null>(null);
-  const [resultMode,  setResultMode]  = useState<"clip" | "game" | null>(null);
+  const [decisions,    setDecisions]    = useState<PlayerDecision[]>([]);
+  const [gameReport,   setGameReport]   = useState<GameReport | null>(null);
+  const [resultMode,   setResultMode]   = useState<"clip" | "game" | null>(null);
   const [expandedReview, setExpandedReview] = useState<number | null>(null);
+  const [analyzeError, setAnalyzeError] = useState("");
+  const [pendingRetry, setPendingRetry] = useState<(() => void) | null>(null);
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
@@ -514,7 +516,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
       const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip" }) });
-      const data = await res.json(); setProgressCurrent(1);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setProgressCurrent(1);
       const parsed        = parsePlayerBlocks(data.feedback ?? "");
       const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
       setDecisions(parsed); setResultMode("clip");
@@ -530,12 +535,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
         const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end }) });
+        if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
         const data = await res.json();
+        if (data.error) throw new Error(data.error);
         chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
       }
       setProgressLabel("Building game report…");
       const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries }) });
-      const synthData = await synthRes.json(); setProgressCurrent(chunks.length + 1);
+      if (!synthRes.ok) throw new Error(`Server error ${synthRes.status} on synthesis`);
+      const synthData = await synthRes.json();
+      if (synthData.error) throw new Error(synthData.error);
+      setProgressCurrent(chunks.length + 1);
       const report = parseGameReport(synthData.report ?? "");
       const detectedGameSport = sport || profile.sport || "Unknown";
       setGameReport(report); setResultMode("game");
@@ -546,14 +556,27 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
   async function analyzeVideo() {
     if (!videoFile) return;
     setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
+    setAnalyzeError(""); setPendingRetry(null);
     setProgressCurrent(0); setProgressTotal(0);
-    try {
-      setProgressLabel("Extracting frames…");
-      const { frames, mode } = await extractFramesAdaptive(videoFile);
-
-      await runAnalysis(frames, mode, fileName || "Untitled");
-    } catch (err) { console.error(err); }
-    setLoading(false); setProgressLabel("");
+    const doAnalyze = async () => {
+      setLoading(true); setAnalyzeError(""); setPendingRetry(null);
+      setProgressCurrent(0); setProgressTotal(0);
+      try {
+        setProgressLabel("Extracting frames…");
+        const { frames, mode } = await extractFramesAdaptive(videoFile!);
+        await runAnalysis(frames, mode, fileName || "Untitled");
+      } catch (err) {
+        console.error(err);
+        const msg = err instanceof Error ? err.message : "Something went wrong.";
+        const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("rate");
+        setAnalyzeError(isRateLimit
+          ? "Too many requests — the AI is busy. Wait a moment and try again."
+          : "Analysis failed. Check your connection and try again.");
+        setPendingRetry(() => doAnalyze);
+      }
+      setLoading(false); setProgressLabel("");
+    };
+    await doAnalyze();
   }
 
   const overallGrade = resultMode === "game" ? gameReport?.overallGrade ?? "N/A" : decisions[0]?.grade ?? "N/A";
@@ -652,7 +675,20 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
             </div>
           )}
 
-          {!loading && !resultMode && (
+          {!loading && analyzeError && (
+            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-red-900 bg-red-950/20 p-6 text-center">
+              <p className="text-2xl">⚠️</p>
+              <p className="text-sm text-red-300">{analyzeError}</p>
+              {pendingRetry && (
+                <button onClick={pendingRetry}
+                  className="rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
+                  Try again
+                </button>
+              )}
+            </div>
+          )}
+
+          {!loading && !analyzeError && !resultMode && (
             <div className="flex h-52 items-center justify-center rounded-lg border border-zinc-800">
               <p className="text-sm text-zinc-600">
                 {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]}.` : "Upload a clip or game to get started."}
@@ -717,6 +753,25 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
       insight: firstPlayer?.bestAlternative ?? "Check full report on Reel.",
     });
     setSharing(null);
+  }
+
+  // Empty state — no reviews at all
+  if (reviews.length === 0) {
+    return (
+      <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-10 flex flex-col items-center justify-center text-center gap-4">
+        <p className="text-4xl">🎬</p>
+        <div>
+          <p className="text-base font-semibold text-white mb-1">No film yet</p>
+          <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
+            Upload your first clip in DecisionIQ and it'll show up here with your grade, breakdown, and feedback.
+          </p>
+        </div>
+        <a href="#" onClick={e => { e.preventDefault(); document.querySelector<HTMLButtonElement>("[data-module='decision']")?.click(); }}
+          className="rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
+          Go to DecisionIQ
+        </a>
+      </div>
+    );
   }
 
   return (
