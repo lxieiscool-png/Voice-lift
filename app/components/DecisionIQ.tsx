@@ -88,6 +88,125 @@ async function extractFramesAdaptive(file: File): Promise<{ frames: FrameWithTim
   });
 }
 
+// ─── Share Card ───────────────────────────────────────────────────────────────
+
+const GRADE_COLOR: Record<string, string> = {
+  "A+": "#22c55e", "A": "#22c55e", "A-": "#4ade80",
+  "B+": "#86efac", "B": "#86efac", "B-": "#bef264",
+  "C+": "#fbbf24", "C": "#fbbf24", "C-": "#fb923c",
+  "D+": "#f97316", "D": "#f97316", "D-": "#ef4444",
+  "F":  "#ef4444",
+};
+
+async function shareGradeCard(opts: {
+  name: string; grade: string; sport: string; role?: string;
+  headline: string; insight: string;
+}) {
+  const W = 800, H = 420;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  // Background
+  ctx.fillStyle = "#09090b";
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid lines
+  ctx.strokeStyle = "#18181b";
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // Grade pill
+  const gradeColor = GRADE_COLOR[opts.grade] ?? "#71717a";
+  const gradeX = 56, gradeY = 56;
+  const gradeW = 96, gradeH = 56;
+  ctx.fillStyle = gradeColor + "22";
+  ctx.beginPath(); ctx.roundRect(gradeX, gradeY, gradeW, gradeH, 10); ctx.fill();
+  ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = gradeColor;
+  ctx.textAlign = "center";
+  ctx.fillText(opts.grade, gradeX + gradeW / 2, gradeY + gradeH - 13);
+
+  // Name
+  ctx.textAlign = "left";
+  ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(opts.name || "Player", gradeX + gradeW + 20, gradeY + 30);
+
+  // Sport / role
+  ctx.font = "14px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#71717a";
+  ctx.fillText([opts.sport, opts.role].filter(Boolean).join("  ·  "), gradeX + gradeW + 20, gradeY + 52);
+
+  // Divider
+  ctx.strokeStyle = "#27272a";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(56, 134); ctx.lineTo(W - 56, 134); ctx.stroke();
+
+  // Headline
+  ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#a1a1aa";
+  ctx.fillText("WHAT HAPPENED", 56, 168);
+  ctx.font = "16px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#e4e4e7";
+  wrapText(ctx, opts.headline, 56, 192, W - 112, 24, 3);
+
+  // Insight
+  ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#a1a1aa";
+  ctx.fillText("NEXT TIME", 56, 300);
+  ctx.font = "16px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#e4e4e7";
+  wrapText(ctx, opts.insight, 56, 324, W - 112, 24, 2);
+
+  // Branding
+  ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "right";
+  ctx.fillText("Reel", W - 56, H - 24);
+  ctx.font = "13px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#3f3f46";
+  ctx.fillText("getreelapp.vercel.app", W - 56, H - 44);
+
+  // Border
+  ctx.strokeStyle = "#27272a";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
+  if (!blob) return;
+
+  if (navigator.share && navigator.canShare?.({ files: [new File([blob], "grade.png", { type: "image/png" })] })) {
+    await navigator.share({
+      title: `${opts.name || "Player"} — ${opts.grade} | Reel`,
+      text: `Check out my grade card on Reel`,
+      files: [new File([blob], "reel-grade.png", { type: "image/png" })],
+    }).catch(() => {});
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `reel-${(opts.name || "grade").toLowerCase().replace(/\s+/g, "-")}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number, maxLines: number) {
+  const words = text.split(" ");
+  let line = "";
+  let lineCount = 0;
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, y + lineCount * lineH);
+      line = word; lineCount++;
+      if (lineCount >= maxLines) { ctx.fillText(line + "…", x, y + lineCount * lineH); return; }
+    } else { line = test; }
+  }
+  if (line) ctx.fillText(line, x, y + lineCount * lineH);
+}
+
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
 function GradeBadge({ grade, large }: { grade: string; large?: boolean }) {
@@ -130,7 +249,22 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
   teamColor: typeof TEAM_PALETTE[0];
   defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open,    setOpen]    = useState(defaultOpen);
+  const [sharing, setSharing] = useState(false);
+
+  async function handleShare(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSharing(true);
+    await shareGradeCard({
+      name: decision.player.replace(/\s*\([^)]*\)/, "").trim(),
+      grade: decision.grade || "N/A",
+      sport: decision.sport,
+      role: decision.role,
+      headline: decision.whatHappened,
+      insight: decision.bestAlternative,
+    });
+    setSharing(false);
+  }
   const grade       = decision.grade || "N/A";
   const displayTeam = decision.player.match(/\(([^)]+)\)/)?.[1] ?? null;
 
@@ -150,7 +284,13 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
             {[decision.role, decision.action, decision.sport].filter(Boolean).join("  ·  ")}
           </p>
         </div>
-        <span className="shrink-0 text-[10px] text-zinc-700">{open ? "HIDE" : "MORE"}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={handleShare} disabled={sharing}
+            className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1 disabled:opacity-40">
+            {sharing ? "…" : "SHARE"}
+          </button>
+          <span className="text-[10px] text-zinc-700">{open ? "HIDE" : "MORE"}</span>
+        </div>
       </button>
 
       {open && (
@@ -525,60 +665,160 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
         </div>
       </div>
 
-      {/* History */}
+      {/* Film Library */}
       {reviews.length > 0 && (
-        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-white">History</p>
-            <span className="text-xs text-zinc-600">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
-          </div>
+        <FilmLibrary
+          reviews={reviews}
+          expandedReview={expandedReview}
+          onToggle={i => setExpandedReview(expandedReview === i ? null : i)}
+          onDelete={deleteReview}
+        />
+      )}
+    </div>
+  );
+}
 
-          <div className="space-y-2">
-            {reviews.map((review, index) => {
-              const isOpen = expandedReview === index;
-              return (
-                <div key={review.id} className="border border-zinc-800 rounded-lg overflow-hidden">
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <button onClick={() => setExpandedReview(isOpen ? null : index)} className="flex-1 min-w-0 text-left">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-white capitalize">{review.sport}</span>
-                        <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">
-                          {review.mode === "game" ? "Game" : "Clip"}
-                        </span>
-                        {review.mode === "clip" && review.decisions && (
-                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500">
-                            {review.decisions.length}p
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-600 truncate mt-0.5">{formatDate(review.timestamp)}</p>
-                    </button>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <GradeBadge grade={review.grade} />
-                      <button onClick={() => setExpandedReview(isOpen ? null : index)}
-                        className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1">
-                        {isOpen ? "HIDE" : "VIEW"}
-                      </button>
-                      <button onClick={() => deleteReview(review.id)}
-                        className="text-[10px] text-zinc-700 hover:text-red-500 transition-colors px-1">
-                        DEL
-                      </button>
-                    </div>
+// ─── Film Library ─────────────────────────────────────────────────────────────
+
+function FilmLibrary({ reviews, expandedReview, onToggle, onDelete }: {
+  reviews: Review[];
+  expandedReview: number | null;
+  onToggle: (i: number) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [search,     setSearch]     = useState("");
+  const [modeFilter, setModeFilter] = useState<"all" | "clip" | "game">("all");
+  const [gradeFilter, setGradeFilter] = useState<"all" | "good" | "mid" | "poor">("all");
+  const [sharing,    setSharing]    = useState<string | null>(null);
+
+  const GRADE_VALUE: Record<string, number> = {
+    "A+": 13, "A": 12, "A-": 11, "B+": 10, "B": 9, "B-": 8,
+    "C+": 7, "C": 6, "C-": 5, "D+": 4, "D": 3, "D-": 2, "F": 1,
+  };
+
+  const filtered = reviews.filter(r => {
+    if (modeFilter !== "all" && r.mode !== modeFilter) return false;
+    const v = GRADE_VALUE[r.grade] ?? 0;
+    if (gradeFilter === "good" && v < 9) return false;
+    if (gradeFilter === "mid"  && (v < 5 || v >= 9)) return false;
+    if (gradeFilter === "poor" && v >= 5) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!r.sport.toLowerCase().includes(q) && !r.fileName.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  async function handleShareReview(review: Review, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSharing(review.id);
+    const firstPlayer = review.decisions?.[0];
+    await shareGradeCard({
+      name: firstPlayer ? firstPlayer.player.replace(/\s*\([^)]*\)/, "").trim() : review.sport,
+      grade: review.grade,
+      sport: review.sport,
+      role: firstPlayer?.role,
+      headline: firstPlayer?.whatHappened ?? review.fileName,
+      insight: firstPlayer?.bestAlternative ?? "Check full report on Reel.",
+    });
+    setSharing(null);
+  }
+
+  return (
+    <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-white">Film Library</p>
+          <p className="text-xs text-zinc-600 mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</p>
+        </div>
+      </div>
+
+      {/* Search + Filters */}
+      <div className="mb-4 space-y-3">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by sport or file name…"
+          className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+        />
+        <div className="flex flex-wrap gap-2">
+          {(["all", "clip", "game"] as const).map(f => (
+            <button key={f} onClick={() => setModeFilter(f)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${modeFilter === f ? "bg-white text-black" : "border border-zinc-800 text-zinc-500 hover:text-white"}`}>
+              {f === "all" ? "All" : f === "clip" ? "Clips" : "Games"}
+            </button>
+          ))}
+          <div className="w-px bg-zinc-800 mx-1 self-stretch" />
+          {(["all", "good", "mid", "poor"] as const).map(f => (
+            <button key={f} onClick={() => setGradeFilter(f)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${gradeFilter === f ? "bg-white text-black" : "border border-zinc-800 text-zinc-500 hover:text-white"}`}>
+              {f === "all" ? "Any grade" : f === "good" ? "B+ and up" : f === "mid" ? "C to B" : "Below C"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex h-24 items-center justify-center rounded-lg border border-zinc-800">
+          <p className="text-sm text-zinc-600">No reviews match your filters.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((review) => {
+            const originalIndex = reviews.indexOf(review);
+            const isOpen = expandedReview === originalIndex;
+            return (
+              <div key={review.id} className="border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  {/* Grade pill */}
+                  <div className="shrink-0">
+                    <GradeBadge grade={review.grade} large />
                   </div>
 
-                  {isOpen && (
-                    <div className="border-t border-zinc-800 p-4">
-                      {review.mode === "clip" && review.decisions
-                        ? <PlayerCardList decisions={review.decisions} />
-                        : review.mode === "game" && review.gameReport
-                        ? <GameReportCard report={review.gameReport} />
-                        : null}
+                  {/* Meta */}
+                  <button onClick={() => onToggle(originalIndex)} className="flex-1 min-w-0 text-left">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-white capitalize">{review.sport}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${review.mode === "game" ? "bg-zinc-800 text-zinc-400" : "bg-zinc-800 text-zinc-400"}`}>
+                        {review.mode === "game" ? "Game" : "Clip"}
+                      </span>
+                      {review.mode === "clip" && review.decisions && (
+                        <span className="text-[10px] text-zinc-600">{review.decisions.length} players</span>
+                      )}
                     </div>
-                  )}
+                    <p className="text-xs text-zinc-600 mt-0.5 truncate">{formatDate(review.timestamp)}</p>
+                  </button>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={e => handleShareReview(review, e)} disabled={sharing === review.id}
+                      className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors disabled:opacity-40">
+                      {sharing === review.id ? "…" : "Share"}
+                    </button>
+                    <button onClick={() => onToggle(originalIndex)}
+                      className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+                      {isOpen ? "Close" : "View"}
+                    </button>
+                    <button onClick={() => onDelete(review.id)}
+                      className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-400 hover:border-red-900 transition-colors">
+                      Del
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {isOpen && (
+                  <div className="border-t border-zinc-800 p-4">
+                    {review.mode === "clip" && review.decisions
+                      ? <PlayerCardList decisions={review.decisions} />
+                      : review.mode === "game" && review.gameReport
+                      ? <GameReportCard report={review.gameReport} />
+                      : <p className="text-xs text-zinc-600">No data saved for this review.</p>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
