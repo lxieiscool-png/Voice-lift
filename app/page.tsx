@@ -760,15 +760,23 @@ export default function Reel() {
     const r = localStorage.getItem("decisioniq-reviews");
     if (r) setReviews(JSON.parse(r));
 
-    // Listen for auth changes — this fires immediately with INITIAL_SESSION
-    // which covers both existing sessions and post-OAuth redirects
+    // Check for auth error passed back from callback
+    const params = new URLSearchParams(window.location.search);
+    const authErr = params.get("auth_error");
+    if (authErr) {
+      setAuthError(decodeURIComponent(authErr));
+      setAuthLoading(false);
+      window.history.replaceState({}, "", "/");
+      return;
+    }
+
+    // Listen for auth changes — fires immediately with INITIAL_SESSION
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null;
       setUser(u);
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
         setAuthLoading(false);
         if (u) { setShowApp(true); loadUserData(u.id); }
-        else setAuthLoading(false);
       }
       if (event === "SIGNED_OUT") {
         setUser(null);
@@ -776,8 +784,8 @@ export default function Reel() {
       }
     });
 
-    // Fallback: if onAuthStateChange never fires (e.g. no session), stop loading
-    const fallback = setTimeout(() => setAuthLoading(false), 2000);
+    // Fallback: if onAuthStateChange never fires, stop loading after 3s
+    const fallback = setTimeout(() => setAuthLoading(false), 3000);
 
     return () => { subscription.unsubscribe(); clearTimeout(fallback); };
   }, []);
