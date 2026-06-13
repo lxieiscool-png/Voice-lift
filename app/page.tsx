@@ -369,6 +369,67 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
   );
 }
 
+// ─── Onboarding Overlay ───────────────────────────────────────────────────────
+
+function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void }) {
+  const [step, setStep] = useState(0);
+
+  const slides = [
+    {
+      eyebrow: "Welcome to Reel",
+      title: name ? `Hey ${name}.` : "You're in.",
+      body: "This is your personal film room and coaching hub. Everything you need to analyze your game and get better — all in one place.",
+      cta: "Show me how →",
+    },
+    {
+      eyebrow: "DecisionIQ",
+      title: "Upload a clip. Get real feedback.",
+      body: "Drop in any video — a 10-second clip or a full game. DecisionIQ grades every player on screen, breaks down each decision, and tells you exactly what to work on.",
+      cta: "Got it →",
+    },
+    {
+      eyebrow: "You're ready",
+      title: "Upload your first clip.",
+      body: "It takes about 30 seconds. Pick something recent — a play you were proud of, or one you want to understand better.",
+      cta: "Upload a clip",
+    },
+  ];
+
+  const s = slides[step];
+  const isLast = step === slides.length - 1;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm p-0 sm:p-6">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+        {/* Progress */}
+        <div className="mb-8 flex gap-1.5">
+          {slides.map((_, i) => (
+            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-white" : "bg-zinc-800"}`} />
+          ))}
+        </div>
+
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{s.eyebrow}</p>
+        <h2 className="mb-3 text-2xl font-black tracking-tight text-white">{s.title}</h2>
+        <p className="mb-8 text-sm text-zinc-400 leading-relaxed">{s.body}</p>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => isLast ? onDone() : setStep(s => s + 1)}
+            className="flex-1 rounded-xl bg-white py-3.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors"
+          >
+            {s.cta}
+          </button>
+          {!isLast && (
+            <button onClick={onDone} className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              Skip
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sign Up Modal ────────────────────────────────────────────────────────────
 
 const SPORTS = ["Basketball", "Soccer", "Football", "Baseball", "Softball", "Volleyball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
@@ -750,6 +811,7 @@ export default function Reel() {
   const [showApp,       setShowApp]       = useState(false);
   const [authError,     setAuthError]     = useState("");
   const [signingIn,     setSigningIn]     = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const supabase = createClient();
 
@@ -776,7 +838,11 @@ export default function Reel() {
       setUser(u);
       if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
         setAuthLoading(false);
-        if (u) { setShowApp(true); loadUserData(u.id); }
+        if (u) {
+          setShowApp(true);
+          loadUserData(u.id);
+          if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
+        }
       }
       if (event === "SIGNED_OUT") {
         setUser(null);
@@ -891,8 +957,17 @@ export default function Reel() {
     return <LandingPage onSignIn={signInWithGoogle} onSignUp={signUpWithGoogle} onEnterApp={() => setShowApp(true)} signingIn={signingIn} authError={authError} />;
   }
 
+  function dismissOnboarding() {
+    localStorage.setItem("reel-onboarded", "1");
+    setShowOnboarding(false);
+  }
+
   return (
     <main className="min-h-screen bg-black text-white">
+
+      {showOnboarding && (
+        <OnboardingOverlay name={profile.name} onDone={dismissOnboarding} />
+      )}
 
       {/* Settings panel */}
       <SettingsPanel
