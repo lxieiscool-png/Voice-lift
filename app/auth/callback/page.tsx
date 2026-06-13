@@ -9,36 +9,20 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const supabase = createClient();
-    const params   = new URLSearchParams(window.location.search);
-    const code     = params.get("code");
-    const error    = params.get("error");
-    const errorDesc = params.get("error_description");
 
-    if (error) {
-      router.replace(`/?auth_error=${encodeURIComponent(errorDesc || error)}`);
-      return;
-    }
-
-    if (code) {
-      // Exchange code client-side — this has access to the PKCE verifier in localStorage
-      supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
-        if (exchangeError) {
-          router.replace(`/?auth_error=${encodeURIComponent(exchangeError.message)}`);
-        } else {
-          router.replace("/");
-        }
-      });
-      return;
-    }
-
-    // No code — check if already signed in (e.g. implicit flow token in hash)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        router.replace("/");
-      } else {
+    // With implicit flow, Supabase automatically reads the token from the URL hash.
+    // Just wait for the session to be set, then redirect home.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        subscription.unsubscribe();
         router.replace("/");
       }
     });
+
+    // Fallback — if no auth event fires in 3s, go home anyway
+    const t = setTimeout(() => { subscription.unsubscribe(); router.replace("/"); }, 3000);
+
+    return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, [router]);
 
   return (
