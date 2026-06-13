@@ -156,12 +156,12 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 const HOW_STEPS: Record<ModuleId, { num: string; title: string; desc: string }[]> = {
   decision: [
     { num: "01", title: "Upload your footage",      desc: "Drop in a short clip or a full game. DecisionIQ figures out the sport, the teams, and the situation automatically." },
-    { num: "02", title: "Every player is reviewed", desc: "Every player on screen — offense and defense — gets their own grade, breakdown, and feedback based on what they did and what they could have done instead." },
+    { num: "02", title: "Every player is reviewed", desc: "Every player on screen, offense and defense, gets their own grade, breakdown, and feedback based on what they did and what they could have done instead." },
     { num: "03", title: "See the full picture",     desc: "Each decision card shows what happened, whether it was the right read, the better option, and one thing to work on. Full games get period breakdowns and foul patterns." },
     { num: "04", title: "Track your progress",      desc: "Every review is saved. Over time you can see your grade trend and whether your decision-making is improving." },
   ],
   coach: [
-    { num: "01", title: "Ask your coach anything",  desc: "Question about technique, strategy, positioning, or mindset? CoachIQ knows your sport and your film patterns — answers are specific to you." },
+    { num: "01", title: "Ask your coach anything",  desc: "Question about technique, strategy, positioning, or mindset? CoachIQ knows your sport and your film patterns. Answers are specific to you." },
     { num: "02", title: "Get a real practice plan", desc: "Tell CoachIQ your position, experience, available days, and what you want to improve. It builds a full week of sessions with specific drills and reps." },
     { num: "03", title: "Connected to your film",   desc: "Patterns found in your DecisionIQ reviews automatically feed into CoachIQ. Your plan targets the exact weaknesses your film identified." },
   ],
@@ -200,7 +200,7 @@ function HowItWorks({ activeModule }: { activeModule: ModuleId }) {
             <div className="border border-zinc-800 rounded-xl px-4 py-3">
               <p className="text-xs text-zinc-400 leading-relaxed">
                 <span className="font-semibold text-white">DecisionIQ</span> is your film room.{" "}
-                <span className="font-semibold text-white">CoachIQ</span> is your coach on the sideline. Use both together — analyze a clip, then ask CoachIQ to build a plan around what you found.
+                <span className="font-semibold text-white">CoachIQ</span> is your coach on the sideline. Use both together: analyze a clip, then ask CoachIQ to build a plan around what you found.
               </p>
             </div>
           )}
@@ -357,7 +357,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">About</p>
               <div className="rounded-lg border border-zinc-800 p-4 space-y-1">
                 <p className="text-sm font-semibold text-white">Reel</p>
-                <p className="text-xs text-zinc-500">Coaching for every athlete — any sport, any level.</p>
+                <p className="text-xs text-zinc-500">Coaching for every athlete. Any sport, any level.</p>
                 <p className="text-xs text-zinc-700 mt-2">Built with DecisionIQ + CoachIQ</p>
               </div>
             </div>
@@ -416,7 +416,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
     },
     {
       title: "What's your position or role?",
-      sub: "Optional — helps us give more specific feedback.",
+      sub: "Optional. Helps us give more specific feedback.",
       content: (
         <input
           autoFocus
@@ -559,7 +559,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <span className="text-zinc-400">great coach.</span>
           </h1>
           <p className="mx-auto mb-10 max-w-xl text-base text-zinc-400 leading-relaxed sm:text-lg">
-            Film analysis. Personalized coaching. Practice plans built around your game. All free — for every athlete, everywhere.
+            Film analysis. Personalized coaching. Practice plans built around your game. All free, for every athlete, everywhere.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             <button onClick={() => setShowSignUp(true)} disabled={signingIn}
@@ -613,10 +613,10 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 <span className="text-zinc-500">Opportunity isn't.</span>
               </h2>
               <p className="text-zinc-500 leading-relaxed mb-4">
-                A private coach can cost $100–300 an hour. Most young athletes — especially those from low-income families, rural areas, or underserved communities — never get access to that level of feedback.
+                A private coach can cost $100 to $300 an hour. Most young athletes, especially those from low-income families, rural areas, or underserved communities, never get access to that level of feedback.
               </p>
               <p className="text-zinc-400 leading-relaxed">
-                Reel was built to change that. Upload any clip or game, and get the same quality of tactical analysis and personalized coaching that elite athletes pay thousands for — for free, for everyone.
+                Reel was built to change that. Upload any clip or game, and get the same quality of tactical analysis and personalized coaching that elite athletes pay thousands for. Free, for everyone.
               </p>
             </div>
             <div className="grid gap-4">
@@ -647,12 +647,12 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Film Analysis</p>
               <h3 className="mb-4 text-2xl font-black">DecisionIQ</h3>
               <p className="mb-6 text-zinc-500 leading-relaxed">
-                Upload a clip or a full game. DecisionIQ analyzes every player on screen — offense and defense — grades each decision, and tells you exactly what the better option was and why.
+                Upload a clip or a full game. DecisionIQ analyzes every player on screen, offense and defense, grades each decision, and tells you exactly what the better option was and why.
               </p>
               <div className="space-y-3">
                 {[
                   "Grades every player, not just the ball handler",
-                  "Works on full games — period breakdowns, foul patterns, player stats",
+                  "Works on full games: period breakdowns, foul patterns, player stats",
                   "Auto-detects sport, teams, and jersey numbers",
                   "Tracks your grade trend over time",
                 ].map(f => (
@@ -669,13 +669,13 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Personal Coaching</p>
               <h3 className="mb-4 text-2xl font-black">CoachIQ</h3>
               <p className="mb-6 text-zinc-500 leading-relaxed">
-                Your personal coach, available 24/7. Ask anything about technique, strategy, or mindset. Or build a full weekly practice plan — specific drills, reps, and explanations, all tailored to your game.
+                Your personal coach, available 24/7. Ask anything about technique, strategy, or mindset. Or build a full weekly practice plan with specific drills, reps, and explanations, all tailored to your game.
               </p>
               <div className="space-y-3">
                 {[
                   "Knows your sport, position, and recent film patterns",
                   "Builds personalized weekly practice plans",
-                  "All drills are solo — no gym, no equipment, no teammates needed",
+                  "All drills are solo. No gym, no equipment, no teammates needed",
                   "Speaks directly to you, like a real coach would",
                 ].map(f => (
                   <div key={f} className="flex items-start gap-3">
@@ -696,7 +696,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Start in 30 seconds.</h2>
           <div className="grid gap-6 sm:grid-cols-3">
             {[
-              { num: "01", title: "Upload your clip", desc: "Drop in any video from your phone or camera. A 10-second clip or a full game — Reel handles both." },
+              { num: "01", title: "Upload your clip", desc: "Drop in any video from your phone or camera. A 10-second clip or a full game. Reel handles both." },
               { num: "02", title: "Get real feedback", desc: "Every player gets graded. Every decision gets broken down. You see exactly what happened and what to do differently." },
               { num: "03", title: "Train smarter", desc: "Take your feedback to CoachIQ. Build a practice plan that directly targets the weaknesses your film revealed." },
             ].map(s => (
@@ -718,7 +718,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <span className="text-zinc-600">Your edge.</span>
           </h2>
           <p className="mb-10 text-zinc-500 text-lg">
-            No experience required. No equipment needed. No cost — ever.
+            No experience required. No equipment needed. No cost. Ever.
           </p>
           <button onClick={() => setShowSignUp(true)}
             className="rounded-xl bg-white px-10 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors">
@@ -953,7 +953,7 @@ export default function Reel() {
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             {activeModule === "decision"
-              ? "Upload a clip or full game. Every player gets analyzed — offense, defense, and everything in between."
+              ? "Upload a clip or full game. Every player gets analyzed: offense, defense, and everything in between."
               : "Your personal coach. Ask anything, or build a custom practice plan tailored to your game."}
           </p>
         </div>
