@@ -47,6 +47,9 @@ export const metadata: Metadata = {
     title: "Reel — Free AI Sports Coaching for Every Athlete",
     description: "Upload your game film and get instant AI coaching. Free for every athlete, everywhere.",
   },
+  verification: {
+    google: "zYn7Xjg_65vBObtAPhQmFlGGVBuHzddXgizGs3IyD3g",
+  },
   robots: {
     index: true,
     follow: true,
