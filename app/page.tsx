@@ -369,11 +369,156 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
   );
 }
 
+// ─── Sign Up Modal ────────────────────────────────────────────────────────────
+
+const SPORTS = ["Basketball", "Soccer", "Football", "Baseball", "Softball", "Volleyball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
+const LEVELS = ["Middle school", "High school", "College", "Semi-pro / Amateur", "Professional"];
+const GOALS  = ["Improve decision-making", "Better film breakdown", "Personalized drills", "Track my progress", "Get recruited"];
+
+function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onClose: () => void }) {
+  const [step,     setStep]     = useState(0);
+  const [name,     setName]     = useState("");
+  const [sport,    setSport]    = useState("");
+  const [position, setPosition] = useState("");
+  const [level,    setLevel]    = useState("");
+  const [goals,    setGoals]    = useState<string[]>([]);
+
+  const steps = [
+    {
+      title: "What's your name?",
+      sub: "We'll personalize your coaching around you.",
+      content: (
+        <input
+          autoFocus
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+          placeholder="Your first name"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && name.trim() && setStep(1)}
+        />
+      ),
+      canNext: name.trim().length > 0,
+    },
+    {
+      title: `Nice to meet you, ${name || "you"}. What sport do you play?`,
+      sub: "Your film analysis and drills will be tailored to your sport.",
+      content: (
+        <div className="grid grid-cols-2 gap-2">
+          {SPORTS.map(s => (
+            <button key={s} onClick={() => setSport(s)}
+              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${sport === s ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      ),
+      canNext: sport.length > 0,
+    },
+    {
+      title: "What's your position or role?",
+      sub: "Optional — helps us give more specific feedback.",
+      content: (
+        <input
+          autoFocus
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+          placeholder={`e.g. Point guard, Striker, Quarterback…`}
+          value={position}
+          onChange={e => setPosition(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && setStep(3)}
+        />
+      ),
+      canNext: true, // optional
+    },
+    {
+      title: "What level do you compete at?",
+      sub: "We'll calibrate feedback to your experience.",
+      content: (
+        <div className="flex flex-col gap-2">
+          {LEVELS.map(l => (
+            <button key={l} onClick={() => setLevel(l)}
+              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${level === l ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      ),
+      canNext: level.length > 0,
+    },
+    {
+      title: "What are you most looking to improve?",
+      sub: "Pick everything that applies.",
+      content: (
+        <div className="flex flex-col gap-2">
+          {GOALS.map(g => {
+            const on = goals.includes(g);
+            return (
+              <button key={g} onClick={() => setGoals(on ? goals.filter(x => x !== g) : [...goals, g])}
+                className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors flex items-center gap-3 ${on ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${on ? "border-black bg-black text-white" : "border-zinc-600"}`}>{on ? "✓" : ""}</span>
+                {g}
+              </button>
+            );
+          })}
+        </div>
+      ),
+      canNext: goals.length > 0,
+    },
+  ];
+
+  const current = steps[step];
+  const isLast  = step === steps.length - 1;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+        {/* Close */}
+        <button onClick={onClose} className="absolute right-5 top-5 text-zinc-600 hover:text-white transition-colors text-xl leading-none">✕</button>
+
+        {/* Progress dots */}
+        <div className="mb-8 flex gap-1.5">
+          {steps.map((_, i) => (
+            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-white" : "bg-zinc-800"}`} />
+          ))}
+        </div>
+
+        {/* Content */}
+        <h2 className="mb-1 text-xl font-black tracking-tight text-white">{current.title}</h2>
+        <p className="mb-6 text-sm text-zinc-500">{current.sub}</p>
+        {current.content}
+
+        {/* Actions */}
+        <div className="mt-6 flex gap-3">
+          {step > 0 && (
+            <button onClick={() => setStep(s => s - 1)}
+              className="rounded-xl border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-400 hover:text-white transition-colors">
+              Back
+            </button>
+          )}
+          <button
+            onClick={() => isLast ? onContinue({ name, sport, position, level, goals }) : setStep(s => s + 1)}
+            disabled={!current.canNext}
+            className="flex-1 rounded-xl bg-white py-3 text-sm font-bold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors">
+            {isLast ? "Create my account →" : step === 2 ? "Skip" : "Continue"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterApp: () => void }) {
+function LandingPage({ onSignIn, onSignUp, onEnterApp }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onEnterApp: () => void }) {
+  const [showSignUp, setShowSignUp] = useState(false);
   return (
     <div className="min-h-screen bg-black text-white">
+
+      {showSignUp && (
+        <SignUpModal
+          onClose={() => setShowSignUp(false)}
+          onContinue={(data) => { setShowSignUp(false); onSignUp(data); }}
+        />
+      )}
 
       {/* Nav */}
       <header className="absolute top-0 left-0 right-0 z-20 px-6 py-5">
@@ -384,8 +529,12 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
               Try without account
             </button>
             <button onClick={onSignIn}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors">
+              Log in
+            </button>
+            <button onClick={() => setShowSignUp(true)}
               className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
-              Sign in
+              Sign up
             </button>
           </div>
         </div>
@@ -395,8 +544,8 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       <section className="relative h-screen min-h-[600px] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=1600&q=85&fit=crop&crop=center"
-          alt="Basketball"
+          src="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
+          alt="Basketball player mid-air"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10" />
@@ -413,13 +562,17 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
             Film analysis. Personalized coaching. Practice plans built around your game. All free — for every athlete, everywhere.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <button onClick={onSignIn}
+            <button onClick={() => setShowSignUp(true)}
               className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors sm:w-auto">
-              Get started free
+              Create free account
+            </button>
+            <button onClick={onSignIn}
+              className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors sm:w-auto">
+              Log in
             </button>
             <button onClick={onEnterApp}
-              className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors sm:w-auto">
-              Try it out
+              className="w-full rounded-xl px-8 py-4 text-base font-semibold text-zinc-500 hover:text-zinc-300 transition-colors sm:w-auto">
+              Try without account
             </button>
           </div>
         </div>
@@ -431,17 +584,17 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       </section>
 
       {/* Photo grid */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
+      <section className="relative z-10 grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
         {[
-          { id: "1574629810360-7efbbe195018", alt: "Soccer" },
-          { id: "1558618666-fcd25c85cd64", alt: "Basketball" },
-          { id: "1560272564-c83b66b1ad12", alt: "Football" },
-          { id: "1571019613454-1cb2f99b2d8b", alt: "Basketball game" },
+          { id: "1629901925121-8a141c2a42f4", alt: "Basketball dunk" },
+          { id: "1537882111161-c3379a777c8b", alt: "Football game" },
+          { id: "1552984439-3067a809a6d4", alt: "Basketball game" },
+          { id: "1489358921548-9b3f69a1eb4a", alt: "Football action" },
         ].map(({ id, alt }) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={id}
-            src={`https://images.unsplash.com/photo-${id}?w=500&q=70&fit=crop&crop=center`}
+            src={`https://images.unsplash.com/photo-${id}?w=600&q=80&fit=crop&crop=faces,center`}
             alt={alt}
             className="h-full w-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-100 transition-all duration-700"
           />
@@ -449,7 +602,7 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
       </section>
 
       {/* Mission */}
-      <section className="border-t border-zinc-900">
+      <section className="relative z-10 border-t border-zinc-900 bg-black">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <div>
@@ -566,9 +719,9 @@ function LandingPage({ onSignIn, onEnterApp }: { onSignIn: () => void; onEnterAp
           <p className="mb-10 text-zinc-500 text-lg">
             No experience required. No equipment needed. No cost — ever.
           </p>
-          <button onClick={onSignIn}
+          <button onClick={() => setShowSignUp(true)}
             className="rounded-xl bg-white px-10 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors">
-            Start for free
+            Create free account
           </button>
         </div>
       </section>
@@ -621,6 +774,21 @@ export default function Reel() {
   }, []);
 
   async function loadUserData(userId: string) {
+    // Apply signup personalization data if present
+    const signupRaw = localStorage.getItem("reel-signup-data");
+    if (signupRaw) {
+      try {
+        const signup = JSON.parse(signupRaw);
+        const p: Profile = { name: signup.name || "", sport: signup.sport || "", team: "" };
+        setProfile(p);
+        localStorage.setItem("decisioniq-profile", JSON.stringify(p));
+        localStorage.removeItem("reel-signup-data");
+        // Upsert to Supabase
+        await supabase.from("profiles").upsert({ id: userId, name: p.name, sport: p.sport, team: p.team });
+        return;
+      } catch { /* fallthrough to normal load */ }
+    }
+
     // Load profile from Supabase
     const { data: profileData } = await supabase
       .from("profiles").select("*").eq("id", userId).single();
@@ -659,6 +827,15 @@ export default function Reel() {
     });
   }
 
+  async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[] }) {
+    // Store signup data so we can save it to their profile after OAuth redirect
+    localStorage.setItem("reel-signup-data", JSON.stringify(data));
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     setUser(null);
@@ -689,7 +866,7 @@ export default function Reel() {
 
   // Show landing page if not signed in and hasn't clicked "try"
   if (!showApp) {
-    return <LandingPage onSignIn={signInWithGoogle} onEnterApp={() => setShowApp(true)} />;
+    return <LandingPage onSignIn={signInWithGoogle} onSignUp={signUpWithGoogle} onEnterApp={() => setShowApp(true)} />;
   }
 
   return (

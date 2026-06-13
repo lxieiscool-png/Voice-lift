@@ -433,7 +433,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
             {(["file", "youtube"] as const).map(tab => (
               <button key={tab} onClick={() => { setInputTab(tab); setYtError(""); }}
                 className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}>
-                {tab === "file" ? "Video File" : "YouTube Link"}
+                {tab === "file" ? "Video File" : "Screen Record"}
               </button>
             ))}
           </div>
@@ -455,12 +455,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
             </>
           ) : (
             <div className="rounded-lg border border-zinc-800 p-4 space-y-3">
-              <p className="text-sm font-medium text-white">How to analyze a YouTube video</p>
+              <p className="text-sm font-medium text-white">How to analyze a YouTube or online video</p>
               <div className="space-y-2">
                 {[
-                  { num: "1", text: "Open the YouTube video in Safari or Chrome" },
-                  { num: "2", text: 'Screen record the clip you want to analyze (Mac: Cmd+Shift+5, iPhone: swipe Control Center)' },
-                  { num: "3", text: 'Switch to "Video File" tab and upload the recording' },
+                  { num: "1", text: "Open the video in YouTube, Twitter, or any browser" },
+                  { num: "2", text: "Screen record the clip you want analyzed — Mac: Cmd+Shift+5 · iPhone: swipe up Control Center · Android: hold power button" },
+                  { num: "3", text: 'Switch to the "Video File" tab and upload your recording' },
                 ].map(s => (
                   <div key={s.num} className="flex items-start gap-3">
                     <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-400">{s.num}</span>
@@ -468,7 +468,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-zinc-600">Screen recording works on any device and captures exactly what you see — no downloads needed.</p>
+              <p className="text-xs text-zinc-600">Works on any device — no downloads or extensions needed.</p>
             </div>
           )}
 
