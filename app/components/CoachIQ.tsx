@@ -204,7 +204,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
 
       {/* Chat tab */}
       {tab === "chat" && (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: 520 }}>
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: "min(520px, calc(100dvh - 220px))" }}>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {messages.map((msg, i) => <ChatBubble key={i} msg={msg} />)}

@@ -425,7 +425,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
       <div className="grid gap-5 lg:grid-cols-2">
 
         {/* Upload */}
-        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
+        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-4 sm:p-5">
           <p className="mb-4 text-sm font-semibold text-white">Upload</p>
 
           {/* Tab switcher */}
@@ -440,15 +440,16 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
 
           {inputTab === "file" ? (
             <>
-              <label className="block cursor-pointer rounded-lg border border-dashed border-zinc-800 p-6 text-center hover:border-zinc-600 transition-colors">
+              <label className="block cursor-pointer rounded-xl border-2 border-dashed border-zinc-800 p-8 text-center hover:border-zinc-600 active:border-zinc-500 transition-colors">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setVideoFile(file); setFileName(file.name);
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
-                <p className="text-sm font-medium text-zinc-400">Choose video</p>
-                <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
+                <p className="text-3xl mb-2">🎬</p>
+                <p className="text-sm font-semibold text-zinc-300">Tap to choose video</p>
+                <p className="mt-1 text-xs text-zinc-600">Clip or full game. Adapts automatically.</p>
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
@@ -473,26 +474,26 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
           )}
 
           {inputTab === "file" && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               <input
-                className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport — optional, will detect from video"}
+                className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                 value={sport}
                 onChange={e => setSport(e.target.value)}
               />
               <button
                 onClick={analyzeVideo}
                 disabled={loading || !videoFile}
-                className="w-full rounded-lg bg-white py-3 text-sm font-semibold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors"
+                className="w-full rounded-xl bg-white py-4 text-sm font-bold text-black disabled:opacity-30 active:bg-zinc-200 transition-colors"
               >
-                {loading ? "Analyzing…" : "Analyze"}
+                {loading ? "Analyzing…" : "Analyze Film"}
               </button>
             </div>
           )}
         </div>
 
         {/* Results */}
-        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
+        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm font-semibold text-white">
               {resultMode === "game" ? "Game Report" : "Player Decisions"}

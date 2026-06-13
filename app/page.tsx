@@ -469,8 +469,8 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
   const isLast  = step === steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
+      <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Close */}
         <button onClick={onClose} className="absolute right-5 top-5 text-zinc-600 hover:text-white transition-colors text-xl leading-none">✕</button>
 
@@ -554,21 +554,21 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           <p className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
             Coaching for every athlete
           </p>
-          <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight sm:text-7xl lg:text-8xl">
+          <h1 className="mb-6 text-4xl font-black leading-tight tracking-tight sm:text-6xl lg:text-8xl">
             Every athlete<br />deserves a<br />
             <span className="text-zinc-400">great coach.</span>
           </h1>
-          <p className="mx-auto mb-10 max-w-xl text-base text-zinc-400 leading-relaxed sm:text-lg">
+          <p className="mx-auto mb-8 max-w-xl text-sm text-zinc-400 leading-relaxed sm:text-lg">
             Film analysis. Personalized coaching. Practice plans built around your game. All free, for every athlete, everywhere.
           </p>
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <div className="flex flex-col items-center gap-3 w-full max-w-xs sm:max-w-none sm:flex-row">
             <button onClick={() => setShowSignUp(true)} disabled={signingIn}
               className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors disabled:opacity-50 sm:w-auto">
               Create free account
             </button>
             <button onClick={onSignIn} disabled={signingIn}
               className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50 sm:w-auto">
-              {signingIn ? "Redirecting to Google…" : "Log in"}
+              {signingIn ? "Redirecting…" : "Log in"}
             </button>
             <button onClick={onEnterApp} disabled={signingIn}
               className="w-full rounded-xl px-8 py-4 text-base font-semibold text-zinc-500 hover:text-zinc-300 transition-colors sm:w-auto">
@@ -912,16 +912,13 @@ export default function Reel() {
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-black tracking-tight">Reel</span>
-            <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-zinc-700 sm:block">
-              Coaching for every athlete
-            </span>
+            <span className="text-xl font-black tracking-tight sm:text-2xl">Reel</span>
           </div>
 
           <nav className="flex gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
             {MODULES.map(mod => (
               <button key={mod.id} onClick={() => setActiveModule(mod.id)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
                   activeModule === mod.id ? "bg-white text-black" : "text-zinc-500 hover:text-white"
                 }`}
               >
@@ -931,19 +928,19 @@ export default function Reel() {
           </nav>
 
           <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-zinc-800 px-3 py-1.5 text-xs text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+            className="flex items-center justify-center h-9 w-9 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
             {user
-              ? <><span className="h-5 w-5 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold">{(user.email || "?").charAt(0).toUpperCase()}</span><span className="hidden sm:block">{profile.name ? profile.name.split(" ")[0] : "Account"}</span></>
+              ? <span className="h-7 w-7 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[11px] font-bold">{(user.email || "?").charAt(0).toUpperCase()}</span>
               : profile.name
-              ? <><span className="h-5 w-5 flex items-center justify-center rounded-full bg-white text-black text-[10px] font-bold">{profile.name.charAt(0).toUpperCase()}</span><span className="hidden sm:block">{profile.name.split(" ")[0]}</span></>
-              : <span>Settings</span>
+              ? <span className="h-7 w-7 flex items-center justify-center rounded-full bg-white text-black text-[11px] font-bold">{profile.name.charAt(0).toUpperCase()}</span>
+              : <span className="text-xs">☰</span>
             }
           </button>
         </div>
       </header>
 
       {/* Body */}
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
 
         {/* Module header */}
         <div className="mb-6">
