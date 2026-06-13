@@ -1,0 +1,8 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 44' fill='none'>
+  <text x='0' y='36'
+    font-family='Arial Black, Helvetica Neue, Impact, sans-serif'
+    font-size='40' font-weight='900'
+    letter-spacing='8'
+    fill='white'>REEL</text>
+  <rect x='1' y='41' width='152' height='2' fill='white' opacity='0.25' rx='1'/>
+</svg>

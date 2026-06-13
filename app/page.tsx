@@ -6,6 +6,7 @@ import type { Profile, Review } from "./lib/types";
 import { averageGrade, gradeClass, formatDate, GRADE_VALUE } from "./lib/shared";
 import { createClient } from "./lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import Logo from "./components/Logo";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
@@ -358,7 +359,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
             <div>
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">About</p>
               <div className="rounded-lg border border-zinc-800 p-4 space-y-1">
-                <p className="text-sm font-semibold text-white">Reel</p>
+                <Logo size="sm" className="mb-1" />
                 <p className="text-xs text-zinc-500">Coaching for every athlete. Any sport, any level.</p>
                 <p className="text-xs text-zinc-700 mt-2">Built with DecisionIQ + CoachIQ</p>
               </div>
@@ -586,7 +587,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       {/* Nav */}
       <header className="absolute top-0 left-0 right-0 z-20 px-6 py-5">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <span className="text-2xl font-black tracking-tight">Reel</span>
+          <Logo size="md" />
           <div className="flex items-center gap-3">
             <button onClick={onEnterApp} className="text-sm text-zinc-400 hover:text-white transition-colors">
               Try without account
@@ -793,7 +794,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       {/* Footer */}
       <footer className="border-t border-zinc-900 px-6 py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <span className="text-sm font-bold text-zinc-700">Reel</span>
+          <Logo size="sm" className="opacity-30" />
           <p className="text-xs text-zinc-700">Coaching for every athlete.</p>
         </div>
       </footer>
@@ -989,7 +990,7 @@ export default function Reel() {
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
-            <span className="text-xl font-black tracking-tight sm:text-2xl">Reel</span>
+            <Logo size="sm" />
           </div>
 
           <nav className="flex gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
