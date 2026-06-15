@@ -555,6 +555,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [inputTab,   setInputTab]   = useState<"file" | "youtube">("file");
   const [fileName,   setFileName]   = useState("");
   const [clipTitle,  setClipTitle]  = useState("");
+  const [teamColor,  setTeamColor]  = useState("");
   const [videoUrl,   setVideoUrl]   = useState("");
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
   const [ytUrl,      setYtUrl]      = useState("");
@@ -654,15 +655,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string) {
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
-      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor: profile.teamColor }) });
+      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor }) });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setProgressCurrent(1);
       const parsed        = parsePlayerBlocks(data.feedback ?? "");
       const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
-      // Find the athlete's own grade if jersey/color set, else fallback to first player
-      const myPlayer = findMyPlayer(parsed, profile.jersey, profile.teamColor);
+      const myPlayer = findMyPlayer(parsed, profile.jersey, teamColor);
       setDecisions(parsed); setResultMode("clip");
       saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip", grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
     } else {
@@ -675,7 +675,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const chunk = chunks[i];
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
-        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor: profile.teamColor }) });
+        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor }) });
         if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
         const data = await res.json();
         if (data.error) throw new Error(data.error);
@@ -758,7 +758,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <label className="block cursor-pointer rounded-xl border-2 border-dashed border-zinc-800 p-8 text-center hover:border-zinc-600 active:border-zinc-500 transition-colors">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
-                  setVideoFile(file); setFileName(file.name); setClipTitle("");
+                  setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor("");
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
@@ -791,12 +791,20 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           {inputTab === "file" && (
             <div className="mt-4 space-y-3">
               {videoFile && (
-                <input
-                  className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                  placeholder="Name this clip (e.g. Playoff game vs Lincoln)"
-                  value={clipTitle}
-                  onChange={e => setClipTitle(e.target.value)}
-                />
+                <>
+                  <input
+                    className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    placeholder="Name this clip (e.g. Playoff game vs Lincoln)"
+                    value={clipTitle}
+                    onChange={e => setClipTitle(e.target.value)}
+                  />
+                  <input
+                    className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    placeholder={profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)"}
+                    value={teamColor}
+                    onChange={e => setTeamColor(e.target.value)}
+                  />
+                </>
               )}
               <input
                 className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"

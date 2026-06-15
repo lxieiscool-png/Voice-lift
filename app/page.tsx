@@ -31,7 +31,7 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
   if (!profile.name && !editing) {
     return (
       <button
-        onClick={() => { setDraft({ name: "", sport: "", team: "", jersey: "", teamColor: "" }); setEditing(true); }}
+        onClick={() => { setDraft({ name: "", sport: "", team: "", jersey: "" }); setEditing(true); }}
         className="mb-6 w-full border border-dashed border-zinc-800 py-3 text-sm text-zinc-600 hover:border-zinc-600 hover:text-zinc-400 transition-colors rounded-xl"
       >
         Set up your athlete profile
@@ -51,9 +51,7 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
           <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
             placeholder="Team / school" value={draft.team ?? ""} onChange={e => setDraft(d => ({ ...d, team: e.target.value }))} />
           <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
-            placeholder="Jersey color (e.g. White, Blue, Red)" value={draft.teamColor ?? ""} onChange={e => setDraft(d => ({ ...d, teamColor: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 sm:col-span-2"
-            placeholder="Jersey number (e.g. 23) — used to track your grades over time"
+            placeholder="Jersey number (e.g. 23) — tracks your grades over time"
             value={draft.jersey ?? ""} onChange={e => setDraft(d => ({ ...d, jersey: e.target.value }))} />
         </div>
         <div className="mt-3 flex gap-2">
@@ -73,7 +71,7 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
         <div>
           <p className="text-sm font-semibold text-white">{profile.name}</p>
           <p className="text-xs text-zinc-500">
-            {[profile.sport, profile.teamColor && profile.jersey ? `#${profile.jersey} ${profile.teamColor}` : profile.team].filter(Boolean).join(" · ")}
+            {[profile.sport, profile.team, profile.jersey ? `#${profile.jersey}` : ""].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>
@@ -302,10 +300,10 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
             <div>
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Profile</p>
               <div className="space-y-2">
-                {(["name", "sport", "team", "teamColor", "jersey"] as const).map(k => (
+                {(["name", "sport", "team", "jersey"] as const).map(k => (
                   <input key={k}
                     className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                    placeholder={k === "name" ? "Your name" : k === "sport" ? "Primary sport" : k === "team" ? "Team / school" : k === "teamColor" ? "Jersey color (e.g. White, Blue)" : "Jersey number (e.g. 23)"}
+                    placeholder={k === "name" ? "Your name" : k === "sport" ? "Primary sport" : k === "team" ? "Team / school" : "Jersey number (e.g. 23)"}
                     value={draft[k] ?? ""}
                     onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))}
                   />
