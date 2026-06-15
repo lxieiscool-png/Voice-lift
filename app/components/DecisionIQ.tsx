@@ -528,8 +528,9 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
+export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, isPro, onShowUpgrade }: {
   profile: Profile; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
+  userId?: string; isPro?: boolean; onShowUpgrade?: () => void;
 }) {
   const [inputTab,   setInputTab]   = useState<"file" | "youtube">("file");
   const [fileName,   setFileName]   = useState("");
@@ -673,6 +674,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange }: {
 
   async function analyzeVideo() {
     if (!videoFile) return;
+
+    // Usage gate — check + increment before starting
+    if (userId && !isPro) {
+      const res  = await fetch("/api/usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (res.status === 403) { onShowUpgrade?.(); return; }
+    }
+
     setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
     setAnalyzeError(""); setPendingRetry(null);
     setProgressCurrent(0); setProgressTotal(0);

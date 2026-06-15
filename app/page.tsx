@@ -7,6 +7,7 @@ import { averageGrade, gradeClass, formatDate, GRADE_VALUE } from "./lib/shared"
 import { createClient } from "./lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Logo from "./components/Logo";
+import UpgradeModal from "./components/UpgradeModal";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
@@ -244,7 +245,7 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
 
 // ─── Settings Panel ───────────────────────────────────────────────────────────
 
-function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClearHistory, user, onSignIn, onSignOut }: {
+function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClearHistory, user, onSignIn, onSignOut, isPro, onUpgrade }: {
   open: boolean;
   onClose: () => void;
   profile: Profile;
@@ -254,6 +255,8 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
   user: User | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  isPro?: boolean;
+  onUpgrade?: () => void;
 }) {
   const [draft, setDraft] = useState(profile);
   const [saved, setSaved] = useState(false);
@@ -383,6 +386,33 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                 </div>
               )}
             </div>
+
+            {/* Plan */}
+            {user && (
+              <div>
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Plan</p>
+                {isPro ? (
+                  <div className="rounded-lg border border-emerald-800 bg-emerald-950/30 p-3 flex items-center gap-3">
+                    <span className="text-emerald-400 text-lg">✓</span>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Reel Pro</p>
+                      <p className="text-xs text-emerald-600">Unlimited analyses</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="rounded-lg border border-zinc-800 p-3">
+                      <p className="text-sm font-semibold text-white">Free</p>
+                      <p className="text-xs text-zinc-500">2 analyses per month</p>
+                    </div>
+                    <button onClick={() => { onUpgrade?.(); onClose(); }}
+                      className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                      Upgrade to Pro — $8/mo
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* About */}
             <div>
@@ -843,7 +873,10 @@ export default function Reel() {
   const [showApp,       setShowApp]       = useState(false);
   const [authError,     setAuthError]     = useState("");
   const [signingIn,     setSigningIn]     = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding,  setShowOnboarding]  = useState(false);
+  const [showUpgrade,     setShowUpgrade]     = useState(false);
+  const [isPro,           setIsPro]           = useState(false);
+  const [upgradeSuccess,  setUpgradeSuccess]  = useState(false);
 
   const supabase = createClient();
 
@@ -854,8 +887,16 @@ export default function Reel() {
     const r = localStorage.getItem("decisioniq-reviews");
     if (r) setReviews(JSON.parse(r));
 
-    // Check for auth error passed back from callback
+    // Check for Stripe upgrade success
     const params = new URLSearchParams(window.location.search);
+    if (params.get("upgraded") === "1") {
+      setUpgradeSuccess(true);
+      setIsPro(true);
+      window.history.replaceState({}, "", "/");
+      setTimeout(() => setUpgradeSuccess(false), 5000);
+    }
+
+    // Check for auth error passed back from callback
     const authErr = params.get("auth_error");
     if (authErr) {
       setAuthError(decodeURIComponent(authErr));
@@ -874,6 +915,11 @@ export default function Reel() {
           setShowApp(true);
           loadUserData(u.id);
           if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
+          // Load pro status
+          fetch(`/api/usage?userId=${u.id}`)
+            .then(r => r.json())
+            .then(d => setIsPro(d.is_pro ?? false))
+            .catch(() => {});
         }
       }
       if (event === "SIGNED_OUT") {
@@ -1001,6 +1047,18 @@ export default function Reel() {
         <OnboardingOverlay name={profile.name} onDone={dismissOnboarding} />
       )}
 
+      {showUpgrade && (
+        <UpgradeModal user={user} onClose={() => setShowUpgrade(false)} />
+      )}
+
+      {/* Upgrade success toast */}
+      {upgradeSuccess && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-emerald-800 bg-emerald-950 px-5 py-3 shadow-2xl">
+          <span className="text-emerald-400 text-lg">✓</span>
+          <p className="text-sm font-semibold text-white">Welcome to Reel Pro! Unlimited film, unlimited growth.</p>
+        </div>
+      )}
+
       {/* Settings panel */}
       <SettingsPanel
         open={settingsOpen}
@@ -1012,6 +1070,8 @@ export default function Reel() {
         user={user}
         onSignIn={signInWithGoogle}
         onSignOut={signOut}
+        isPro={isPro}
+        onUpgrade={() => setShowUpgrade(true)}
       />
 
       {/* Nav */}
@@ -1020,6 +1080,9 @@ export default function Reel() {
 
           <div className="flex items-center gap-3">
             <Logo size="sm" />
+            {isPro && (
+              <span className="rounded-full bg-emerald-500/15 border border-emerald-800 px-2 py-0.5 text-[10px] font-bold text-emerald-400 tracking-wide">PRO</span>
+            )}
           </div>
 
           <nav className="flex gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
@@ -1088,7 +1151,7 @@ export default function Reel() {
             <HowItWorks activeModule={activeModule as "decision" | "coach"} />
             <ProfileCard profile={profile} onSave={saveProfile} />
 
-            {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} />}
+            {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} userId={user?.id} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />}
             {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} />}
           </>
         )}
