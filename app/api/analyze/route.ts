@@ -31,7 +31,7 @@ Key Events:
 - [Each notable play, foul, or score. Include jersey number and team only if clearly readable. Use "Blue #12" style if partially visible. "None detected" if nothing notable.]
 
 Player Tracking:
-- [One line per player. If jersey number is crystal clear, use "#NUMBER (TEAM)". If not 100% sure, use position/color label like "White Point Guard". Never invent a number.]
+- [One line per active player. Default to descriptive labels: "White Point Guard", "Blue Center", "Red #11" — only include a jersey number if it is completely unambiguous and fully visible in multiple frames. If there is ANY uncertainty about a number, omit it entirely. Wrong numbers destroy trust. Never guess, infer, or partially read a jersey number.]
 
 Decision Quality:
 [2–3 sentences directly to the athlete. Be honest and specific about what you saw — not generic. Reference actual events from the frames.]
@@ -57,7 +57,7 @@ Use exact sport terminology:
 For EACH player, output this block EXACTLY:
 
 === PLAYER ===
-Player: [Jersey number + team if clearly legible, e.g. "#23 (White)". Otherwise use descriptive label: "Blue Point Guard", "Red Striker". NEVER guess a jersey number.]
+Player: [STRICT RULE — use a descriptive label by default: "White Point Guard", "Red Striker", "Blue #5" only if the number is crystal clear and fully readable in MULTIPLE frames without any blur or obstruction. If you have ANY doubt about a jersey number, DO NOT include it. A wrong jersey number is a critical error. It is always better to say "White Forward" than to guess "#23". Never infer, estimate, or partially read a number.]
 Role: [Specific role in this play — not just "defender", but "Help-side defender", "Ball-screen navigator", "Free safety", etc.]
 Action: [Exactly what they did — "Drove baseline left, drew contact, missed the finish", "Dropped into zone coverage late, gave up the crossing route"]
 Sport: [sport name]
