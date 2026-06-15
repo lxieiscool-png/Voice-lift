@@ -388,32 +388,6 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
               )}
             </div>
 
-            {/* Plan */}
-            {user && (
-              <div>
-                <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Plan</p>
-                {isPro ? (
-                  <div className="rounded-lg border border-emerald-800 bg-emerald-950/30 p-3 flex items-center gap-3">
-                    <span className="text-emerald-400 text-lg">✓</span>
-                    <div>
-                      <p className="text-sm font-semibold text-white">Reel Pro</p>
-                      <p className="text-xs text-emerald-600">Unlimited analyses</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="rounded-lg border border-zinc-800 p-3">
-                      <p className="text-sm font-semibold text-white">Free</p>
-                      <p className="text-xs text-zinc-500">2 analyses per month</p>
-                    </div>
-                    <button onClick={() => { onUpgrade?.(); onClose(); }}
-                      className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
-                      Upgrade to Pro — $8/mo
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* About */}
             <div>
