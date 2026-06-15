@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
 Sport: ${sport || "auto-detect from frames"}
 
-Carefully study every frame before responding.
+Carefully study every frame before responding. Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
 Return ONLY this format — no extra commentary:
 
@@ -41,7 +41,9 @@ Tactical Pattern:
 `
       : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
-Study the frames carefully. Identify every player making a notable decision — offense AND defense, 2 to 5 players total.
+Study the frames carefully. Identify every PLAYER making a notable decision — offense AND defense, 2 to 5 players total.
+
+ONLY grade athletes who are actively playing in the game. Completely ignore and do NOT grade: referees, officials, coaches, spectators, people in the stands, people on the bench who are not in the play, ball boys, or anyone not actively competing on the field/court.
 
 Sport: ${sport || "auto-detect from frames"}
 
