@@ -4,7 +4,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
-    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd } = await req.json();
+    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor } = await req.json();
 
     const imageInputs = frames.map((frame: string) => ({
       type: "input_image",
@@ -44,6 +44,8 @@ Tactical Pattern:
 Study the frames carefully. Identify every PLAYER making a notable decision — offense AND defense, 2 to 5 players total.
 
 ONLY grade athletes who are actively playing in the game. Completely ignore and do NOT grade: referees, officials, coaches, spectators, people in the stands, people on the bench who are not in the play, ball boys, or anyone not actively competing on the field/court.
+
+${jersey || teamColor ? `IMPORTANT: The athlete who uploaded this footage is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing jersey #${jersey}` : ""}. You MUST include this specific player in your analysis — they are the primary subject. Make sure their player block appears first in your output.` : ""}
 
 Sport: ${sport || "auto-detect from frames"}
 

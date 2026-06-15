@@ -465,6 +465,26 @@ function GameReportCard({ report }: { report: GameReport }) {
   );
 }
 
+// ─── Find My Player ───────────────────────────────────────────────────────────
+
+function findMyPlayer(decisions: PlayerDecision[], jersey?: string, teamColor?: string): PlayerDecision | null {
+  if (!decisions.length) return null;
+  if (!jersey && !teamColor) return null;
+  const j = jersey?.toLowerCase().replace(/^#/, "");
+  const c = teamColor?.toLowerCase();
+  // Score each player by how well they match jersey + color
+  const scored = decisions.map(d => {
+    const p = d.player.toLowerCase();
+    let score = 0;
+    if (j && p.includes(`#${j}`)) score += 3;
+    if (j && p.includes(j)) score += 2;
+    if (c && p.includes(c)) score += 1;
+    return { d, score };
+  });
+  const best = scored.sort((a, b) => b.score - a.score)[0];
+  return best.score > 0 ? best.d : null;
+}
+
 // ─── Analysis Loader ──────────────────────────────────────────────────────────
 
 const ANALYSIS_STEPS = [
@@ -634,15 +654,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string) {
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
-      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip" }) });
+      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor: profile.teamColor }) });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setProgressCurrent(1);
       const parsed        = parsePlayerBlocks(data.feedback ?? "");
       const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
+      // Find the athlete's own grade if jersey/color set, else fallback to first player
+      const myPlayer = findMyPlayer(parsed, profile.jersey, profile.teamColor);
       setDecisions(parsed); setResultMode("clip");
-      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip", grade: parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
+      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip", grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
     } else {
       const CHUNK_SIZE = 6;
       const chunks: { dataUrl: string; timestamp: number }[][] = [];
@@ -653,7 +675,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const chunk = chunks[i];
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
-        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end }) });
+        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor: profile.teamColor }) });
         if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
         const data = await res.json();
         if (data.error) throw new Error(data.error);

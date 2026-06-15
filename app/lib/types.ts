@@ -20,7 +20,7 @@ export type Review = {
   decisions?: PlayerDecision[]; gameReport?: GameReport;
 };
 
-export type Profile = { name: string; sport: string; team: string };
+export type Profile = { name: string; sport: string; team: string; jersey?: string; teamColor?: string };
 
 export type ChatMessage = { role: "user" | "coach"; content: string };
 
