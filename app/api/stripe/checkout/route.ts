@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-05-27.dahlia" });
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error("Stripe not configured");
+  return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-05-27.dahlia" });
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -12,6 +16,8 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, email } = await req.json();
     if (!userId || !email) return NextResponse.json({ error: "Missing user info" }, { status: 400 });
+
+    const stripe = getStripe();
 
     // Get or create Stripe customer
     const { data: profile } = await supabase
