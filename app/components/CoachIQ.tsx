@@ -6,7 +6,8 @@ import { sportIcon } from "../lib/shared";
 
 // ─── Plan Parser ──────────────────────────────────────────────────────────────
 
-function parsePlan(text: string): PracticePlan {
+function parsePlan(rawText: string): PracticePlan {
+  const text = rawText.replace(/\*\*/g, "").replace(/^#+\s*/gm, "");
   const weekFocus = text.match(/Week Focus:\s*(.+)/i)?.[1]?.trim() ?? "";
   const coachNote = text.match(/Coach'?s? Note:\s*([\s\S]*?)(?=\nDay \d+:|\n[A-Z]|$)/i)?.[1]?.trim() ?? "";
 
@@ -123,6 +124,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
   const [weaknesses, setWeaknesses] = useState("");
   const [planLoading, setPlanLoading] = useState(false);
   const [plan, setPlan] = useState<PracticePlan | null>(null);
+  const [planError, setPlanError] = useState("");
 
   // Pull recent patterns from DecisionIQ history
   const recentPatterns = reviews
@@ -166,6 +168,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
   async function generatePlan() {
     setPlanLoading(true);
     setPlan(null);
+    setPlanError("");
     try {
       const res = await fetch("/api/plan", {
         method: "POST",
@@ -180,9 +183,14 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
         }),
       });
       const data = await res.json();
-      if (data.plan) setPlan(parsePlan(data.plan));
+      if (data.error) throw new Error(data.error);
+      if (!data.plan) throw new Error("No plan returned.");
+      const parsed = parsePlan(data.plan);
+      if (parsed.days.length === 0) throw new Error("Couldn't build a plan from that. Try again.");
+      setPlan(parsed);
     } catch (err) {
       console.error(err);
+      setPlanError(err instanceof Error ? err.message : "Something went wrong building your plan.");
     }
     setPlanLoading(false);
   }
@@ -359,7 +367,18 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
               </div>
             )}
 
-            {!planLoading && !plan && (
+            {!planLoading && planError && (
+              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-red-900 bg-red-950/20 px-6 text-center">
+                <span className="text-3xl">⚠️</span>
+                <p className="text-sm text-red-300">{planError}</p>
+                <button onClick={generatePlan}
+                  className="rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {!planLoading && !plan && !planError && (
               <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-800 bg-black">
                 <span className="text-5xl">📋</span>
                 <p className="text-center text-sm text-zinc-500 px-4">

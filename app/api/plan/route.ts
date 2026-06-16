@@ -15,7 +15,9 @@ export async function POST(req: Request) {
 
 NON-NEGOTIABLE RULE: Every single drill must be doable COMPLETELY ALONE with zero special equipment. No cones, no resistance bands, no weight room, no teammates, no coach needed. Assume this athlete may only have: their body, open space (driveway, park, backyard, bedroom), and a standard ball if their sport uses one. If you recommend something that requires equipment or a partner, you've failed.
 
-Your drills must directly address the specific weaknesses given — not generic fitness work. Make every session feel like it was built exactly for this athlete.`,
+Your drills must directly address the specific weaknesses given — not generic fitness work. Make every session feel like it was built exactly for this athlete.
+
+CRITICAL FORMATTING RULE: Output plain text only. Never use markdown — no **bold**, no #headers, no asterisks of any kind. Use the exact field labels given (e.g. "Day 1:", "Focus:", "Drill 1:") with nothing added before or after them.`,
         },
         {
           role: "user",
@@ -59,7 +61,7 @@ Drill 3:
 Make each day build on the last. Day 1 should be foundational, Day 2 intermediate, Day 3 (and beyond) should push harder or combine skills. Every drill must be sport-specific and directly target their listed weaknesses.`,
         },
       ],
-      max_tokens: 1800,
+      max_tokens: 4000,
       temperature: 0.6,
     });
 

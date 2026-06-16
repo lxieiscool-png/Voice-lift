@@ -737,9 +737,9 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       <section className="border-t border-zinc-900">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 text-center">The Platform</p>
-          <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Two tools. One mission.</h2>
+          <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Three tools. One mission.</h2>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* DecisionIQ */}
             <div className="border border-zinc-800 rounded-2xl p-8">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Film Analysis</p>
@@ -775,6 +775,28 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                   "Builds personalized weekly practice plans",
                   "All drills are solo. No gym, no equipment, no teammates needed",
                   "Speaks directly to you, like a real coach would",
+                ].map(f => (
+                  <div key={f} className="flex items-start gap-3">
+                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
+                    <p className="text-sm text-zinc-400">{f}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Progress Tracking */}
+            <div className="border border-zinc-800 rounded-2xl p-8">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Progress Tracking</p>
+              <h3 className="mb-4 text-2xl font-black">Film Library</h3>
+              <p className="mb-6 text-zinc-500 leading-relaxed">
+                Every clip you upload is saved, graded, and tracked. Watch your decision-making improve over weeks and months, not just one game at a time.
+              </p>
+              <div className="space-y-3">
+                {[
+                  "Grade trend chart — see if you're actually improving",
+                  "Stats bar: total clips, games, average grade, upload streak",
+                  "Search and filter your whole film history by sport or grade",
+                  "Turn any grade into a shareable card for Instagram or TikTok",
                 ].map(f => (
                   <div key={f} className="flex items-start gap-3">
                     <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />

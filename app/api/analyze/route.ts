@@ -89,6 +89,36 @@ Practice Focus:
 === END ===
 `;
 
+    // Pre-check: confirm this is real sports footage before full analysis
+    const checkResponse = await openai.responses.create({
+      model: "gpt-4.1",
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: `Look at these frames. Is this real sports footage showing actual athletes competing in an organized sport (basketball, soccer, football, hockey, baseball, volleyball, lacrosse, tennis, wrestling, etc.)?
+
+Answer ONLY with one of:
+VALID: [sport name]
+INVALID: [brief reason — e.g. "video game footage", "not a sport", "animated content", "unclear/no athletes visible"]
+
+Do not add any other text.`,
+            },
+            ...imageInputs.slice(0, 3),
+          ],
+        },
+      ],
+      temperature: 0,
+    });
+
+    const checkResult = checkResponse.output_text?.trim() ?? "";
+    if (!checkResult.startsWith("VALID")) {
+      const reason = checkResult.replace(/^INVALID:\s*/i, "") || "This doesn't look like sports footage.";
+      return Response.json({ error: `Can't analyze this video — ${reason}. Please upload a real sports clip.` }, { status: 400 });
+    }
+
     const response = await openai.responses.create({
       model: "gpt-4.1",
       input: [

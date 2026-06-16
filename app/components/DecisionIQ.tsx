@@ -103,14 +103,14 @@ async function shareGradeCard(opts: {
   headline: string; insight: string; format?: "landscape" | "story";
 }) {
   const isStory = opts.format === "story";
-  const W = isStory ? 1080 : 800;
-  const H = isStory ? 1920 : 420;
+  const W = isStory ? 1080 : 1600;
+  const H = isStory ? 1920 : 840;
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
   const gradeColor = GRADE_COLOR[opts.grade] ?? "#71717a";
-  const F = isStory ? 2.2 : 1; // scale factor for story
+  const F = isStory ? 2.2 : 2; // scale factor
 
   // Background
   ctx.fillStyle = "#09090b";
@@ -178,46 +178,49 @@ async function shareGradeCard(opts: {
     ctx.fillText("getreelapp.vercel.app", W/2, H - 40);
 
   } else {
-    // ── Landscape layout (original) ──
+    // ── Landscape layout ──
     const gradeX = pad, gradeY = pad;
-    const gradeW = 96, gradeH = 56;
+    const gradeW = Math.round(96 * F), gradeH = Math.round(56 * F);
     ctx.fillStyle = gradeColor + "22";
     ctx.beginPath(); ctx.roundRect(gradeX, gradeY, gradeW, gradeH, 10); ctx.fill();
-    ctx.font = "bold 36px system-ui, -apple-system, sans-serif";
+    ctx.font = `bold ${Math.round(36 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = gradeColor; ctx.textAlign = "center";
-    ctx.fillText(opts.grade, gradeX + gradeW / 2, gradeY + gradeH - 13);
+    ctx.fillText(opts.grade, gradeX + gradeW / 2, gradeY + gradeH - Math.round(13 * F));
 
     ctx.textAlign = "left";
-    ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+    ctx.font = `bold ${Math.round(28 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(opts.name || "Player", gradeX + gradeW + 20, gradeY + 30);
-    ctx.font = "14px system-ui, -apple-system, sans-serif";
+    ctx.fillText(opts.name || "Player", gradeX + gradeW + Math.round(20 * F), gradeY + Math.round(30 * F));
+    ctx.font = `${Math.round(14 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#71717a";
-    ctx.fillText([opts.sport, opts.role].filter(Boolean).join("  ·  "), gradeX + gradeW + 20, gradeY + 52);
+    ctx.fillText([opts.sport, opts.role].filter(Boolean).join("  ·  "), gradeX + gradeW + Math.round(20 * F), gradeY + Math.round(52 * F));
 
+    const divY = Math.round(134 * F);
     ctx.strokeStyle = "#27272a"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(pad, 134); ctx.lineTo(W - pad, 134); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, divY); ctx.lineTo(W - pad, divY); ctx.stroke();
 
-    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+    const s1Y = Math.round(168 * F);
+    ctx.font = `bold ${Math.round(15 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#a1a1aa";
-    ctx.fillText("WHAT HAPPENED", pad, 168);
-    ctx.font = "16px system-ui, -apple-system, sans-serif";
+    ctx.fillText("WHAT HAPPENED", pad, s1Y);
+    ctx.font = `${Math.round(16 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#e4e4e7";
-    wrapText(ctx, opts.headline, pad, 192, W - pad * 2, 24, 3);
+    wrapText(ctx, opts.headline, pad, s1Y + Math.round(28 * F), innerW, Math.round(26 * F), 3);
 
-    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+    const s2Y = Math.round(300 * F);
+    ctx.font = `bold ${Math.round(15 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#a1a1aa";
-    ctx.fillText("NEXT TIME", pad, 300);
-    ctx.font = "16px system-ui, -apple-system, sans-serif";
+    ctx.fillText("NEXT TIME", pad, s2Y);
+    ctx.font = `${Math.round(16 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#e4e4e7";
-    wrapText(ctx, opts.insight, pad, 324, W - pad * 2, 24, 2);
+    wrapText(ctx, opts.insight, pad, s2Y + Math.round(28 * F), innerW, Math.round(26 * F), 2);
 
-    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+    ctx.font = `bold ${Math.round(15 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#ffffff"; ctx.textAlign = "right";
-    ctx.fillText("Reel", W - pad, H - 24);
-    ctx.font = "13px system-ui, -apple-system, sans-serif";
+    ctx.fillText("REEL", W - pad, H - Math.round(28 * F));
+    ctx.font = `${Math.round(13 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#3f3f46";
-    ctx.fillText("getreelapp.vercel.app", W - pad, H - 44);
+    ctx.fillText("getreelapp.vercel.app", W - pad, H - Math.round(8 * F));
   }
 
   // Border
@@ -323,54 +326,35 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
     <div className={`border border-zinc-800 bg-zinc-950 rounded-xl border-l-2 ${teamColor.border} overflow-hidden`}>
       <button onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left">
-        <GradeBadge grade={grade} />
+        <GradeBadge grade={grade} large />
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
-            {displayTeam && (
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${teamColor.bg} text-white`}>{displayTeam}</span>
-            )}
-          </div>
-          <p className="text-xs text-zinc-600 truncate mt-0.5">
-            {[decision.role, decision.action, decision.sport].filter(Boolean).join("  ·  ")}
-          </p>
+          <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
+          {displayTeam && (
+            <span className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-800 text-zinc-400">{displayTeam}</span>
+          )}
+          <p className="text-xs text-zinc-600 truncate mt-0.5">{decision.role || decision.sport}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={e => handleShare(e, "landscape")} disabled={sharing}
-            className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1 disabled:opacity-40">
-            {sharing ? "…" : "SHARE"}
+            className="rounded-lg border border-zinc-800 px-2.5 py-1 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors disabled:opacity-40">
+            {sharing ? "…" : "Share"}
           </button>
-          <button onClick={e => handleShare(e, "story")} disabled={sharing}
-            className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors px-1 disabled:opacity-40"
-            title="Share as Story (9:16)">
-            STORY
-          </button>
-          <span className="text-[10px] text-zinc-700">{open ? "HIDE" : "MORE"}</span>
+          <span className="text-[10px] text-zinc-600">{open ? "▲" : "▼"}</span>
         </div>
       </button>
 
       {open && (
         <div className="border-t border-zinc-800 px-4 py-4 grid gap-3 sm:grid-cols-2">
-          {DECISION_FIELDS.map(({ key, label }) => {
-            const val = decision[key];
-            if (!val) return null;
-            return (
-              <div key={key} className="border border-zinc-800 rounded-lg p-3">
-                <SectionLabel>{label}</SectionLabel>
-                <p className="text-sm text-zinc-300 leading-relaxed">{val as string}</p>
-              </div>
-            );
-          })}
-          {decision.otherOptions.length > 0 && (
-            <div className="border border-zinc-800 rounded-lg p-3 sm:col-span-2">
-              <SectionLabel>Other Options</SectionLabel>
-              <ul className="space-y-1.5">
-                {decision.otherOptions.map((opt, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
-                    <span className="text-zinc-700 mt-0.5 shrink-0">–</span>{opt}
-                  </li>
-                ))}
-              </ul>
+          {decision.whatHappened && (
+            <div className="rounded-lg bg-zinc-900 p-3">
+              <SectionLabel>What Happened</SectionLabel>
+              <p className="text-sm text-white leading-relaxed">{decision.whatHappened}</p>
+            </div>
+          )}
+          {decision.bestAlternative && (
+            <div className="rounded-lg bg-zinc-900 p-3">
+              <SectionLabel>Next Time</SectionLabel>
+              <p className="text-sm text-white leading-relaxed">{decision.bestAlternative}</p>
             </div>
           )}
         </div>
@@ -768,6 +752,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
+              <p className="mt-3 text-xs text-zinc-600 text-center">🔒 Your video is private and only used for analysis — never shared or stored.</p>
             </>
           ) : (
             <div className="rounded-lg border border-zinc-800 p-4 space-y-3">
@@ -829,7 +814,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             <p className="text-sm font-semibold text-white">
               {resultMode === "game" ? "Game Report" : "Player Decisions"}
             </p>
-            {resultMode && !loading && (
+            {resultMode && !loading && !(resultMode === "clip" && decisions.length === 0) && (
               <GradeBadge grade={overallGrade} large />
             )}
           </div>
@@ -859,6 +844,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             </div>
           )}
 
+          {!loading && resultMode === "clip" && decisions.length === 0 && (
+            <div className="flex h-52 flex-col items-center justify-center gap-2 rounded-lg border border-zinc-800 text-center px-6">
+              <p className="text-2xl">🤔</p>
+              <p className="text-sm text-zinc-400">Couldn't find any players to grade in this clip.</p>
+              <p className="text-xs text-zinc-600">Please upload a clear sports clip with visible players in action.</p>
+            </div>
+          )}
           {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}
           {!loading && resultMode === "game" && gameReport && <GameReportCard report={gameReport} />}
         </div>
@@ -879,9 +871,18 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
   const [modeFilter,  setModeFilter]  = useState<"all" | "clip" | "game">("all");
   const [gradeFilter, setGradeFilter] = useState<"all" | "good" | "mid" | "poor">("all");
   const [sharing,     setSharing]     = useState<string | null>(null);
+  const [renamingId,  setRenamingId]  = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
+  function startRename(review: Review, e: React.MouseEvent) { e.stopPropagation(); setRenamingId(review.id); setRenameValue(review.fileName); }
+  function commitRename() {
+    if (renamingId) {
+      saveReviews(reviews.map(r => r.id === renamingId ? { ...r, fileName: renameValue.trim() || r.fileName } : r));
+    }
+    setRenamingId(null);
+  }
   function onToggle(i: number) { setExpandedReview(expandedReview === i ? null : i); }
   function onDelete(id: string) { deleteReview(id); }
 
@@ -990,34 +991,53 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
                   </div>
 
                   {/* Meta */}
-                  <button onClick={() => onToggle(originalIndex)} className="flex-1 min-w-0 text-left">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-white capitalize">{review.sport}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${review.mode === "game" ? "bg-zinc-800 text-zinc-400" : "bg-zinc-800 text-zinc-400"}`}>
-                        {review.mode === "game" ? "Game" : "Clip"}
-                      </span>
-                      {review.mode === "clip" && review.decisions && (
-                        <span className="text-[10px] text-zinc-600">{review.decisions.length} players</span>
-                      )}
+                  {renamingId === review.id ? (
+                    <div className="flex-1 min-w-0 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenamingId(null); }}
+                        className="flex-1 min-w-0 rounded-lg border border-zinc-700 bg-black px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-zinc-500"
+                      />
+                      <button onClick={commitRename} className="rounded-lg bg-white px-2.5 py-1.5 text-[10px] font-semibold text-black">Save</button>
                     </div>
-                    <p className="text-xs text-zinc-600 mt-0.5 truncate">{formatDate(review.timestamp)}</p>
-                  </button>
+                  ) : (
+                    <button onClick={() => onToggle(originalIndex)} className="flex-1 min-w-0 text-left">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-white truncate">{review.fileName || review.sport}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${review.mode === "game" ? "bg-zinc-800 text-zinc-400" : "bg-zinc-800 text-zinc-400"}`}>
+                          {review.mode === "game" ? "Game" : "Clip"}
+                        </span>
+                        {review.mode === "clip" && review.decisions && (
+                          <span className="text-[10px] text-zinc-600">{review.decisions.length} players</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-600 mt-0.5 truncate capitalize">{review.sport} · {formatDate(review.timestamp)}</p>
+                    </button>
+                  )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={e => handleShareReview(review, e)} disabled={sharing === review.id}
-                      className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors disabled:opacity-40">
-                      {sharing === review.id ? "…" : "Share"}
-                    </button>
-                    <button onClick={() => onToggle(originalIndex)}
-                      className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
-                      {isOpen ? "Close" : "View"}
-                    </button>
-                    <button onClick={() => onDelete(review.id)}
-                      className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-400 hover:border-red-900 transition-colors">
-                      Del
-                    </button>
-                  </div>
+                  {renamingId !== review.id && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={e => startRename(review, e)}
+                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+                        Rename
+                      </button>
+                      <button onClick={e => handleShareReview(review, e)} disabled={sharing === review.id}
+                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors disabled:opacity-40">
+                        {sharing === review.id ? "…" : "Share"}
+                      </button>
+                      <button onClick={() => onToggle(originalIndex)}
+                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+                        {isOpen ? "Close" : "View"}
+                      </button>
+                      <button onClick={() => onDelete(review.id)}
+                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-400 hover:border-red-900 transition-colors">
+                        Del
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {isOpen && (
