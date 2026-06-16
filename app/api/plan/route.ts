@@ -34,7 +34,7 @@ Use this exact format:
 Week Focus: [One specific sentence — what theme or skill this week attacks, tied directly to their weaknesses]
 
 Coach's Note:
-[2–3 sentences directly to the athlete. Acknowledge their specific weaknesses, set the intention for the week, and motivate them without being generic. Sound like their coach, not a bot.]
+[One short sentence directly to the athlete. Sound like their coach, not a bot. No fluff.]
 
 ${Array.from({ length: Number(daysPerWeek) || 3 }, (_, i) => `Day ${i + 1}:
 Focus: [The specific skill or weakness this day targets — be precise, e.g. "First-step explosiveness and finishing through contact" not just "athleticism"]

@@ -58,9 +58,9 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
       )}
 
       {plan.coachNote && (
-        <div className="rounded-2xl border border-blue-900 bg-black px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-400 mb-2">💬 From Your Coach</p>
-          <p className="text-sm text-gray-200 leading-relaxed">{plan.coachNote}</p>
+        <div className="rounded-2xl border border-zinc-800 bg-black px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">💬 From Your Coach</p>
+          <p className="text-sm text-white leading-relaxed">{plan.coachNote}</p>
         </div>
       )}
 
