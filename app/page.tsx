@@ -17,6 +17,10 @@ const ParticleField   = dynamic(() => import("./components/LandingEffects").then
 const CursorSpotlight = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.CursorSpotlight })), { ssr: false });
 const GradeOrb        = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.GradeOrb })),        { ssr: false });
 
+function fireBurst(e: React.MouseEvent) {
+  import("./components/LandingEffects").then(m => m.fireBurst(e));
+}
+
 const DEFAULT_PROFILE: Profile = { name: "", sport: "", team: "" };
 const MODULES = [
   { id: "decision", label: "DecisionIQ", sub: "Film analysis"     },
@@ -701,11 +705,6 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
   const [showSignUp, setShowSignUp] = useState(false);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  // dynamic import of useBurst to avoid SSR issues
-  const burstRef = useRef<((e: React.MouseEvent<HTMLButtonElement>) => void) | null>(null);
-  useEffect(() => {
-    import("./components/LandingEffects").then(m => { burstRef.current = m.useBurst(); });
-  }, []);
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
@@ -781,7 +780,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.7 }}
             className="flex flex-col items-center gap-3 w-full max-w-xs sm:max-w-none sm:flex-row">
-            <motion.button onClick={(e) => { setShowSignUp(true); burstRef.current?.(e); }} disabled={signingIn}
+            <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }} disabled={signingIn}
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
               className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors disabled:opacity-50 sm:w-auto">
               Create free account
@@ -821,16 +820,18 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <p className="text-zinc-500 leading-relaxed mb-6">
               Upload any clip and get a full breakdown — what happened, what the better decision was, and exactly how to practice it. No fluff. No generic advice.
             </p>
-            <motion.button onClick={(e) => { setShowSignUp(true); burstRef.current?.(e); }}
+            <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }}
               whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
               className="rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
               Analyze your film →
             </motion.button>
           </FadeUp>
           <FadeUp delay={0.2}>
-            <div className="relative">
+            <div className="relative" style={{ minHeight: 340 }}>
               <GradeOrb />
-              <FloatingGradeCard />
+              <div className="relative z-10">
+                <FloatingGradeCard />
+              </div>
             </div>
           </FadeUp>
         </div>
@@ -983,7 +984,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <p className="mb-10 text-zinc-500 text-lg">
               No experience required. No equipment needed. No cost. Ever.
             </p>
-            <motion.button onClick={(e) => { setShowSignUp(true); burstRef.current?.(e); }}
+            <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }}
               whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}
               className="rounded-xl bg-white px-10 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors">
               Create free account
