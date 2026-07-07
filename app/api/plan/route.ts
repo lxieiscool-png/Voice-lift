@@ -41,24 +41,24 @@ Focus: [The specific skill or weakness this day targets — be precise, e.g. "Fi
 
 Drill 1:
   Name: [Specific drill name]
-  How: [Step-by-step instructions — what position to start in, exactly what to do, what "good" looks like]
+  How: [ONE short sentence — just what to do. No fluff.]
   Reps: [Exact reps, sets, or timed duration]
-  Why: [One sentence connecting this drill to their specific weakness]
+  Why: [Half a sentence connecting it to their weakness]
 
 Drill 2:
   Name: [Specific drill name]
-  How: [Step-by-step instructions]
+  How: [ONE short sentence]
   Reps: [Exact reps/duration]
-  Why: [One sentence — why this drill, why now]
+  Why: [Half a sentence]
 
 Drill 3:
   Name: [Specific drill name]
-  How: [Step-by-step instructions]
+  How: [ONE short sentence]
   Reps: [Exact reps/duration]
-  Why: [One sentence]
+  Why: [Half a sentence]
 `).join("\n")}
 
-Make each day build on the last. Day 1 should be foundational, Day 2 intermediate, Day 3 (and beyond) should push harder or combine skills. Every drill must be sport-specific and directly target their listed weaknesses.`,
+Keep every line short and punchy — write like a coach handing an athlete a workout card, not an essay. Each day builds on the last. Every drill must be sport-specific, solo, and target their listed weaknesses.`,
         },
       ],
       max_tokens: 4000,
