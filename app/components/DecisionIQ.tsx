@@ -431,19 +431,64 @@ function GameReportCard({ report }: { report: GameReport }) {
         )}
       </div>
 
-      {report.playerStats.length > 0 && (
-        <div className="border border-zinc-800 rounded-lg p-3">
-          <SectionLabel>Player Stats</SectionLabel>
-          <div className="space-y-2">
-            {report.playerStats.map((p, i) => (
-              <div key={i} className="border border-zinc-800 rounded-lg px-3 py-2.5">
-                <p className="text-xs font-semibold text-white mb-0.5">{p.label}</p>
-                <p className="text-xs text-zinc-500 leading-relaxed">{p.raw.replace(/^#\d+[^|]*\|\s*/, "")}</p>
+      {report.playerStats.length > 0 && <PlayerStatsPanel stats={report.playerStats} />}
+    </div>
+  );
+}
+
+// ─── Player Stats (light "Highlights" style panel) ───────────────────────────
+
+function parseStatLine(raw: string) {
+  const jersey   = raw.match(/#(\d+)/)?.[1] ?? null;
+  const team     = raw.match(/\(([^)]+)\)/)?.[1]?.trim() ?? null;
+  const sharp    = parseInt(raw.match(/(\d+)\s*sharp/i)?.[1] ?? "0", 10);
+  const costly   = parseInt(raw.match(/(\d+)\s*costly/i)?.[1] ?? "0", 10);
+  const fouls    = parseInt(raw.match(/Fouls?:\s*(\d+)/i)?.[1] ?? "0", 10);
+  const standout = raw.match(/Standout[^:]*:\s*(.+?)\s*$/i)?.[1]?.trim() ?? null;
+  return { jersey, team, sharp, costly, fouls, standout };
+}
+
+function StatChip({ children, tone }: { children: React.ReactNode; tone: "green" | "red" | "amber" }) {
+  const styles = {
+    green: "bg-emerald-50 text-emerald-700",
+    red:   "bg-red-50 text-red-600",
+    amber: "bg-amber-50 text-amber-700",
+  }[tone];
+  return <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${styles}`}>{children}</span>;
+}
+
+function PlayerStatsPanel({ stats }: { stats: PlayerStat[] }) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-lg">
+      <h3 className="mb-3 text-base font-bold text-zinc-900">Player Stats</h3>
+      <div className="space-y-2">
+        {stats.map((p, i) => {
+          const s = parseStatLine(p.raw);
+          return (
+            <div key={i} className="rounded-xl border border-zinc-200 p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+                  {s.jersey ? `#${s.jersey}` : "?"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-zinc-900">
+                    {s.jersey ? `Player #${s.jersey}` : p.label}
+                  </p>
+                  {s.team && <p className="text-xs text-zinc-500">{s.team}</p>}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              {(s.sharp > 0 || s.costly > 0 || s.fouls > 0) && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {s.sharp  > 0 && <StatChip tone="green">{s.sharp} sharp</StatChip>}
+                  {s.costly > 0 && <StatChip tone="red">{s.costly} costly</StatChip>}
+                  {s.fouls  > 0 && <StatChip tone="amber">{s.fouls} {s.fouls === 1 ? "foul" : "fouls"}</StatChip>}
+                </div>
+              )}
+              {s.standout && <p className="mt-2.5 text-xs leading-relaxed text-zinc-500">{s.standout}</p>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
