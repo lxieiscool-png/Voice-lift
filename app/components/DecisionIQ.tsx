@@ -639,9 +639,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
       const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor }) });
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (data.error) throw new Error(data.error);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       setProgressCurrent(1);
       const parsed        = parsePlayerBlocks(data.feedback ?? "");
       const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
@@ -659,9 +659,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
         const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor }) });
-        if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (data.error) throw new Error(data.error);
+        if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
         chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
       }
       setProgressLabel("Building game report…");
@@ -703,9 +703,11 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       } catch (err) {
         console.error(err);
         const msg = err instanceof Error ? err.message : "Something went wrong.";
-        const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("rate");
-        setAnalyzeError(isRateLimit
-          ? "Too many requests — the AI is busy. Wait a moment and try again."
+        const isRateLimit  = msg.includes("429") || msg.toLowerCase().includes("rate");
+        const isNotSports  = msg.toLowerCase().includes("sports clip") || msg.toLowerCase().includes("can't analyze");
+        setAnalyzeError(
+          isNotSports  ? msg
+          : isRateLimit ? "Too many requests — the AI is busy. Wait a moment and try again."
           : "Analysis failed. Check your connection and try again.");
         setPendingRetry(() => doAnalyze);
       }
