@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat } from "../lib/types";
-import { gradeClass, formatTime, formatDate, TEAM_PALETTE, extractTeamName, buildTeamColorMap } from "../lib/decisioniq-helpers";
+import { gradeClass, formatTime, formatDate, TEAM_PALETTE, jerseyColor } from "../lib/decisioniq-helpers";
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
@@ -364,12 +364,11 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
 }
 
 function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
-  const colorMap = buildTeamColorMap(decisions);
   return (
     <div className="space-y-2">
       {decisions.map((d, i) => (
         <PlayerCard key={i} decision={d}
-          teamColor={colorMap.get(extractTeamName(d.player)) ?? TEAM_PALETTE[0]}
+          teamColor={jerseyColor(d.player)}
           defaultOpen={i === 0} />
       ))}
     </div>

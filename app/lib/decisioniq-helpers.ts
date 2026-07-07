@@ -56,6 +56,20 @@ export function buildTeamColorMap(decisions: PlayerDecision[]) {
   return map;
 }
 
+// Pull the jersey number out of a player string like "#23 Name (Team)" or "23 Name".
+export function extractJersey(player: string): number | null {
+  const m = player.match(/#?\s*(\d{1,2})\b/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// Color a card by its jersey number so the same number always gets the same
+// color, and players without a number stay neutral (no color).
+export function jerseyColor(player: string): typeof TEAM_PALETTE[0] {
+  const num = extractJersey(player);
+  if (num === null) return { border: "border-l-zinc-700", bg: "bg-zinc-700" };
+  return TEAM_PALETTE[num % TEAM_PALETTE.length];
+}
+
 export function formatTime(seconds: number) {
   const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = Math.floor(seconds % 60);
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
