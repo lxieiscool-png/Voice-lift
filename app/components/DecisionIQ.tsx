@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat } from "../lib/types";
+import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison } from "../lib/types";
 import { gradeClass, formatTime, formatDate, TEAM_PALETTE, jerseyColor } from "../lib/decisioniq-helpers";
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
@@ -39,6 +39,30 @@ function parseGameReport(text: string): GameReport {
     foulPatterns: extract("Foul & Call Patterns"), decisionTrends: extract("Decision Trends"),
     strengths: extractList("Top 3 Strengths"), improvements: extractList("Top 3 Areas To Improve"),
     practiceFocus: extract("Game-Level Practice Focus"), playerStats,
+    teamComparison: parseTeamComparison(text),
+  };
+}
+
+function parseTeamComparison(text: string): TeamComparison | null {
+  const block = text.match(/Team Comparison:\s*([\s\S]*)$/i)?.[1];
+  if (!block) return null;
+  const teams = block.match(/Teams:\s*(.+?)\s+vs\.?\s+(.+)/i);
+  if (!teams) return null;
+
+  const scoreRaw  = block.match(/Score:\s*(.+)/i)?.[1]?.trim() ?? "";
+  const winnerRaw = block.match(/Winner:\s*(.+)/i)?.[1]?.trim() ?? "";
+  const stats = block.split("\n")
+    .map(l => l.replace(/^[-•*]\s*/, "").trim())
+    .map(l => l.match(/^(.+?)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*$/))
+    .filter((m): m is RegExpMatchArray => !!m)
+    .map(m => ({ label: m[1].trim(), a: parseInt(m[2], 10), b: parseInt(m[3], 10) }));
+
+  return {
+    teamA: teams[1].trim(), teamB: teams[2].trim(),
+    score:  /not visible|n\/a|unknown/i.test(scoreRaw) || !scoreRaw ? null : scoreRaw,
+    winner: /unclear|n\/a|unknown/i.test(winnerRaw)    || !winnerRaw ? null : winnerRaw,
+    stats,
+    why: block.match(/Why:\s*([\s\S]*?)$/i)?.[1]?.trim() ?? "",
   };
 }
 
@@ -431,7 +455,98 @@ function GameReportCard({ report }: { report: GameReport }) {
         )}
       </div>
 
+      {report.teamComparison && <TeamComparisonPanel tc={report.teamComparison} />}
       {report.playerStats.length > 0 && <PlayerStatsPanel stats={report.playerStats} />}
+    </div>
+  );
+}
+
+// ─── Team Comparison (light score-panel style) ────────────────────────────────
+
+function teamInitials(name: string) {
+  return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
+  const aWon = tc.winner ? tc.winner.toLowerCase().includes(tc.teamA.toLowerCase()) || tc.teamA.toLowerCase().includes(tc.winner.toLowerCase()) : false;
+  const bWon = tc.winner ? !aWon : false;
+  const [scoreA, scoreB] = tc.score?.match(/(\d+)\s*[–\-:]\s*(\d+)/)?.slice(1) ?? [null, null];
+
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-lg">
+      {/* Header: teams + score */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+            {teamInitials(tc.teamA)}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-zinc-900">{tc.teamA}</p>
+            <p className="text-xs text-zinc-500">Home / Team A</p>
+          </div>
+        </div>
+
+        <div className="shrink-0 text-center">
+          {scoreA && scoreB ? (
+            <p className="text-2xl font-black tracking-tight">
+              <span className={aWon ? "text-zinc-900" : "text-zinc-400"}>{scoreA}</span>
+              <span className="text-zinc-300"> – </span>
+              <span className={bWon ? "text-zinc-900" : "text-zinc-400"}>{scoreB}</span>
+            </p>
+          ) : (
+            <p className="text-xs font-semibold text-zinc-400">VS</p>
+          )}
+          {tc.winner && (
+            <div className="mt-0.5 flex justify-center gap-1.5">
+              <span className={`rounded px-1.5 text-[10px] font-bold ${aWon ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500"}`}>{aWon ? "W" : "L"}</span>
+              <span className={`rounded px-1.5 text-[10px] font-bold ${bWon ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500"}`}>{bWon ? "W" : "L"}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 min-w-0 flex-row-reverse">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+            {teamInitials(tc.teamB)}
+          </div>
+          <div className="min-w-0 text-right">
+            <p className="truncate text-sm font-bold text-zinc-900">{tc.teamB}</p>
+            <p className="text-xs text-zinc-500">Away / Team B</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stat bars */}
+      {tc.stats.length > 0 && (
+        <div className="mt-5 space-y-4">
+          {tc.stats.map(({ label, a, b }, i) => {
+            const total = a + b;
+            const aPct  = total > 0 ? (a / total) * 100 : 50;
+            return (
+              <div key={i}>
+                <div className="mb-1 flex items-baseline justify-between text-sm">
+                  <span className="font-bold text-zinc-900">{a}</span>
+                  <span className="font-semibold text-zinc-700">{label}</span>
+                  <span className="font-bold text-zinc-900">{b}</span>
+                </div>
+                <div className="flex h-1.5 gap-1 overflow-hidden rounded-full">
+                  <div className="rounded-full bg-emerald-600" style={{ width: `${aPct}%` }} />
+                  <div className="rounded-full bg-red-600 flex-1" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Why */}
+      {tc.why && (
+        <div className="mt-5 rounded-xl bg-zinc-50 p-4">
+          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
+            ✓ {tc.winner ? `Why ${tc.winner} won` : "What decided it"}
+          </p>
+          <p className="text-sm leading-relaxed text-zinc-600">{tc.why}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -59,6 +59,13 @@ Game-Level Practice Focus:
 Player Stats:
 - [#NUMBER (TEAM) | Decisions: X sharp / Y costly | Fouls: Z | Standout moment: one-line note]
 - [Repeat for each identified player. "No jersey numbers clearly visible." if none could be confirmed.]
+
+Team Comparison:
+Teams: [Team A name/color] vs [Team B name/color]
+Score: [X–Y only if a scoreboard was clearly readable in the frames — otherwise write "Not visible"]
+Winner: [team name, or "Unclear"]
+- [Stat name | Team A number | Team B number — ONLY stats you directly observed across the segments, e.g. "Made baskets | 6 | 4", "Turnovers | 3 | 5", "Fouls | 2 | 4". These are observed counts from the film, not full box-score totals. NEVER invent percentages or numbers you did not see. Skip any stat you can't count. If you can't compare the teams at all, write "Not enough visible data." on one line instead.]
+Why: [2 sentences on what decided the game between these teams, based on what you saw.]
 `,
             },
           ],

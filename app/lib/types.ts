@@ -6,10 +6,19 @@ export type PlayerDecision = {
 
 export type PlayerStat = { label: string; raw: string };
 
+export type TeamComparison = {
+  teamA: string; teamB: string;
+  score: string | null;          // "46–44" or null if no scoreboard was visible
+  winner: string | null;         // team name or null if unclear
+  stats: { label: string; a: number; b: number }[];
+  why: string;
+};
+
 export type GameReport = {
   overallGrade: string; gameSummary: string; periodBreakdown: string;
   foulPatterns: string; decisionTrends: string; strengths: string[];
   improvements: string[]; practiceFocus: string; playerStats: PlayerStat[];
+  teamComparison?: TeamComparison | null;
 };
 
 export type ChunkSummary = { index: number; start: string; end: string; text: string };
