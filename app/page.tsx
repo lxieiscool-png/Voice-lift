@@ -676,12 +676,56 @@ function FloatingGradeCard() {
   );
 }
 
+function StatTrackingPanel() {
+  const stats = [
+    { label: "Field goal %", value: "52%", pct: 52, sub: "13-25" },
+    { label: "Three point %", value: "40%", pct: 40, sub: "4-10" },
+    { label: "Decision grade", value: "A-", pct: 88, sub: "sharp reads" },
+    { label: "Turnovers", value: "2", pct: 20, sub: "well below avg" },
+  ];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.7 }}
+      className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8"
+    >
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Stat tracking</p>
+          <p className="text-lg font-black text-white">This game</p>
+        </div>
+        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">↑ trending up</span>
+      </div>
+      <div className="space-y-4">
+        {stats.map((s, i) => (
+          <div key={s.label}>
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <span className="text-sm font-semibold text-zinc-300">{s.label}</span>
+              <span className="text-sm font-black text-white">{s.value} <span className="text-[11px] font-medium text-zinc-600">{s.sub}</span></span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+              <motion.div
+                initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }}
+                viewport={{ once: true }} transition={{ delay: 0.3 + i * 0.12, duration: 0.8, ease: "easeOut" }}
+                className="h-full rounded-full bg-white"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-6 text-xs leading-relaxed text-zinc-500">
+        Every clip is tracked over time — watch your shooting, decisions, and ball security improve week over week.
+      </p>
+    </motion.div>
+  );
+}
+
 function AnalysisDemo() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }} transition={{ duration: 0.7 }}
-      className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-zinc-800"
+      className="relative overflow-hidden rounded-3xl border border-zinc-800"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/demo-basketball.jpg" alt="Basketball layup being analyzed by Reel" className="block w-full" />
@@ -910,7 +954,10 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">See it in action</p>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Every decision, graded.</h2>
           </div>
-          <AnalysisDemo />
+          <div className="grid items-center gap-4 lg:grid-cols-2">
+            <StatTrackingPanel />
+            <AnalysisDemo />
+          </div>
         </div>
       </ZoomSection>
 
