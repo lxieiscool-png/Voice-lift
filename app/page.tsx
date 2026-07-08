@@ -918,14 +918,15 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       <ZoomSection className="py-4 px-4 bg-black">
         <div className="mx-auto max-w-6xl grid grid-cols-2 sm:grid-cols-4 rounded-3xl overflow-hidden" style={{ height: 300 }}>
           {[
-            { id: "1629901925121-8a141c2a42f4", alt: "Basketball dunk" },
-            { id: "1547347298-4074fc3086f0", alt: "Volleyball match" },
-            { id: "1552984439-3067a809a6d4", alt: "Basketball game" },
-            { id: "1612872087720-bb876e2e67d1", alt: "Volleyball spike" },
-          ].map(({ id, alt }) => (
-            <div key={id} className="overflow-hidden relative">
+            { pos: "18% center", alt: "Bench and sideline" },
+            { pos: "50% center", alt: "Driving to the rim" },
+            { pos: "58% center", alt: "Contested layup" },
+            { pos: "85% center", alt: "Transition down court" },
+          ].map(({ pos, alt }, i) => (
+            <div key={i} className="overflow-hidden relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`https://images.unsplash.com/photo-${id}?w=600&q=80&fit=crop&crop=faces,center`} alt={alt}
+              <img src="/grid-basketball.jpg" alt={alt}
+                style={{ objectPosition: pos }}
                 className="h-full w-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-90 hover:scale-105 transition-all duration-700" />
             </div>
           ))}
