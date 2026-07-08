@@ -842,9 +842,9 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         <div className="mx-auto max-w-6xl grid grid-cols-2 sm:grid-cols-4 rounded-3xl overflow-hidden" style={{ height: 300 }}>
           {[
             { id: "1629901925121-8a141c2a42f4", alt: "Basketball dunk" },
-            { id: "1537882111161-c3379a777c8b", alt: "Football game" },
+            { id: "1547347298-4074fc3086f0", alt: "Volleyball match" },
             { id: "1552984439-3067a809a6d4", alt: "Basketball game" },
-            { id: "1489358921548-9b3f69a1eb4a", alt: "Football action" },
+            { id: "1612872087720-bb876e2e67d1", alt: "Volleyball spike" },
           ].map(({ id, alt }) => (
             <div key={id} className="overflow-hidden relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
