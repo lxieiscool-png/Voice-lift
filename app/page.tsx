@@ -764,9 +764,9 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           <video
             autoPlay muted loop playsInline
             poster="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
-            ref={(el) => { if (el) el.playbackRate = 0.5; }}
+            ref={(el) => { if (el) el.playbackRate = 0.65; }}
             className="absolute inset-0 h-full w-full object-cover"
-            style={{ filter: "blur(2px)" }}
+            style={{ filter: "blur(0.5px)" }}
           >
             <source src="/hero-basketball.mov" type="video/mp4" />
           </video>
