@@ -43,6 +43,12 @@ function parseGameReport(text: string): GameReport {
   };
 }
 
+function isEmptyGameReport(r: GameReport | null): boolean {
+  if (!r) return true;
+  const hasText = r.gameSummary || r.periodBreakdown || r.foulPatterns || r.decisionTrends || r.practiceFocus;
+  return !hasText && r.strengths.length === 0 && r.improvements.length === 0 && r.playerStats.length === 0;
+}
+
 function parseTeamComparison(text: string): TeamComparison | null {
   const block = text.match(/Team Comparison:\s*([\s\S]*)$/i)?.[1];
   if (!block) return null;
@@ -1011,15 +1017,27 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             </div>
           )}
 
-          {!loading && resultMode === "clip" && decisions.length === 0 && (
-            <div className="flex h-52 flex-col items-center justify-center gap-2 rounded-lg border border-zinc-800 text-center px-6">
-              <p className="text-2xl">🤔</p>
-              <p className="text-sm text-zinc-400">Couldn't find any players to grade in this clip.</p>
-              <p className="text-xs text-zinc-600">Please upload a clear sports clip with visible players in action.</p>
+          {!loading && ((resultMode === "clip" && decisions.length === 0) || (resultMode === "game" && isEmptyGameReport(gameReport))) && (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 text-center px-6 py-10">
+              <p className="text-3xl">🎥</p>
+              <p className="text-base font-semibold text-white">This clip was a little too unclear to break down</p>
+              <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
+                Nothing's broken — the analysis ran fine, but the footage was too blurry, too far away, or too fast to read the plays confidently. We'd rather tell you that than make something up.
+              </p>
+              <p className="text-xs text-zinc-600 max-w-sm leading-relaxed">
+                Try a clearer clip where the players and the ball are clearly visible — closer footage and steady framing work best.
+              </p>
+              <button onClick={() => {
+                  setVideoFile(null); setVideoUrl(""); setFileName(""); setClipTitle(""); setTeamColor("");
+                  setDecisions([]); setGameReport(null); setResultMode(null);
+                }}
+                className="mt-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-zinc-200 transition-colors">
+                Try another clip
+              </button>
             </div>
           )}
           {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}
-          {!loading && resultMode === "game" && gameReport && <GameReportCard report={gameReport} />}
+          {!loading && resultMode === "game" && gameReport && !isEmptyGameReport(gameReport) && <GameReportCard report={gameReport} />}
         </div>
       </div>
 
