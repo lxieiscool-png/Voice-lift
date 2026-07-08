@@ -477,7 +477,7 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
 
 // ─── Sign Up Modal ────────────────────────────────────────────────────────────
 
-const SPORTS = ["Basketball", "Soccer", "Football", "Baseball", "Softball", "Volleyball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
+const SPORTS = ["Basketball", "Volleyball", "Soccer", "Football", "Baseball", "Softball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
 const LEVELS = ["Middle school", "High school", "College", "Semi-pro / Amateur", "Professional"];
 const GOALS  = ["Improve decision-making", "Better film breakdown", "Personalized drills", "Track my progress", "Get recruited"];
 
@@ -874,7 +874,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <div className="grid gap-4">
               {[
                 { stat: "Free", desc: "No subscriptions, no paywalls. Always free for athletes." },
-                { stat: "Any sport", desc: "Basketball, soccer, football, hockey, lacrosse, volleyball, and more." },
+                { stat: "Built for hoops & volleyball", desc: "Best-in-class analysis for basketball and volleyball. Other sports supported in beta." },
                 { stat: "Any level", desc: "Middle school to college. Beginners to advanced." },
               ].map(({ stat, desc }, i) => (
                 <TiltCard key={stat}>

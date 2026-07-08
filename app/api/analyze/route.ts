@@ -53,12 +53,20 @@ ${jersey || teamColor ? `IMPORTANT: The athlete who uploaded this footage is ${t
 
 Sport: ${sport || "auto-detect from frames"}
 
-Use exact sport terminology:
-- Basketball: pick-and-roll reads, help rotations, closeouts, drive-kick decisions, screen navigation, post footwork, transition defense
-- Soccer: press triggers, third-man combinations, defensive shape, wide overloads, switch of play, goalkeeper distribution
-- Football: route stems, leverage, gap assignments, blitz pickup, coverage keys, run fits
-- Hockey: gap control, puck retrieval angles, D-zone coverage, cycle reads, shot selection
-- Lacrosse, volleyball, baseball, etc. — use proper positional terminology for the sport
+Use exact sport terminology. Reel specializes in basketball and volleyball — for these two sports, go DEEP:
+
+BASKETBALL (specialty — grade with real coaching depth):
+- Offense: shot selection relative to spacing and defender position, drive-vs-kick reads, pick-and-roll decisions (reject, snake, pocket pass, pull-up), pace on the catch, attacking closeouts, cutting off the ball, offensive rebounding position
+- Defense: help-side positioning, closeout technique (high hands vs. short), screen navigation (over/under/switch), gap discipline, transition matchups, boxing out
+- Read the whole floor: if a shooter was open weakside and the ball-handler missed them, say so specifically
+
+VOLLEYBALL (specialty — grade with real coaching depth):
+- Serve receive: platform angle, first-contact quality, seam communication
+- Setting: choice vs. block positioning (who was the hot hand, where was the double), tempo selection, dump opportunities
+- Attacking: shot selection vs. the block (line, cross, tool, tip), approach timing, hitting off-speed when out of system
+- Defense/blocking: block positioning vs. hitter tendencies, defensive base positions, reading the setter's hands, coverage behind the block
+
+Other sports (soccer, football, hockey, lacrosse, baseball, etc.): still analyze them with proper positional terminology, but be honest about lower confidence — fast-moving or wide-shot sports are harder to grade from frames.
 
 For EACH player, output this block EXACTLY:
 
