@@ -83,8 +83,14 @@ async function extractFramesAdaptive(file: File): Promise<{ frames: FrameWithTim
       const mode: "clip" | "game" = duration > 60 ? "game" : "clip";
       let timestamps: number[];
       if (mode === "clip") {
+        // Sample densely so fast plays actually get captured — a decision happens
+        // in ~2s, so 5s gaps miss the read entirely. Aim ~1 frame / 1.2s, cap 24.
         const cap = Math.min(duration, 30);
-        timestamps = [0.5, cap * 0.2, cap * 0.4, cap * 0.6, cap * 0.8, Math.max(cap - 0.5, 0.5)];
+        const MAX_FRAMES = 24;
+        const step = Math.max(cap / MAX_FRAMES, 0.6);
+        timestamps = [];
+        for (let t = 0.3; t < cap; t += step) timestamps.push(Number(t.toFixed(2)));
+        if (timestamps.length === 0) timestamps = [Math.max(duration / 2, 0.3)];
       } else {
         timestamps = [];
         for (let t = 5; t < duration - 5; t += 30) timestamps.push(t);

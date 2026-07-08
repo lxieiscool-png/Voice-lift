@@ -41,6 +41,10 @@ Tactical Pattern:
 `
       : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
+THE FRAMES: These images are sequential stills pulled from ONE short clip, roughly one second apart, in chronological order. Read them as a single continuous play unfolding over time — track how players and the ball move from the first frame to the last. Do NOT treat them as separate unrelated photos.
+
+HONESTY OVERRIDE: If the frames are too blurry, too sparse, or too ambiguous to actually tell what happened, DO NOT invent a play. It is far better to grade fewer players well than to fabricate. If you genuinely cannot make out a real decision, output a single line "UNCLEAR: [what you can and can't see]" instead of a player block. Never manufacture a play that isn't clearly supported by the frames.
+
 Study the frames carefully. Identify every PLAYER making a notable decision — offense AND defense, 2 to 5 players total.
 
 ONLY grade athletes who are actively playing in the game. Completely ignore and do NOT grade: referees, officials, coaches, spectators, people in the stands, people on the bench who are not in the play, ball boys, or anyone not actively competing on the field/court.
@@ -130,7 +134,7 @@ Do not add any other text.`,
           ],
         },
       ],
-      temperature: 0.3,
+      temperature: 0,
     });
 
     return Response.json({ feedback: response.output_text });
