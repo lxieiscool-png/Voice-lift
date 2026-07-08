@@ -761,14 +761,17 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       {/* ── Hero: image zooms in as you scroll down ── */}
       <section ref={heroRef} className="relative h-screen min-h-[600px] overflow-hidden">
         <motion.div style={{ scale: heroScale }} className="absolute inset-0 origin-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
-            alt="Basketball player mid-air"
+          <video
+            autoPlay muted loop playsInline
+            poster="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
+            ref={(el) => { if (el) el.playbackRate = 0.5; }}
             className="absolute inset-0 h-full w-full object-cover"
-          />
+            style={{ filter: "blur(2px)" }}
+          >
+            <source src="/hero-basketball.mov" type="video/mp4" />
+          </video>
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/20" />
         <ParticleField />
         <CursorSpotlight />
 
