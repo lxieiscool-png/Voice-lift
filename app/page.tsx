@@ -678,10 +678,10 @@ function FloatingGradeCard() {
 
 function StatTrackingPanel() {
   const stats = [
-    { label: "Field goal %", value: "52%", pct: 52, sub: "13-25" },
-    { label: "Three point %", value: "40%", pct: 40, sub: "4-10" },
-    { label: "Decision grade", value: "A-", pct: 88, sub: "sharp reads" },
-    { label: "Turnovers", value: "2", pct: 20, sub: "well below avg" },
+    { label: "Decision grade", value: "A-", pct: 88, sub: "this game" },
+    { label: "Sharp reads", value: "9", pct: 82, sub: "vs 2 costly" },
+    { label: "Fouls", value: "2", pct: 25, sub: "late reaches" },
+    { label: "Grade trend", value: "+2", pct: 70, sub: "last 5 clips" },
   ];
   return (
     <motion.div
