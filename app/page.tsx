@@ -965,15 +965,14 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       <ZoomSection className="py-4 px-4 bg-black">
         <div className="mx-auto max-w-6xl grid grid-cols-2 sm:grid-cols-4 rounded-3xl overflow-hidden" style={{ height: 300 }}>
           {[
-            { pos: "18% center", alt: "Bench and sideline" },
-            { pos: "50% center", alt: "Driving to the rim" },
-            { pos: "58% center", alt: "Contested layup" },
-            { pos: "85% center", alt: "Transition down court" },
-          ].map(({ pos, alt }, i) => (
+            { src: "/grid-basketball.jpg", alt: "Driving to the rim" },
+            { src: "https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=600&q=80&fit=crop&crop=faces,center", alt: "Volleyball match" },
+            { src: "https://images.unsplash.com/photo-1552984439-3067a809a6d4?w=600&q=80&fit=crop&crop=faces,center", alt: "Basketball game" },
+            { src: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=600&q=80&fit=crop&crop=faces,center", alt: "Volleyball spike" },
+          ].map(({ src, alt }, i) => (
             <div key={i} className="overflow-hidden relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/grid-basketball.jpg" alt={alt}
-                style={{ objectPosition: pos }}
+              <img src={src} alt={alt}
                 className="h-full w-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-90 hover:scale-105 transition-all duration-700" />
             </div>
           ))}
