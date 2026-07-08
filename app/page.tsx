@@ -676,6 +676,69 @@ function FloatingGradeCard() {
   );
 }
 
+function AnalysisDemo() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.7 }}
+      className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-zinc-800"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/demo-basketball.jpg" alt="Basketball layup being analyzed by Reel" className="block w-full" />
+
+      {/* contrast vignette */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
+      {/* live badge */}
+      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        Analyzing film
+      </div>
+
+      {/* shooter tracking box */}
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true }} transition={{ delay: 0.4, type: "spring", stiffness: 120 }}
+        className="absolute" style={{ left: "49%", top: "30%", width: "23%", height: "46%" }}
+      >
+        <div className="h-full w-full rounded-xl border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
+        <span className="absolute -top-5 left-0 whitespace-nowrap rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">#30 · Blue</span>
+      </motion.div>
+
+      {/* defender tag */}
+      <motion.div
+        initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
+        viewport={{ once: true }} transition={{ delay: 0.7 }}
+        className="absolute" style={{ left: "30%", top: "39%" }}
+      >
+        <span className="whitespace-nowrap rounded-md bg-red-500/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">Late contest</span>
+      </motion.div>
+
+      {/* grade card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }} transition={{ delay: 0.95 }}
+        className="absolute bottom-3 right-3 w-60 max-w-[72%] rounded-2xl border border-zinc-700 bg-zinc-900/85 p-4 shadow-2xl backdrop-blur-md sm:bottom-5 sm:right-5"
+      >
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-lg font-black text-white">A-</div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-white">#30 · Blue</p>
+            <p className="text-xs text-zinc-400">Basketball · Finish at rim</p>
+          </div>
+        </div>
+        <div className="rounded-lg bg-zinc-800 px-3 py-2">
+          <p className="mb-0.5 text-[9px] uppercase tracking-widest text-zinc-500">The read</p>
+          <p className="text-xs leading-relaxed text-zinc-300">Rose up through contact and drew the foul — aggressive, correct call against a late closeout.</p>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function AnimatedGrid() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -837,6 +900,17 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
               </div>
             </div>
           </div>
+        </div>
+      </ZoomSection>
+
+      {/* ── Live analysis demo: real photo with fake overlays ── */}
+      <ZoomSection className="py-4 px-4 bg-black">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-6 text-center">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">See it in action</p>
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Every decision, graded.</h2>
+          </div>
+          <AnalysisDemo />
         </div>
       </ZoomSection>
 
