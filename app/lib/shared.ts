@@ -47,6 +47,30 @@ export function sportIcon(sport: string): string {
   return "🎯";
 }
 
+// Two sport-specific coaching questions used to seed the chat suggestion chips.
+// Match on substrings so "Men's Basketball", "HS Soccer", etc. still resolve.
+const SPORT_QUESTIONS: { match: string[]; qs: [string, string] }[] = [
+  { match: ["basket"],        qs: ["How do I read a pick-and-roll?", "When should I drive vs. kick out?"] },
+  { match: ["soccer"],        qs: ["How do I find space between the lines?", "When do I press vs. drop off?"] },
+  { match: ["football"],      qs: ["How do I read coverage before the snap?", "How do I improve my route running?"] },
+  { match: ["water polo"],    qs: ["How do I get position on my defender?", "How do I improve my counterattack?"] },
+  { match: ["volleyball"],    qs: ["How do I read the setter?", "How do I improve my shot selection at the net?"] },
+  { match: ["hockey"],        qs: ["How do I improve my gap control?", "When should I cycle vs. shoot?"] },
+  { match: ["lacrosse"],      qs: ["How do I create separation on a dodge?", "How do I improve my off-ball movement?"] },
+  { match: ["baseball", "softball"], qs: ["How do I read pitch location earlier?", "How do I improve my plate discipline?"] },
+  { match: ["tennis"],        qs: ["How do I build a point patiently?", "When should I attack the net?"] },
+  { match: ["wrestling"],     qs: ["How do I set up my shots better?", "How do I improve my scrambling?"] },
+];
+
+export function sportSuggestions(sport?: string): [string, string] {
+  const key = (sport || "").toLowerCase().trim();
+  for (const { match, qs } of SPORT_QUESTIONS) {
+    if (match.some(m => key.includes(m))) return qs;
+  }
+  const label = sport?.trim() || "game";
+  return [`How do I improve my ${label} decision making?`, `What should I focus on to get better at ${label}?`];
+}
+
 export const TEAM_PALETTE = [
   { border: "border-l-blue-500",    bg: "bg-blue-500"    },
   { border: "border-l-red-500",     bg: "bg-red-500"     },

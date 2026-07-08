@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, DrillDay, PracticePlan, Profile, Review } from "../lib/types";
-import { sportIcon } from "../lib/shared";
+import { sportIcon, sportSuggestions } from "../lib/shared";
 
 // ─── Plan Parser ──────────────────────────────────────────────────────────────
 
@@ -235,10 +235,10 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
           {messages.length === 1 && (
             <div className="px-5 pb-3 flex flex-wrap gap-2">
               {[
-                `How do I improve my ${profile.sport || "game"} decision making?`,
-                recentPatterns[0] ? `Help me fix: ${recentPatterns[0]}` : "Give me a warm-up routine",
+                ...(recentPatterns[0] ? [`Help me fix: ${recentPatterns[0]}`] : []),
+                ...sportSuggestions(profile.sport),
                 "How do I stay calm under pressure?",
-              ].map((q, i) => (
+              ].slice(0, 3).map((q, i) => (
                 <button
                   key={i}
                   onClick={() => { setInput(q); }}
