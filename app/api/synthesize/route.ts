@@ -4,7 +4,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
-    const { sport, chunkSummaries, teamsNote } = await req.json();
+    const { sport, chunkSummaries, teamsNote, jersey, teamColor } = await req.json();
+
+    const uploaderContext = jersey || teamColor
+      ? `\nTHE UPLOADER: The athlete reading this report is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Speak to THEM about THEIR game.\n`
+      : "";
 
     const teamContext = teamsNote?.trim()
       ? `\nTEAM CONTEXT (from the uploader — trust this over jersey appearances): ${teamsNote.trim()}\nThere are exactly TWO teams. Group every player into one of these two teams in Player Stats and Team Comparison, even if segments described mixed jersey colors. Never list a third team.\n`
@@ -26,7 +30,7 @@ export async function POST(req: Request) {
               type: "input_text",
               text: `You are an elite sports coach delivering a full post-game film review to your athlete. You've just watched their entire game together. Speak directly to them — use "you" and "your." Be honest, specific, and growth-focused. Reference actual events and patterns you observed. Never be generic.
 
-Sport: ${sport || "auto-detected"}${teamContext}
+Sport: ${sport || "auto-detected"}${teamContext}${uploaderContext}
 
 Film segments:
 ${summaryText}
@@ -34,6 +38,8 @@ ${summaryText}
 Synthesize everything into a complete Game Report in this exact format:
 
 Overall Decision Grade: [A+ to F — based on the full game, not just highlights]
+
+Your Grade: [A+ to F — the UPLOADER's individual grade based only on the decisions of ${jersey || teamColor ? "their player (see THE UPLOADER above)" : "the primary athlete"} across the segments. If you could not identify them in the film, write "N/A".]
 
 Game Summary:
 [3–4 sentences speaking directly to the athlete. Reference specific moments from the film. What defined their game? What was the story arc? Be honest but constructive.]

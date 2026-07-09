@@ -775,7 +775,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [inputTab,   setInputTab]   = useState<"file" | "youtube">("file");
   const [fileName,   setFileName]   = useState("");
   const [clipTitle,  setClipTitle]  = useState("");
-  const [teamColor,  setTeamColor]  = useState("");
+  const [teamColor,  setTeamColor]  = useState(profile.teamColor || "");
   const [teamsNote,  setTeamsNote]  = useState("");
   const [videoUrl,   setVideoUrl]   = useState("");
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
@@ -904,7 +904,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
       }
       setProgressLabel("Building game report…");
-      const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries, teamsNote }) });
+      const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries, teamsNote, jersey: profile.jersey, teamColor }) });
       if (!synthRes.ok) throw new Error(`Server error ${synthRes.status} on synthesis`);
       const synthData = await synthRes.json();
       if (synthData.error) throw new Error(synthData.error);
@@ -912,7 +912,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       const report = parseGameReport(synthData.report ?? "");
       const detectedGameSport = sport || profile.sport || "Unknown";
       setGameReport(report); setResultMode("game");
-      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedGameSport, mode: "game", grade: report.overallGrade, timestamp: Date.now(), gameReport: report }, ...reviews]);
+      // Library tracks YOUR grade when the report identified you, not the whole game's
+      const myGrade = (synthData.report ?? "").match(/Your Grade:\s*([A-F][+-]?)/i)?.[1];
+      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedGameSport, mode: "game", grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report }, ...reviews]);
     }
   }
 
@@ -982,7 +984,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <label className="group block cursor-pointer rounded-2xl border-2 border-dashed border-zinc-800 bg-gradient-to-b from-zinc-900/30 to-transparent p-8 text-center transition-all hover:border-zinc-500 hover:from-zinc-900/60 active:scale-[0.99]">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
-                  setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor("");
+                  setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor(profile.teamColor || "");
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />

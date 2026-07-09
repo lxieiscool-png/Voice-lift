@@ -61,6 +61,12 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
           <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
             placeholder="Jersey number (e.g. 23) — tracks your grades over time"
             value={draft.jersey ?? ""} onChange={e => setDraft(d => ({ ...d, jersey: e.target.value }))} />
+          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+            placeholder="Position (e.g. Point Guard)"
+            value={draft.position ?? ""} onChange={e => setDraft(d => ({ ...d, position: e.target.value }))} />
+          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+            placeholder="Team jersey colors (e.g. White, or 'mixed white + blue')"
+            value={draft.teamColor ?? ""} onChange={e => setDraft(d => ({ ...d, teamColor: e.target.value }))} />
         </div>
         <div className="mt-3 flex gap-2">
           <button onClick={save} className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">Save</button>
@@ -499,13 +505,15 @@ const SPORTS = ["Basketball", "Volleyball", "Soccer", "Football", "Baseball", "S
 const LEVELS = ["Middle school", "High school", "Club / AAU", "College", "Pro / Semi-pro"];
 const GOALS  = ["Improve decision-making", "Better film breakdown", "Personalized drills", "Track my progress", "Get recruited"];
 
-function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onClose: () => void }) {
+function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onClose: () => void }) {
   const [step,     setStep]     = useState(0);
   const [name,     setName]     = useState("");
   const [sport,    setSport]    = useState("");
   const [position, setPosition] = useState("");
   const [level,    setLevel]    = useState("");
   const [goals,    setGoals]    = useState<string[]>([]);
+  const [jersey,   setJersey]   = useState("");
+  const [teamColor, setTeamColor] = useState("");
 
   const steps = [
     {
@@ -550,6 +558,29 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
           onChange={e => setPosition(e.target.value)}
           onKeyDown={e => e.key === "Enter" && setStep(3)}
         />
+      ),
+      canNext: true, // optional
+    },
+    {
+      title: "Who are you on film?",
+      sub: "Your jersey number and team colors let Reel find YOU in the footage and track your grades — not just the team's.",
+      content: (
+        <div className="flex flex-col gap-2">
+          <input
+            autoFocus
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+            placeholder="Jersey number (e.g. 23)"
+            value={jersey}
+            onChange={e => setJersey(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+            inputMode="numeric"
+          />
+          <input
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+            placeholder="Team jersey colors (e.g. White, or 'mixed white + blue pinnies')"
+            value={teamColor}
+            onChange={e => setTeamColor(e.target.value)}
+          />
+        </div>
       ),
       canNext: true, // optional
     },
@@ -619,7 +650,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
             </button>
           )}
           <button
-            onClick={() => isLast ? onContinue({ name, sport, position, level, goals }) : setStep(s => s + 1)}
+            onClick={() => isLast ? onContinue({ name, sport, position, level, goals, jersey, teamColor }) : setStep(s => s + 1)}
             disabled={!current.canNext}
             className="flex-1 rounded-xl bg-white py-3 text-sm font-bold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors">
             {isLast ? "Create my account →" : step === 2 ? "Skip" : "Continue"}
@@ -843,7 +874,7 @@ function ZoomSection({ children, className = "" }: { children: React.ReactNode; 
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
+function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
   const [showSignUp, setShowSignUp] = useState(false);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -1225,7 +1256,10 @@ export default function Reel() {
     if (signupRaw) {
       try {
         const signup = JSON.parse(signupRaw);
-        const p: Profile = { name: signup.name || "", sport: signup.sport || "", team: "" };
+        const p: Profile = {
+          name: signup.name || "", sport: signup.sport || "", team: "",
+          jersey: signup.jersey || "", position: signup.position || "", teamColor: signup.teamColor || "",
+        };
         setProfile(p);
         localStorage.setItem("decisioniq-profile", JSON.stringify(p));
         localStorage.removeItem("reel-signup-data");
@@ -1239,7 +1273,7 @@ export default function Reel() {
     const { data: profileData } = await supabase
       .from("profiles").select("*").eq("id", userId).single();
     if (profileData) {
-      const p = { name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "" };
+      const p = { name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "", jersey: profileData.jersey || "", position: profileData.position || "", teamColor: profileData.teamColor || "" };
       setProfile(p);
       localStorage.setItem("decisioniq-profile", JSON.stringify(p));
     }
@@ -1276,7 +1310,7 @@ export default function Reel() {
     if (error) { setAuthError("Couldn't connect to Google. Try again."); setSigningIn(false); }
   }
 
-  async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[] }) {
+  async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) {
     setSigningIn(true);
     setAuthError("");
     localStorage.setItem("reel-signup-data", JSON.stringify(data));
