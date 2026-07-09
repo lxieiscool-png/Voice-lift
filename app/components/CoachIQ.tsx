@@ -212,7 +212,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
 
       {/* Chat tab */}
       {tab === "chat" && (
-        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 overflow-hidden flex flex-col" style={{ height: "min(520px, calc(100dvh - 220px))" }}>
+        <div className="rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 overflow-hidden flex flex-col" style={{ height: "min(520px, calc(100dvh - 220px))" }}>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {messages.map((msg, i) => <ChatBubble key={i} msg={msg} />)}
@@ -242,7 +242,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
                 <button
                   key={i}
                   onClick={() => { setInput(q); }}
-                  className="rounded-xl border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:border-white hover:text-white transition-colors text-left"
+                  className="rounded-xl border border-zinc-700 bg-zinc-800/50 px-3.5 py-2 text-xs font-medium text-zinc-300 hover:border-zinc-400 hover:bg-zinc-800 hover:text-white transition-all text-left"
                 >
                   {q}
                 </button>
@@ -274,7 +274,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
       {tab === "plan" && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Form */}
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+          <div className="rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 p-5 sm:p-6">
             <h3 className="mb-4 text-xl font-bold">Build My Plan</h3>
 
             <div className="space-y-4">
@@ -357,7 +357,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
           </div>
 
           {/* Plan output */}
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6">
+          <div className="rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 p-5 sm:p-6">
             <h3 className="mb-4 text-xl font-bold">Your Plan</h3>
 
             {planLoading && (

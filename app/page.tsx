@@ -31,7 +31,7 @@ type ModuleId = typeof MODULES[number]["id"];
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
-function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profile) => void }) {
+function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSave: (p: Profile) => void; reviews?: Review[] }) {
   const [editing, setEditing] = useState(false);
   const [draft,   setDraft]   = useState(profile);
   function save() { onSave(draft); setEditing(false); }
@@ -70,23 +70,40 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
     );
   }
 
+  const avg = averageGrade(reviews.map(r => r.grade).filter(g => g && g !== "N/A"));
   return (
-    <div className="mb-6 flex items-center justify-between border border-zinc-800 bg-zinc-950 rounded-xl px-4 py-3">
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-white text-black text-sm font-bold">
+    <div className="mb-6 flex items-center justify-between rounded-2xl border border-zinc-800 bg-gradient-to-r from-zinc-900/70 to-zinc-950 px-4 py-3.5">
+      <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-400 text-black text-sm font-black shadow-lg shadow-white/10">
           {profile.jersey ? `#${profile.jersey}` : profile.name.charAt(0).toUpperCase()}
         </div>
-        <div>
-          <p className="text-sm font-semibold text-white">{profile.name}</p>
-          <p className="text-xs text-zinc-500">
-            {[profile.sport, profile.team, profile.jersey ? `#${profile.jersey}` : ""].filter(Boolean).join(" · ")}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-white">{profile.name}</p>
+          <p className="truncate text-xs text-zinc-500">
+            {[profile.sport, profile.team].filter(Boolean).join(" · ") || "Athlete"}
           </p>
         </div>
       </div>
-      <button onClick={() => { setDraft(profile); setEditing(true); }}
-        className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">
-        Edit
-      </button>
+      <div className="flex items-center gap-2 shrink-0">
+        {reviews.length > 0 && (
+          <>
+            <div className="hidden sm:flex flex-col items-center rounded-xl border border-zinc-800 bg-black/40 px-3 py-1.5">
+              <span className="text-sm font-black text-white leading-tight">{reviews.length}</span>
+              <span className="text-[9px] uppercase tracking-widest text-zinc-600">clips</span>
+            </div>
+            {avg !== "N/A" && (
+              <div className="hidden sm:flex flex-col items-center rounded-xl border border-zinc-800 bg-black/40 px-3 py-1.5">
+                <span className="text-sm font-black leading-tight text-white">{avg}</span>
+                <span className="text-[9px] uppercase tracking-widest text-zinc-600">avg grade</span>
+              </div>
+            )}
+          </>
+        )}
+        <button onClick={() => { setDraft(profile); setEditing(true); }}
+          className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+          Edit
+        </button>
+      </div>
     </div>
   );
 }
@@ -185,17 +202,17 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
-const HOW_STEPS: Record<"decision" | "coach", { num: string; title: string; desc: string }[]> = {
+const HOW_STEPS: Record<"decision" | "coach", { icon: string; title: string; desc: string }[]> = {
   decision: [
-    { num: "01", title: "Upload your footage",      desc: "Drop in a short clip or a full game. DecisionIQ figures out the sport, the teams, and the situation automatically." },
-    { num: "02", title: "Every player is reviewed", desc: "Every player on screen, offense and defense, gets their own grade, breakdown, and feedback based on what they did and what they could have done instead." },
-    { num: "03", title: "See the full picture",     desc: "Each decision card shows what happened, whether it was the right read, the better option, and one thing to work on. Full games get period breakdowns and foul patterns." },
-    { num: "04", title: "Track your progress",      desc: "Every review is saved. Over time you can see your grade trend and whether your decision-making is improving." },
+    { icon: "🎬", title: "Upload your footage",      desc: "Short clip or full game — sport, teams, and situation are detected automatically." },
+    { icon: "🧠", title: "Every player is reviewed", desc: "Everyone on screen gets a grade, a breakdown, and what they should've done instead." },
+    { icon: "📋", title: "See the full picture",     desc: "What happened, the better option, and one thing to work on. Games get full reports." },
+    { icon: "📈", title: "Track your progress",      desc: "Every review is saved — watch your grade trend climb over time." },
   ],
   coach: [
-    { num: "01", title: "Ask your coach anything",  desc: "Question about technique, strategy, positioning, or mindset? CoachIQ knows your sport and your film patterns. Answers are specific to you." },
-    { num: "02", title: "Get a real practice plan", desc: "Tell CoachIQ your position, experience, available days, and what you want to improve. It builds a full week of sessions with specific drills and reps." },
-    { num: "03", title: "Connected to your film",   desc: "Patterns found in your DecisionIQ reviews automatically feed into CoachIQ. Your plan targets the exact weaknesses your film identified." },
+    { icon: "💬", title: "Ask your coach anything",  desc: "Technique, strategy, mindset — answers specific to your sport and your film." },
+    { icon: "🏋️", title: "Get a real practice plan", desc: "A full week of sessions with specific solo drills and exact reps." },
+    { icon: "🎯", title: "Connected to your film",   desc: "Weaknesses found in your film feed straight into your plan." },
   ],
 };
 
@@ -214,7 +231,7 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
   const steps = HOW_STEPS[activeModule];
 
   return (
-    <div className="mb-6 border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden">
+    <div className="mb-6 rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 overflow-hidden">
       <button onClick={toggle}
         className="flex w-full items-center justify-between px-5 py-4 text-left">
         <div>
@@ -223,15 +240,18 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
             {activeModule === "decision" ? "From raw footage to real feedback" : "From questions to a real plan"}
           </p>
         </div>
-        <span className="text-[10px] text-zinc-600">{open ? "HIDE" : "SHOW"}</span>
+        <span className="rounded-md border border-zinc-800 px-2 py-1 text-[10px] font-semibold text-zinc-500">{open ? "HIDE" : "SHOW"}</span>
       </button>
 
       {open && (
-        <div className="border-t border-zinc-800 p-5 space-y-4">
+        <div className="border-t border-zinc-800/60 p-5 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(s => (
-              <div key={s.num} className="border border-zinc-800 rounded-xl p-4">
-                <p className="text-[10px] font-bold text-zinc-700 mb-2 tracking-widest">{s.num}</p>
+            {steps.map((s, i) => (
+              <div key={s.title} className="group relative rounded-xl border border-zinc-800 bg-black/40 p-4 transition-colors hover:border-zinc-600">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-800/80 text-lg">{s.icon}</span>
+                  <span className="text-[10px] font-black tracking-widest text-zinc-700">0{i + 1}</span>
+                </div>
                 <p className="text-sm font-semibold text-white mb-1">{s.title}</p>
                 <p className="text-xs text-zinc-500 leading-relaxed">{s.desc}</p>
               </div>
@@ -239,12 +259,10 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
           </div>
 
           {activeModule === "decision" && (
-            <div className="border border-zinc-800 rounded-xl px-4 py-3">
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                <span className="font-semibold text-white">DecisionIQ</span> is your film room.{" "}
-                <span className="font-semibold text-white">CoachIQ</span> is your coach on the sideline. Use both together: analyze a clip, then ask CoachIQ to build a plan around what you found.
-              </p>
-            </div>
+            <p className="text-xs text-zinc-500 leading-relaxed px-1">
+              <span className="font-semibold text-zinc-300">DecisionIQ</span> is your film room.{" "}
+              <span className="font-semibold text-zinc-300">CoachIQ</span> is your coach on the sideline — analyze a clip, then build a plan around what you found.
+            </p>
           )}
         </div>
       )}
@@ -1416,7 +1434,7 @@ export default function Reel() {
             </div>
 
             <HowItWorks activeModule={activeModule as "decision" | "coach"} />
-            <ProfileCard profile={profile} onSave={saveProfile} />
+            <ProfileCard profile={profile} onSave={saveProfile} reviews={reviews} />
 
             {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} userId={user?.id} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />}
             {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} />}

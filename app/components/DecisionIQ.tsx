@@ -964,7 +964,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       <div className="grid gap-5 lg:grid-cols-2">
 
         {/* Upload */}
-        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-4 sm:p-5">
+        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-4 sm:p-5">
           <p className="mb-4 text-sm font-semibold text-white">Upload</p>
 
           {/* Tab switcher */}
@@ -979,16 +979,16 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
           {inputTab === "file" ? (
             <>
-              <label className="block cursor-pointer rounded-xl border-2 border-dashed border-zinc-800 p-8 text-center hover:border-zinc-600 active:border-zinc-500 transition-colors">
+              <label className="group block cursor-pointer rounded-2xl border-2 border-dashed border-zinc-800 bg-gradient-to-b from-zinc-900/30 to-transparent p-8 text-center transition-all hover:border-zinc-500 hover:from-zinc-900/60 active:scale-[0.99]">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor("");
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
-                <p className="text-3xl mb-2">🎬</p>
-                <p className="text-sm font-semibold text-zinc-300">Tap to choose video</p>
-                <p className="mt-1 text-xs text-zinc-600">Clip or full game. Adapts automatically.</p>
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-800/80 text-2xl transition-transform group-hover:scale-110">🎬</div>
+                <p className="text-sm font-bold text-white">Tap to choose video</p>
+                <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
@@ -1065,7 +1065,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </div>
 
         {/* Results */}
-        <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-4 sm:p-5">
+        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm font-semibold text-white">
               {resultMode === "game" ? "Game Report" : "Player Decisions"}
@@ -1093,10 +1093,37 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && !analyzeError && !resultMode && (
-            <div className="flex h-52 items-center justify-center rounded-lg border border-zinc-800">
-              <p className="text-sm text-zinc-600">
-                {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]}.` : "Upload a clip or game to get started."}
+            <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/40 to-zinc-950 p-5">
+              <p className="mb-4 text-center text-sm text-zinc-500">
+                {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]} — here's what a review looks like:` : "Upload a clip and every player gets a card like this:"}
               </p>
+              {/* Ghost preview of a graded player card */}
+              <div className="pointer-events-none select-none space-y-2 opacity-60">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-lg font-black text-white">A-</div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-white">White #23 Point Guard</div>
+                      <div className="text-xs text-zinc-600">Drive-and-kick read</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg bg-zinc-900 p-2.5">
+                      <div className="text-[9px] uppercase tracking-widest text-zinc-600 mb-1">What Happened</div>
+                      <div className="text-xs text-zinc-400">Drew two defenders on the drive, kicked to the open corner.</div>
+                    </div>
+                    <div className="rounded-lg bg-zinc-900 p-2.5">
+                      <div className="text-[9px] uppercase tracking-widest text-zinc-600 mb-1">Next Time</div>
+                      <div className="text-xs text-zinc-400">Same read, half a beat earlier — before help commits.</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-black text-black">C+</div>
+                  <div className="text-sm font-semibold text-zinc-400">Blue #11 Help Defender</div>
+                </div>
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent" />
             </div>
           )}
 
@@ -1200,7 +1227,7 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
   // Empty state — no reviews at all
   if (reviews.length === 0) {
     return (
-      <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-10 flex flex-col items-center justify-center text-center gap-4">
+      <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-10 flex flex-col items-center justify-center text-center gap-4">
         <p className="text-4xl">🎬</p>
         <div>
           <p className="text-base font-semibold text-white mb-1">No film yet</p>
@@ -1217,7 +1244,7 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
   }
 
   return (
-    <div className="border border-zinc-800 bg-zinc-950 rounded-xl p-5">
+    <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
