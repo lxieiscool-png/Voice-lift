@@ -2,6 +2,17 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Try the strongest vision model first; fall back if the account doesn't have it.
+// gpt-5 is a reasoning model — it rejects `temperature`, so params differ per model.
+async function createVisionResponse(input: any) {
+  try {
+    return await openai.responses.create({ model: "gpt-5", reasoning: { effort: "low" }, input } as any);
+  } catch (e) {
+    console.warn("gpt-5 unavailable, falling back to gpt-4.1:", (e as any)?.message);
+    return await openai.responses.create({ model: "gpt-4.1", temperature: 0, input });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor } = await req.json();
@@ -31,7 +42,7 @@ Key Events:
 - [Each notable play, foul, or score. Include jersey number and team only if clearly readable. Use "Blue #12" style if partially visible. "None detected" if nothing notable.]
 
 Player Tracking:
-- [One line per active player. Default to descriptive labels: "White Point Guard", "Blue Center", "Red #11" — only include a jersey number if it is completely unambiguous and fully visible in multiple frames. If there is ANY uncertainty about a number, omit it entirely. Wrong numbers destroy trust. Never guess, infer, or partially read a jersey number.]
+- [One line per active player. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
 
 Decision Quality:
 [2–3 sentences directly to the athlete. Be honest and specific about what you saw — not generic. Reference actual events from the frames.]
@@ -71,7 +82,7 @@ Other sports (soccer, football, hockey, lacrosse, baseball, etc.): still analyze
 For EACH player, output this block EXACTLY:
 
 === PLAYER ===
-Player: [STRICT RULE — use a descriptive label by default: "White Point Guard", "Red Striker", "Blue #5" only if the number is crystal clear and fully readable in MULTIPLE frames without any blur or obstruction. If you have ANY doubt about a jersey number, DO NOT include it. A wrong jersey number is a critical error. It is always better to say "White Forward" than to guess "#23". Never infer, estimate, or partially read a number.]
+Player: [Look HARD for jersey numbers — zoom your attention onto each player's chest and back in every frame; a number readable in even ONE clear frame counts. Format: "White #23 Point Guard". Only fall back to a descriptive label like "White Point Guard" if the number is genuinely unreadable in every frame. Never guess or partially read a number — a wrong number is worse than none — but do not omit a number you can actually read.]
 Role: [Specific role in this play — not just "defender", but "Help-side defender", "Ball-screen navigator", "Free safety", etc.]
 Action: [Exactly what they did — "Drove baseline left, drew contact, missed the finish", "Dropped into zone coverage late, gave up the crossing route"]
 Sport: [sport name]
@@ -131,19 +142,15 @@ Do not add any other text.`,
       return Response.json({ error: `Can't analyze this video — ${reason}. Please upload a real sports clip.` }, { status: 400 });
     }
 
-    const response = await openai.responses.create({
-      model: "gpt-4.1",
-      input: [
-        {
-          role: "user",
-          content: [
-            { type: "input_text", text: prompt },
-            ...imageInputs,
-          ],
-        },
-      ],
-      temperature: 0,
-    });
+    const response = await createVisionResponse([
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: prompt },
+          ...imageInputs,
+        ],
+      },
+    ]);
 
     return Response.json({ feedback: response.output_text });
   } catch (error: any) {
