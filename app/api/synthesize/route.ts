@@ -4,7 +4,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   try {
-    const { sport, chunkSummaries } = await req.json();
+    const { sport, chunkSummaries, teamsNote } = await req.json();
+
+    const teamContext = teamsNote?.trim()
+      ? `\nTEAM CONTEXT (from the uploader — trust this over jersey appearances): ${teamsNote.trim()}\nThere are exactly TWO teams. Group every player into one of these two teams in Player Stats and Team Comparison, even if segments described mixed jersey colors. Never list a third team.\n`
+      : "";
 
     const summaryText = chunkSummaries
       .map((s: { index: number; start: string; end: string; text: string }) =>
@@ -22,7 +26,7 @@ export async function POST(req: Request) {
               type: "input_text",
               text: `You are an elite sports coach delivering a full post-game film review to your athlete. You've just watched their entire game together. Speak directly to them — use "you" and "your." Be honest, specific, and growth-focused. Reference actual events and patterns you observed. Never be generic.
 
-Sport: ${sport || "auto-detected"}
+Sport: ${sport || "auto-detected"}${teamContext}
 
 Film segments:
 ${summaryText}

@@ -15,7 +15,11 @@ async function createVisionResponse(input: any) {
 
 export async function POST(req: Request) {
   try {
-    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor } = await req.json();
+    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote } = await req.json();
+
+    const teamContext = teamsNote?.trim()
+      ? `\nTEAM CONTEXT (from the uploader — trust this over appearances): ${teamsNote.trim()}\nThere are exactly TWO teams in this game. Even if one team wears mixed or different-looking jerseys, assign every player to one of these two teams based on this description and which basket they attack. Never invent a third team.\n`
+      : "";
 
     const imageInputs = frames.map((frame: string) => ({
       type: "input_image",
@@ -28,7 +32,7 @@ export async function POST(req: Request) {
       ? `You are an elite sports analyst reviewing game film with a coach. Be precise — only report what you can clearly see. Never guess or fabricate details.
 
 Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
-Sport: ${sport || "auto-detect from frames"}
+Sport: ${sport || "auto-detect from frames"}${teamContext}
 
 Carefully study every frame before responding. Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
@@ -62,7 +66,7 @@ ONLY grade athletes who are actively playing in the game. Completely ignore and 
 
 ${jersey || teamColor ? `IMPORTANT: The athlete who uploaded this footage is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing jersey #${jersey}` : ""}. You MUST include this specific player in your analysis — they are the primary subject. Make sure their player block appears first in your output.` : ""}
 
-Sport: ${sport || "auto-detect from frames"}
+Sport: ${sport || "auto-detect from frames"}${teamContext}
 
 Use exact sport terminology. Reel specializes in basketball and volleyball — for these two sports, go DEEP:
 

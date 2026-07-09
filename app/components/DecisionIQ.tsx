@@ -776,6 +776,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [fileName,   setFileName]   = useState("");
   const [clipTitle,  setClipTitle]  = useState("");
   const [teamColor,  setTeamColor]  = useState("");
+  const [teamsNote,  setTeamsNote]  = useState("");
   const [videoUrl,   setVideoUrl]   = useState("");
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
   const [ytUrl,      setYtUrl]      = useState("");
@@ -876,7 +877,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string) {
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
-      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor }) });
+      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote }) });
       const data = await res.json().catch(() => ({}));
       if (data.error) throw new Error(data.error);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -896,14 +897,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const chunk = chunks[i];
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
-        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor }) });
+        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor, teamsNote }) });
         const data = await res.json().catch(() => ({}));
         if (data.error) throw new Error(data.error);
         if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
         chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
       }
       setProgressLabel("Building game report…");
-      const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries }) });
+      const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries, teamsNote }) });
       if (!synthRes.ok) throw new Error(`Server error ${synthRes.status} on synthesis`);
       const synthData = await synthRes.json();
       if (synthData.error) throw new Error(synthData.error);
@@ -1037,6 +1038,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     placeholder={profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)"}
                     value={teamColor}
                     onChange={e => setTeamColor(e.target.value)}
+                  />
+                  <input
+                    className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    placeholder="Describe the teams if jerseys are mixed (e.g. 'my team: white + blue pinnies, them: all black')"
+                    value={teamsNote}
+                    onChange={e => setTeamsNote(e.target.value)}
                   />
                 </>
               )}
