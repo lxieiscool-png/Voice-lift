@@ -905,7 +905,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             {(["file", "youtube"] as const).map(tab => (
               <button key={tab} onClick={() => { setInputTab(tab); setYtError(""); }}
                 className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}>
-                {tab === "file" ? "Video File" : "Screen Record"}
+                {tab === "file" ? "Video File" : "YouTube Link"}
               </button>
             ))}
           </div>
@@ -928,21 +928,31 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <p className="mt-3 text-xs text-zinc-600 text-center">🔒 Your video is private and only used for analysis — never shared or stored.</p>
             </>
           ) : (
-            <div className="rounded-lg border border-zinc-800 p-4 space-y-3">
-              <p className="text-sm font-medium text-white">How to analyze a YouTube or online video</p>
-              <div className="space-y-2">
-                {[
-                  { num: "1", text: "Open the video in YouTube, Twitter, or any browser" },
-                  { num: "2", text: "Screen record the clip you want analyzed — Mac: Cmd+Shift+5 · iPhone: swipe up Control Center · Android: hold power button" },
-                  { num: "3", text: 'Switch to the "Video File" tab and upload your recording' },
-                ].map(s => (
-                  <div key={s.num} className="flex items-start gap-3">
-                    <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-bold text-zinc-400">{s.num}</span>
-                    <p className="text-sm text-zinc-400">{s.text}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-zinc-600">Works on any device — no downloads or extensions needed.</p>
+            <div className="space-y-3">
+              <input
+                className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                placeholder="Paste a YouTube link (video or Short)"
+                value={ytUrl}
+                onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
+              />
+              <input
+                className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
+                value={sport}
+                onChange={e => setSport(e.target.value)}
+              />
+              <button
+                onClick={analyzeYouTube}
+                disabled={loading || !ytUrl.trim()}
+                className="w-full rounded-xl bg-white py-3.5 text-base font-bold text-black hover:bg-zinc-200 transition-colors disabled:opacity-40">
+                {loading ? "Analyzing…" : "Analyze YouTube Video"}
+              </button>
+              {ytError && (
+                <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3">
+                  <p className="text-sm text-red-400">{ytError}</p>
+                </div>
+              )}
+              <p className="text-xs text-zinc-600">Must be a public video — private, unlisted, or age-restricted videos won't work. For the sharpest analysis, uploading the actual video file is still best.</p>
             </div>
           )}
 
