@@ -59,6 +59,29 @@ async function fetchAsBase64(url: string): Promise<string | null> {
   }
 }
 
+// YouTube's internal player API no longer serves storyboards to anonymous
+// server-side calls (tested ANDROID/IOS/WEB/MWEB/TV clients — all blocked or
+// stripped), but the WEB client still returns video duration, which we use
+// for clip-vs-game mode detection when the page scrape fails.
+async function fetchDurationViaInnertube(videoId: string): Promise<number | null> {
+  try {
+    const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        context: { client: { clientName: "WEB", clientVersion: "2.20240401.00.00", hl: "en" } },
+        videoId,
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const len = parseInt(json?.videoDetails?.lengthSeconds ?? "");
+    return Number.isFinite(len) ? len : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { url } = await req.json();
@@ -68,23 +91,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid YouTube URL." }, { status: 400 });
     }
 
-    // Fetch the YouTube page
-    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-    });
+    // Tier 1: scrape the watch page (consent cookies help avoid the redirect
+    // interstitial that hides video data from datacenter IPs like Vercel's)
+    let rawSpec: string | null = null;
+    let knownDuration: number | null = null;
+    try {
+      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Cookie": "CONSENT=YES+cb.20210328-17-p0.en+FX+888; SOCS=CAI",
+        },
+      });
+      if (pageRes.ok) rawSpec = extractStoryboardSpec(await pageRes.text());
+    } catch { /* fall through */ }
 
-    if (!pageRes.ok) {
-      return NextResponse.json({ error: "Could not access this video. It may be private or unavailable." }, { status: 400 });
-    }
-
-    const html = await pageRes.text();
-    const rawSpec = extractStoryboardSpec(html);
-
+    // Tier 2: static thumbnails — always publicly served, never bot-checked.
+    // Only 4 frames (start/25%/50%/75%), so quality is limited but it works.
     if (!rawSpec) {
+      knownDuration = await fetchDurationViaInnertube(videoId);
+      const thumbUrls = ["hqdefault", "hq1", "hq2", "hq3"].map(
+        n => `https://i.ytimg.com/vi/${videoId}/${n}.jpg`
+      );
+      const thumbs = (await Promise.all(thumbUrls.map(fetchAsBase64))).filter(Boolean) as string[];
+      if (thumbs.length >= 2) {
+        return NextResponse.json({
+          sheets: thumbs, frameWidth: 480, frameHeight: 360,
+          rows: 1, cols: 1, frameCount: thumbs.length, interval: 5000,
+          durationSeconds: knownDuration ?? 30, mode: "clip", videoId,
+        });
+      }
       return NextResponse.json({ error: "Could not read video data. The video may be private, age-restricted, or unavailable in your region." }, { status: 400 });
     }
 
@@ -141,7 +178,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const durationSeconds = Math.round((frameCount * interval) / 1000);
+    const durationSeconds = knownDuration ?? Math.round((frameCount * interval) / 1000);
     const mode: "clip" | "game" = durationSeconds > 60 ? "game" : "clip";
 
     return NextResponse.json({
