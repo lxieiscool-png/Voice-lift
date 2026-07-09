@@ -42,7 +42,7 @@ Key Events:
 - [Each notable play, foul, or score. Include jersey number and team only if clearly readable. Use "Blue #12" style if partially visible. "None detected" if nothing notable.]
 
 Player Tracking:
-- [One line per active player. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
+- [One line for EVERY active player visible in this segment, from BOTH teams — in basketball that's usually 8–10 lines, not 2–3. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
 
 Decision Quality:
 [2–3 sentences directly to the athlete. Be honest and specific about what you saw — not generic. Reference actual events from the frames.]

@@ -421,15 +421,92 @@ const GAME_SECTIONS = [
   { key: "practiceFocus"   as const, label: "Practice This Week"    },
 ];
 
-function GameReportCard({ report }: { report: GameReport }) {
-  return (
-    <div className="space-y-3">
-      <div className={`inline-flex flex-col items-center rounded-lg px-5 py-2.5 ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
-        <span className="text-[10px] font-semibold uppercase tracking-widest opacity-70">Overall Grade</span>
-        <span className="text-3xl font-bold leading-tight">{report.overallGrade}</span>
-      </div>
+function playerInitials(label: string) {
+  return label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+function GameResultsView({ report, onClose }: { report: GameReport; onClose: () => void }) {
+  const [focus, setFocus] = useState<PlayerStat | null>(null);
+  const tc = report.teamComparison ?? null;
+
+  // Group tracked players into teams by their "(TEAM)" tag
+  const groups = new Map<string, { name: string; players: PlayerStat[] }>();
+  for (const p of report.playerStats) {
+    const name = parseStatLine(p.raw).team?.trim() || "Unknown";
+    const k = name.toLowerCase();
+    if (!groups.has(k)) groups.set(k, { name, players: [] });
+    groups.get(k)!.players.push(p);
+  }
+  const sorted = [...groups.values()].sort((a, b) => b.players.length - a.players.length);
+  const teams  = sorted.slice(0, 2);
+  const extras = sorted.slice(2).flatMap(g => g.players);
+  if (teams.length > 0 && extras.length) teams[teams.length - 1].players.push(...extras);
+
+  const focusStat = focus ? parseStatLine(focus.raw) : null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
+      <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <button onClick={onClose}
+            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+            ← New analysis
+          </button>
+          <p className="text-sm font-black text-white">Game Report</p>
+          <div className={`rounded-lg px-3 py-1 text-base font-black ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
+            {report.overallGrade}
+          </div>
+        </div>
+
+        {/* Team comparison chart */}
+        {tc ? <TeamComparisonPanel tc={tc} /> : (
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+            <p className="text-sm text-zinc-500">Team comparison wasn't possible for this footage — not enough clearly visible team-level data (score, both teams on screen, etc.).</p>
+          </div>
+        )}
+
+        {/* Two-team rosters */}
+        {teams.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {teams.map((t, ti) => (
+              <div key={ti} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-sm font-black capitalize text-white">{t.name}</p>
+                  <span className="text-xs text-zinc-600">{t.players.length} tracked</span>
+                </div>
+                <div className="space-y-2">
+                  {t.players.map((p, i) => {
+                    const s = parseStatLine(p.raw);
+                    return (
+                      <button key={i} onClick={() => setFocus(p)}
+                        className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-left transition-colors hover:border-zinc-500">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-zinc-300">
+                          {s.jersey ? `#${s.jersey}` : playerInitials(p.label)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-white">{p.label}</span>
+                          <span className="block text-[11px] text-zinc-500">
+                            {s.sharp > 0 && <span className="text-emerald-500">{s.sharp} sharp</span>}
+                            {s.sharp > 0 && s.costly > 0 && <span> · </span>}
+                            {s.costly > 0 && <span className="text-red-500">{s.costly} costly</span>}
+                            {(s.sharp > 0 || s.costly > 0) && s.fouls > 0 && <span> · </span>}
+                            {s.fouls > 0 && <span className="text-amber-500">{s.fouls} {s.fouls === 1 ? "foul" : "fouls"}</span>}
+                            {s.sharp === 0 && s.costly === 0 && s.fouls === 0 && <span>tracked</span>}
+                          </span>
+                        </span>
+                        <span className="text-zinc-600">›</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Coaching sections */}
+        <div className="grid gap-2 sm:grid-cols-2">
         {GAME_SECTIONS.map(({ key, label }) => {
           const val = report[key]; if (!val) return null;
           return (
@@ -465,10 +542,46 @@ function GameReportCard({ report }: { report: GameReport }) {
             </ul>
           </div>
         )}
+        </div>
       </div>
 
-      {report.teamComparison && <TeamComparisonPanel tc={report.teamComparison} />}
-      {report.playerStats.length > 0 && <PlayerStatsPanel stats={report.playerStats} />}
+      {/* Player detail modal */}
+      {focus && focusStat && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={() => setFocus(null)}>
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-950 p-6" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-800 text-lg font-black text-white">
+                {focusStat.jersey ? `#${focusStat.jersey}` : playerInitials(focus.label)}
+              </span>
+              <div className="min-w-0">
+                <p className="text-base font-black text-white">{focus.label}</p>
+                {focusStat.team && <p className="text-xs capitalize text-zinc-500">{focusStat.team}</p>}
+              </div>
+            </div>
+            <div className="mb-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-zinc-900 py-3">
+                <p className="text-xl font-black text-emerald-500">{focusStat.sharp}</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Sharp</p>
+              </div>
+              <div className="rounded-xl bg-zinc-900 py-3">
+                <p className="text-xl font-black text-red-500">{focusStat.costly}</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Costly</p>
+              </div>
+              <div className="rounded-xl bg-zinc-900 py-3">
+                <p className="text-xl font-black text-amber-500">{focusStat.fouls}</p>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Fouls</p>
+              </div>
+            </div>
+            {focusStat.standout && (
+              <div className="mb-4 rounded-xl bg-zinc-900 p-3">
+                <p className="mb-1 text-[10px] uppercase tracking-widest text-zinc-500">Standout moment</p>
+                <p className="text-sm leading-relaxed text-zinc-300">{focusStat.standout}</p>
+              </div>
+            )}
+            <button onClick={() => setFocus(null)} className="w-full rounded-xl bg-white py-2.5 text-sm font-bold text-black">Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -573,51 +686,6 @@ function parseStatLine(raw: string) {
   const fouls    = parseInt(raw.match(/Fouls?:\s*(\d+)/i)?.[1] ?? "0", 10);
   const standout = raw.match(/Standout[^:]*:\s*(.+?)\s*$/i)?.[1]?.trim() ?? null;
   return { jersey, team, sharp, costly, fouls, standout };
-}
-
-function StatChip({ children, tone }: { children: React.ReactNode; tone: "green" | "red" | "amber" }) {
-  const styles = {
-    green: "bg-emerald-50 text-emerald-700",
-    red:   "bg-red-50 text-red-600",
-    amber: "bg-amber-50 text-amber-700",
-  }[tone];
-  return <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${styles}`}>{children}</span>;
-}
-
-function PlayerStatsPanel({ stats }: { stats: PlayerStat[] }) {
-  return (
-    <div className="rounded-2xl bg-white p-4 shadow-lg">
-      <h3 className="mb-3 text-base font-bold text-zinc-900">Player Stats</h3>
-      <div className="space-y-2">
-        {stats.map((p, i) => {
-          const s = parseStatLine(p.raw);
-          return (
-            <div key={i} className="rounded-xl border border-zinc-200 p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
-                  {s.jersey ? `#${s.jersey}` : p.label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-zinc-900">
-                    {s.jersey ? `Player #${s.jersey}` : p.label}
-                  </p>
-                  {s.team && <p className="text-xs text-zinc-500">{s.team}</p>}
-                </div>
-              </div>
-              {(s.sharp > 0 || s.costly > 0 || s.fouls > 0) && (
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {s.sharp  > 0 && <StatChip tone="green">{s.sharp} sharp</StatChip>}
-                  {s.costly > 0 && <StatChip tone="red">{s.costly} costly</StatChip>}
-                  {s.fouls  > 0 && <StatChip tone="amber">{s.fouls} {s.fouls === 1 ? "foul" : "fouls"}</StatChip>}
-                </div>
-              )}
-              {s.standout && <p className="mt-2.5 text-xs leading-relaxed text-zinc-500">{s.standout}</p>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 // ─── Find My Player ───────────────────────────────────────────────────────────
@@ -1048,7 +1116,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             </div>
           )}
           {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}
-          {!loading && resultMode === "game" && gameReport && !isEmptyGameReport(gameReport) && <GameReportCard report={gameReport} />}
+          {!loading && resultMode === "game" && gameReport && !isEmptyGameReport(gameReport) && (
+            <GameResultsView report={gameReport}
+              onClose={() => { setDecisions([]); setGameReport(null); setResultMode(null); }} />
+          )}
         </div>
       </div>
 
@@ -1241,7 +1312,7 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
                     {review.mode === "clip" && review.decisions
                       ? <PlayerCardList decisions={review.decisions} />
                       : review.mode === "game" && review.gameReport
-                      ? <GameReportCard report={review.gameReport} />
+                      ? <GameResultsView report={review.gameReport} onClose={() => onToggle(originalIndex)} />
                       : <p className="text-xs text-zinc-600">No data saved for this review.</p>}
                   </div>
                 )}
