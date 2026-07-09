@@ -836,7 +836,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     return frames;
   }
 
-  async function analyzeYouTube() {
+  async function analyzeYouTube(lenient = false) {
     if (!ytUrl.trim()) return;
     setYtError("");
     setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
@@ -866,7 +866,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       const mode: "clip" | "game" = data.mode;
       const videoTitle = `YouTube — ${ytUrl}`;
 
-      await runAnalysis(frames.map(f => ({ dataUrl: f, timestamp: 0 })), mode, videoTitle);
+      await runAnalysis(frames.map(f => ({ dataUrl: f, timestamp: 0 })), mode, videoTitle, lenient);
     } catch (err) {
       console.error(err);
       setYtError("Something went wrong. Try a different video.");
@@ -874,10 +874,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     setLoading(false); setProgressLabel("");
   }
 
-  async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string) {
+  async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string, lenient = false) {
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
-      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote }) });
+      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient }) });
       const data = await res.json().catch(() => ({}));
       if (data.error) throw new Error(data.error);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -897,7 +897,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const chunk = chunks[i];
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
-        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor, teamsNote }) });
+        const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor, teamsNote, lenient }) });
         const data = await res.json().catch(() => ({}));
         if (data.error) throw new Error(data.error);
         if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
@@ -916,7 +916,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     }
   }
 
-  async function analyzeVideo() {
+  async function analyzeVideo(lenient = false) {
     if (!videoFile) return;
 
     // Usage gate — check + increment before starting
@@ -938,7 +938,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       try {
         setProgressLabel("Extracting frames…");
         const { frames, mode } = await extractFramesAdaptive(videoFile!);
-        await runAnalysis(frames, mode, clipTitle.trim() || fileName || "Untitled");
+        await runAnalysis(frames, mode, clipTitle.trim() || fileName || "Untitled", lenient);
       } catch (err) {
         console.error(err);
         const msg = err instanceof Error ? err.message : "Something went wrong.";
@@ -1009,7 +1009,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 onChange={e => setSport(e.target.value)}
               />
               <button
-                onClick={analyzeYouTube}
+                onClick={() => analyzeYouTube()}
                 disabled={loading || !ytUrl.trim()}
                 className="w-full rounded-xl bg-white py-3.5 text-base font-bold text-black hover:bg-zinc-200 transition-colors disabled:opacity-40">
                 {loading ? "Analyzing…" : "Analyze YouTube Video"}
@@ -1054,7 +1054,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 onChange={e => setSport(e.target.value)}
               />
               <button
-                onClick={analyzeVideo}
+                onClick={() => analyzeVideo()}
                 disabled={loading || !videoFile}
                 className="w-full rounded-xl bg-white py-4 text-sm font-bold text-black disabled:opacity-30 active:bg-zinc-200 transition-colors"
               >
@@ -1110,13 +1110,20 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <p className="text-xs text-zinc-600 max-w-sm leading-relaxed">
                 Try a clearer clip where the players and the ball are clearly visible — closer footage and steady framing work best.
               </p>
-              <button onClick={() => {
-                  setVideoFile(null); setVideoUrl(""); setFileName(""); setClipTitle(""); setTeamColor("");
-                  setDecisions([]); setGameReport(null); setResultMode(null);
-                }}
-                className="mt-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-zinc-200 transition-colors">
-                Try another clip
-              </button>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
+                <button onClick={() => (videoFile ? analyzeVideo(true) : analyzeYouTube(true))}
+                  className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-zinc-200 transition-colors">
+                  Analyze anyway
+                </button>
+                <button onClick={() => {
+                    setVideoFile(null); setVideoUrl(""); setFileName(""); setClipTitle(""); setTeamColor("");
+                    setDecisions([]); setGameReport(null); setResultMode(null);
+                  }}
+                  className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors">
+                  Try another clip
+                </button>
+              </div>
+              <p className="text-[11px] text-zinc-700">"Analyze anyway" gives a best-effort read — uncertain calls are marked low confidence.</p>
             </div>
           )}
           {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}

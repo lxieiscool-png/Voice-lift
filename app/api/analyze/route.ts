@@ -15,7 +15,11 @@ async function createVisionResponse(input: any) {
 
 export async function POST(req: Request) {
   try {
-    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote } = await req.json();
+    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient } = await req.json();
+
+    const honestyBlock = lenient
+      ? `BEST-EFFORT MODE: The uploader asked for analysis even though the footage may be unclear. Give them your best read of what most likely happened based on what IS visible — positioning, spacing, body language. Start any uncertain call with "Low confidence:" so they know. Still never invent jersey numbers or specific events you cannot see at all.`
+      : `HONESTY OVERRIDE: If the frames are too blurry, too sparse, or too ambiguous to actually tell what happened, DO NOT invent a play. It is far better to grade fewer players well than to fabricate. If you genuinely cannot make out a real decision, output a single line "UNCLEAR: [what you can and can't see]" instead of a player block. Never manufacture a play that isn't clearly supported by the frames.`;
 
     const teamContext = teamsNote?.trim()
       ? `\nTEAM CONTEXT (from the uploader — trust this over appearances): ${teamsNote.trim()}\nThere are exactly TWO teams in this game. Even if one team wears mixed or different-looking jerseys, assign every player to one of these two teams based on this description and which basket they attack. Never invent a third team.\n`
@@ -58,7 +62,7 @@ Tactical Pattern:
 
 THE FRAMES: These images are sequential stills pulled from ONE short clip, roughly one second apart, in chronological order. Read them as a single continuous play unfolding over time — track how players and the ball move from the first frame to the last. Do NOT treat them as separate unrelated photos.
 
-HONESTY OVERRIDE: If the frames are too blurry, too sparse, or too ambiguous to actually tell what happened, DO NOT invent a play. It is far better to grade fewer players well than to fabricate. If you genuinely cannot make out a real decision, output a single line "UNCLEAR: [what you can and can't see]" instead of a player block. Never manufacture a play that isn't clearly supported by the frames.
+${honestyBlock}
 
 Study the frames carefully. Identify every PLAYER making a notable decision — offense AND defense, 2 to 5 players total.
 
