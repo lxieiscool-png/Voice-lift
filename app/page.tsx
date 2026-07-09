@@ -478,7 +478,7 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
 // ─── Sign Up Modal ────────────────────────────────────────────────────────────
 
 const SPORTS = ["Basketball", "Volleyball", "Soccer", "Football", "Baseball", "Softball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
-const LEVELS = ["Middle school", "High school", "College", "Semi-pro / Amateur", "Professional"];
+const LEVELS = ["Middle school", "High school", "Club / AAU", "College", "Pro / Semi-pro"];
 const GOALS  = ["Improve decision-making", "Better film breakdown", "Personalized drills", "Track my progress", "Get recruited"];
 
 function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onClose: () => void }) {
