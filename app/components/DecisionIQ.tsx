@@ -31,8 +31,8 @@ function parseGameReport(text: string): GameReport {
   const extractList = (label: string) => extract(label).split("\n").map(l => l.replace(/^[-•*\d.]\s*/, "").trim()).filter(Boolean);
   const playerStats: PlayerStat[] = extract("Player Stats")
     .split("\n").map(l => l.replace(/^[-•*]\s*/, "").trim())
-    .filter(l => l && !l.toLowerCase().includes("no jersey"))
-    .map(l => ({ label: l.match(/^(#\d+[^|]*)/)?.[1]?.trim() ?? l.slice(0, 20), raw: l }));
+    .filter(l => l && !l.toLowerCase().includes("no jersey") && !l.toLowerCase().includes("no players"))
+    .map(l => ({ label: l.split("|")[0].replace(/\([^)]*\)/, "").trim() || l.slice(0, 20), raw: l }));
   return {
     overallGrade: extractGrade(text),
     gameSummary: extract("Game Summary"), periodBreakdown: extract("Period Breakdown"),
@@ -595,7 +595,7 @@ function PlayerStatsPanel({ stats }: { stats: PlayerStat[] }) {
             <div key={i} className="rounded-xl border border-zinc-200 p-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
-                  {s.jersey ? `#${s.jersey}` : "?"}
+                  {s.jersey ? `#${s.jersey}` : p.label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-zinc-900">
@@ -731,7 +731,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
 
   // Extract individual frames from storyboard sheets using canvas
-  async function extractFramesFromSheets(sheets: string[], rows: number, cols: number, frameWidth: number, frameHeight: number, frameCount: number): Promise<string[]> {
+  async function extractFramesFromSheets(sheets: string[], rows: number, cols: number, frameWidth: number, frameHeight: number, frameCount: number, maxFrames = 24): Promise<string[]> {
     const frames: string[] = [];
     const canvas = document.createElement("canvas");
     canvas.width = frameWidth;
@@ -739,9 +739,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     const ctx = canvas.getContext("2d");
     if (!ctx) return frames;
 
-    // Target ~24 frames spread across all sheets
+    // Spread target frames across all sheets
     const totalFrames = Math.min(frameCount, sheets.length * rows * cols);
-    const targetFrames = Math.min(24, totalFrames);
+    const targetFrames = Math.min(maxFrames, totalFrames);
     const step = Math.max(1, Math.floor(totalFrames / targetFrames));
 
     let frameIdx = 0;
@@ -788,7 +788,8 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
       setProgressLabel("Extracting frames from video…");
       const frames = await extractFramesFromSheets(
-        data.sheets, data.rows, data.cols, data.frameWidth, data.frameHeight, data.frameCount
+        data.sheets, data.rows, data.cols, data.frameWidth, data.frameHeight, data.frameCount,
+        data.mode === "game" ? 72 : 24
       );
 
       if (frames.length === 0) {

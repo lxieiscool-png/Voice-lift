@@ -58,7 +58,7 @@ Game-Level Practice Focus:
 
 Player Stats:
 - [#NUMBER (TEAM) | Decisions: X sharp / Y costly | Fouls: Z | Standout moment: one-line note]
-- [Repeat for each identified player. "No jersey numbers clearly visible." if none could be confirmed.]
+- [Repeat for EVERY player you could track across the segments — aim for the main rotation on BOTH teams, typically 6–10 players, not just 2–3. Use a jersey number only if it was clearly confirmed; otherwise use the descriptive label from the segments, e.g. "White Point Guard (White)" or "Blue Center (Blue)". A player tracked by description is still a player — include them. Only write "No players could be tracked." if the segments truly identify no one.]
 
 Team Comparison:
 Teams: [Team A name/color] vs [Team B name/color]

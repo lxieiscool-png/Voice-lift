@@ -167,8 +167,8 @@ export async function POST(req: Request) {
     const framesPerSheet = rows * cols;
     const totalSheets    = Math.ceil(frameCount / framesPerSheet);
 
-    // Pick up to 10 sheets spread across the video
-    const maxSheets = Math.min(10, totalSheets);
+    // Pick up to 20 sheets spread across the video
+    const maxSheets = Math.min(20, totalSheets);
     const sheetIndices: number[] = [];
     if (totalSheets <= maxSheets) {
       for (let i = 0; i < totalSheets; i++) sheetIndices.push(i);
