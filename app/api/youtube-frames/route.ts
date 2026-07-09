@@ -128,10 +128,11 @@ export async function POST(req: Request) {
     // Only 4 frames (start/25%/50%/75%), so quality is limited but it works.
     if (!rawSpec) {
       knownDuration = await fetchDurationViaInnertube(videoId);
-      // A long video with only 4 thumbnails would silently produce a garbage
-      // "clip" analysis — refuse honestly instead.
-      if (knownDuration && knownDuration > 120) {
-        return NextResponse.json({ error: "YouTube only gave us preview thumbnails for this video — not enough to analyze a full game. Download the video and upload it as a file for the complete game report." }, { status: 400 });
+      // With only 4 thumbnails, analyzing anything but a confirmed-short clip
+      // silently produces a garbage 3-player "analysis" — refuse honestly
+      // when the video is long OR we can't verify its length.
+      if (!knownDuration || knownDuration > 120) {
+        return NextResponse.json({ error: "YouTube wouldn't give us enough video data for this one — this looks like more than a short clip, and 4 preview thumbnails can't cover it. Download the video and upload it as a file to get the full game report with team rosters." }, { status: 400 });
       }
       const thumbUrls = ["hqdefault", "hq1", "hq2", "hq3"].map(
         n => `https://i.ytimg.com/vi/${videoId}/${n}.jpg`
