@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison } from "../lib/types";
-import { gradeClass, formatTime, formatDate, TEAM_PALETTE, jerseyColor } from "../lib/decisioniq-helpers";
+import { gradeClass, formatTime, formatDate } from "../lib/decisioniq-helpers";
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
@@ -333,9 +333,8 @@ const DECISION_FIELDS = [
   { key: "practiceFocus"    as const, label: "Practice This Week" },
 ];
 
-function PlayerCard({ decision, teamColor, defaultOpen = false }: {
+function PlayerCard({ decision, defaultOpen = false }: {
   decision: PlayerDecision;
-  teamColor: typeof TEAM_PALETTE[0];
   defaultOpen?: boolean;
 }) {
   const [open,    setOpen]    = useState(defaultOpen);
@@ -359,7 +358,7 @@ function PlayerCard({ decision, teamColor, defaultOpen = false }: {
   const displayTeam = decision.player.match(/\(([^)]+)\)/)?.[1] ?? null;
 
   return (
-    <div className={`border border-zinc-800 bg-zinc-950 rounded-xl border-l-2 ${teamColor.border} overflow-hidden`}>
+    <div className="border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden">
       <button onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left">
         <GradeBadge grade={grade} large />
@@ -403,9 +402,7 @@ function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
   return (
     <div className="space-y-2">
       {decisions.map((d, i) => (
-        <PlayerCard key={i} decision={d}
-          teamColor={jerseyColor(d.player)}
-          defaultOpen={i === 0} />
+        <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
       ))}
     </div>
   );
