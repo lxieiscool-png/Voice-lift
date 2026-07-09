@@ -1,14 +1,31 @@
 import { NextResponse } from "next/server";
 
 function extractVideoId(url: string): string | null {
+  const raw = url.trim();
+
+  // Try proper URL parsing first — handles ?app=desktop&v=ID, &si= share params, m.youtube.com, etc.
+  try {
+    const u = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+    if (/(^|\.)youtube\.com$|(^|\.)youtube-nocookie\.com$/.test(u.hostname)) {
+      const v = u.searchParams.get("v");
+      if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+      const pathMatch = u.pathname.match(/^\/(?:shorts|embed|live|v)\/([a-zA-Z0-9_-]{11})/);
+      if (pathMatch) return pathMatch[1];
+    }
+    if (/(^|\.)youtu\.be$/.test(u.hostname)) {
+      const m = u.pathname.match(/^\/([a-zA-Z0-9_-]{11})/);
+      if (m) return m[1];
+    }
+  } catch { /* fall through to regex */ }
+
+  // Regex fallback for anything URL() couldn't parse
   const patterns = [
-    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/(?:embed|shorts|live|v)\/([a-zA-Z0-9_-]{11})/,
   ];
   for (const p of patterns) {
-    const m = url.match(p);
+    const m = raw.match(p);
     if (m) return m[1];
   }
   return null;
