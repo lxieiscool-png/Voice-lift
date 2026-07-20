@@ -889,20 +889,33 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip", grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
     } else {
       const CHUNK_SIZE = 6;
+      const CONCURRENCY = 4;
       const chunks: { dataUrl: string; timestamp: number }[][] = [];
       for (let i = 0; i < frames.length; i += CHUNK_SIZE) chunks.push(frames.slice(i, i + CHUNK_SIZE));
       setProgressTotal(chunks.length + 1);
-      const chunkSummaries: ChunkSummary[] = [];
-      for (let i = 0; i < chunks.length; i++) {
+      const chunkSummaries: ChunkSummary[] = new Array(chunks.length);
+      let completed = 0;
+      let nextIndex = 0;
+      async function analyzeChunk(i: number) {
         const chunk = chunks[i];
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
-        setProgressLabel(`Segment ${i + 1} of ${chunks.length}…`);
         const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor, teamsNote, lenient }) });
         const data = await res.json().catch(() => ({}));
         if (data.error) throw new Error(data.error);
         if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
-        chunkSummaries.push({ index: i, start, end, text: data.feedback ?? "" }); setProgressCurrent(i + 1);
+        chunkSummaries[i] = { index: i, start, end, text: data.feedback ?? "" };
+        completed++;
+        setProgressCurrent(completed);
+        setProgressLabel(`Segment ${completed} of ${chunks.length}…`);
       }
+      async function worker() {
+        while (nextIndex < chunks.length) {
+          const i = nextIndex++;
+          await analyzeChunk(i);
+        }
+      }
+      setProgressLabel(`Analyzing ${chunks.length} segments…`);
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length) }, worker));
       setProgressLabel("Building game report…");
       const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries, teamsNote, jersey: profile.jersey, teamColor }) });
       if (!synthRes.ok) throw new Error(`Server error ${synthRes.status} on synthesis`);

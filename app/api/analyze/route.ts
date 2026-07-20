@@ -64,7 +64,7 @@ THE FRAMES: These images are sequential stills pulled from ONE short clip, rough
 
 ${honestyBlock}
 
-Study the frames carefully. Identify every PLAYER making a notable decision — offense AND defense, 2 to 5 players total.
+Study the frames carefully. Identify EVERY player making a notable decision — offense AND defense, from BOTH teams. Look hard at every player visible across the frames, not just whoever is holding the ball. Do not stop at 2 or 3 — if 6, 8, or more players are doing something worth grading, grade all of them. Only skip a player if they are genuinely not doing anything decision-relevant in this clip.
 
 ONLY grade athletes who are actively playing in the game. Completely ignore and do NOT grade: referees, officials, coaches, spectators, people in the stands, people on the bench who are not in the play, ball boys, or anyone not actively competing on the field/court.
 
