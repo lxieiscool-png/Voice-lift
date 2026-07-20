@@ -98,11 +98,16 @@ async function extractFramesAdaptive(file: File): Promise<{ frames: FrameWithTim
         for (let t = 0.3; t < cap; t += step) timestamps.push(Number(t.toFixed(2)));
         if (timestamps.length === 0) timestamps = [Math.max(duration / 2, 0.3)];
       } else {
+        // Cap at 72 frames (12 six-frame segments) — matches the YouTube ingestion
+        // path. Without this, a long uploaded game could hit ~300 frames / ~50
+        // segments, making a direct upload far slower and costlier to analyze
+        // than pasting the same game as a YouTube link.
+        const GAME_MAX_FRAMES = 72;
         timestamps = [];
         for (let t = 5; t < duration - 5; t += 30) timestamps.push(t);
-        if (timestamps.length > 300) {
-          const step = Math.floor(timestamps.length / 300);
-          timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, 300);
+        if (timestamps.length > GAME_MAX_FRAMES) {
+          const step = Math.floor(timestamps.length / GAME_MAX_FRAMES);
+          timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, GAME_MAX_FRAMES);
         }
       }
       canvas.width = 1280; canvas.height = 720;
