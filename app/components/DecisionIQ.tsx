@@ -896,11 +896,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       const chunkSummaries: ChunkSummary[] = new Array(chunks.length);
       let completed = 0;
       let nextIndex = 0;
-      async function analyzeChunk(i: number) {
+      async function analyzeChunk(i: number, attempt = 0): Promise<void> {
         const chunk = chunks[i];
         const start = formatTime(chunk[0].timestamp), end = formatTime(chunk[chunk.length - 1].timestamp);
         const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: chunk.map(f => f.dataUrl), mode: "game", chunkIndex: i, chunkStart: start, chunkEnd: end, jersey: profile.jersey, teamColor, teamsNote, lenient }) });
         const data = await res.json().catch(() => ({}));
+        // Concurrent segment requests can trip the OpenAI rate limit — back off and retry
+        // a couple times before giving up, rather than failing the whole game report.
+        if (res.status === 429 && attempt < 2) {
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          return analyzeChunk(i, attempt + 1);
+        }
         if (data.error) throw new Error(data.error);
         if (!res.ok) throw new Error(`Server error ${res.status} on segment ${i + 1}`);
         chunkSummaries[i] = { index: i, start, end, text: data.feedback ?? "" };
