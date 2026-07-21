@@ -1127,6 +1127,57 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
   const overallGrade = resultMode === "game" ? gameReport?.overallGrade ?? "N/A" : decisions[0]?.grade ?? "N/A";
 
+  // Signed-in users need Team + Opponent set before analyzing — matches
+  // HoopIQ's structured intake. Guests keep the old unrestricted flow: they
+  // have no account to attach a team to, so gating on it would just block
+  // the entire "Try free" onboarding path.
+  const needsTeamInfo = !!userId;
+  const canAnalyze = !needsTeamInfo || (!!linkedTeamId && !!opponentName.trim());
+
+  const teamLinkingFields = needsTeamInfo && (
+    myTeams.length === 0 ? (
+      <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3 text-center">
+        <p className="text-sm text-white">You need a team before you can analyze film.</p>
+        <button onClick={() => document.querySelector<HTMLButtonElement>("[data-module='teams']")?.click()}
+          className="mt-2 rounded-lg bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-100">
+          Create a team
+        </button>
+      </div>
+    ) : (
+      <div className="rounded-xl border border-zinc-800 bg-black/40 p-3 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600">Team &amp; opponent (required)</p>
+        <select
+          className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+          value={linkedTeamId}
+          onChange={e => setLinkedTeamId(e.target.value)}>
+          <option value="">Select your team…</option>
+          {myTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+            placeholder="Opponent"
+            value={opponentName}
+            onChange={e => setOpponentName(e.target.value)}
+          />
+          <select
+            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+            value={gameType}
+            onChange={e => setGameType(e.target.value)}>
+            <option value="Game">Game</option>
+            <option value="Practice">Practice</option>
+            <option value="Scrimmage">Scrimmage</option>
+          </select>
+          <input type="date"
+            className="col-span-2 rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+            value={gameDate}
+            onChange={e => setGameDate(e.target.value)}
+          />
+        </div>
+      </div>
+    )
+  );
+
   return (
     <div className="space-y-5">
 
@@ -1178,9 +1229,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 value={sport}
                 onChange={e => setSport(e.target.value)}
               />
+              {teamLinkingFields}
               <button
                 onClick={() => analyzeYouTube()}
-                disabled={loading || !ytUrl.trim()}
+                disabled={loading || !ytUrl.trim() || !canAnalyze}
                 className="w-full rounded-xl bg-white py-3.5 text-base font-bold text-black hover:bg-zinc-200 transition-colors disabled:opacity-40">
                 {loading ? "Analyzing…" : "Analyze YouTube Video"}
               </button>
@@ -1215,41 +1267,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     value={teamsNote}
                     onChange={e => setTeamsNote(e.target.value)}
                   />
-                  {myTeams.length > 0 && (
-                    <div className="rounded-xl border border-zinc-800 bg-black/40 p-3 space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600">Attach to a team (optional)</p>
-                      <select
-                        className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
-                        value={linkedTeamId}
-                        onChange={e => setLinkedTeamId(e.target.value)}>
-                        <option value="">Don't attach to a team</option>
-                        {myTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                      {linkedTeamId && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
-                            placeholder="Opponent"
-                            value={opponentName}
-                            onChange={e => setOpponentName(e.target.value)}
-                          />
-                          <select
-                            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
-                            value={gameType}
-                            onChange={e => setGameType(e.target.value)}>
-                            <option value="Game">Game</option>
-                            <option value="Practice">Practice</option>
-                            <option value="Scrimmage">Scrimmage</option>
-                          </select>
-                          <input type="date"
-                            className="col-span-2 rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
-                            value={gameDate}
-                            onChange={e => setGameDate(e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {teamLinkingFields}
                 </>
               )}
               <input
@@ -1260,7 +1278,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               />
               <button
                 onClick={() => analyzeVideo()}
-                disabled={loading || !videoFile}
+                disabled={loading || !videoFile || !canAnalyze}
                 className="w-full rounded-xl bg-white py-4 text-sm font-bold text-black disabled:opacity-30 active:bg-zinc-200 transition-colors"
               >
                 {loading ? "Analyzing…" : "Analyze Film"}
