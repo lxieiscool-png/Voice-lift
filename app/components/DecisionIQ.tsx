@@ -307,16 +307,41 @@ function ProgressBar({ current, total, label }: { current: number; total: number
 // Jersey/team color, read from the front of the AI's player label (e.g.
 // "Blue #4 Wing", "White #12 On-ball Guard") — used to accent each card by
 // team instead of every card looking identical regardless of side.
-const JERSEY_COLORS: Record<string, string> = {
+const TEAM_COLOR_WORDS: Record<string, string> = {
   white: "#d4d4d8", black: "#3f3f46", gray: "#71717a", grey: "#71717a", silver: "#a1a1aa",
-  red: "#ef4444", scarlet: "#dc2626", crimson: "#991b1b", maroon: "#7f1d1d", cardinal: "#991b1b",
-  blue: "#3b82f6", navy: "#1e40af", teal: "#14b8a6", green: "#22c55e",
-  yellow: "#eab308", gold: "#ca8a04", orange: "#f97316", purple: "#a855f7", pink: "#ec4899",
+  red: "#ef4444", scarlet: "#dc2626", crimson: "#991b1b", maroon: "#7f1d1d", cardinal: "#991b1b", burgundy: "#7f1d1d",
+  blue: "#3b82f6", navy: "#1e40af", teal: "#14b8a6", turquoise: "#06b6d4", cyan: "#22d3ee",
+  green: "#22c55e", olive: "#65a30d", lime: "#84cc16", mint: "#34d399",
+  yellow: "#eab308", gold: "#ca8a04", orange: "#f97316", purple: "#a855f7", violet: "#8b5cf6",
+  pink: "#ec4899", magenta: "#d946ef", brown: "#92400e", tan: "#b45309", beige: "#d6d3d1", cream: "#e7e5e4",
 };
+// Modifiers that precede a base color word, e.g. "Navy Blue", "Light Gray", "Dark Green".
+const TEAM_COLOR_MODIFIERS = new Set(["light", "dark", "royal", "baby", "sky", "forest", "kelly", "hunter", "bright", "neon", "hot", "electric", "burnt"]);
+// Distinct, stable colors for team labels that aren't a recognizable color word
+// (e.g. "Team A", "Home") so unrecognized teams still get consistent, distinguishable accents.
+const FALLBACK_PALETTE = ["#3b82f6", "#ef4444", "#22c55e", "#eab308", "#a855f7", "#f97316", "#14b8a6", "#ec4899"];
 
-function extractJerseyColor(player: string): { word: string; hex: string } | null {
-  const first = player.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "");
-  return first && JERSEY_COLORS[first] ? { word: first, hex: JERSEY_COLORS[first] } : null;
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function capitalize(s: string) {
+  return s.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function extractTeamTag(player: string): { label: string; hex: string } {
+  const words = player.trim().toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g, "")).filter(Boolean);
+  const [w1, w2] = words;
+  if (w1 && TEAM_COLOR_MODIFIERS.has(w1) && w2 && TEAM_COLOR_WORDS[w2]) {
+    return { label: `${w1} ${w2}`, hex: TEAM_COLOR_WORDS[w2] };
+  }
+  if (w1 && TEAM_COLOR_WORDS[w1]) {
+    return { label: w1, hex: TEAM_COLOR_WORDS[w1] };
+  }
+  const key = w1 || "team";
+  return { label: key, hex: FALLBACK_PALETTE[hashString(key) % FALLBACK_PALETTE.length] };
 }
 
 const DECISION_FIELDS = [
@@ -349,24 +374,22 @@ function PlayerCard({ decision, defaultOpen = false }: {
     });
     setSharing(false);
   }
-  const grade  = decision.grade || "N/A";
-  const jersey = extractJerseyColor(decision.player);
+  const grade = decision.grade || "N/A";
+  const team  = extractTeamTag(decision.player);
 
   return (
     <div className="border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden"
-      style={jersey ? { borderLeftColor: jersey.hex, borderLeftWidth: 4 } : undefined}>
+      style={{ borderLeftColor: team.hex, borderLeftWidth: 4 }}>
       <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left">
         <GradeBadge grade={grade} large />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
-          {jersey && (
-            <span className="ml-2 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-800 text-zinc-300 align-middle">
-              <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: jersey.hex }} />
-              {jersey.word[0].toUpperCase() + jersey.word.slice(1)}
-            </span>
-          )}
+          <span className="ml-2 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-800 text-zinc-300 align-middle">
+            <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: team.hex }} />
+            {capitalize(team.label)}
+          </span>
           <p className="text-xs text-zinc-600 truncate mt-0.5">{decision.role || decision.sport}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -450,10 +473,41 @@ function PlayerCard({ decision, defaultOpen = false }: {
 }
 
 function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
+  // Group into team rosters by jersey/team tag so a two-team clip shows two
+  // side-by-side sections instead of one flat, unsorted list.
+  const groups = new Map<string, { label: string; hex: string; decisions: PlayerDecision[] }>();
+  for (const d of decisions) {
+    const tag = extractTeamTag(d.player);
+    if (!groups.has(tag.label)) groups.set(tag.label, { label: tag.label, hex: tag.hex, decisions: [] });
+    groups.get(tag.label)!.decisions.push(d);
+  }
+  const sorted   = [...groups.values()].sort((a, b) => b.decisions.length - a.decisions.length);
+  const sections = sorted.slice(0, 2);
+  const extras   = sorted.slice(2).flatMap(g => g.decisions);
+  if (extras.length) sections[sections.length - 1].decisions.push(...extras);
+
+  if (sections.length < 2) {
+    return (
+      <div className="space-y-2">
+        {decisions.map((d, i) => (
+          <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2">
-      {decisions.map((d, i) => (
-        <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
+    <div className="grid gap-4 sm:grid-cols-2">
+      {sections.map((s, si) => (
+        <div key={s.label} className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="h-2.5 w-2.5 rounded-full border border-black/20" style={{ backgroundColor: s.hex }} />
+            <p className="text-xs font-black uppercase tracking-widest text-zinc-400">{capitalize(s.label)} · {s.decisions.length}</p>
+          </div>
+          {s.decisions.map((d, i) => (
+            <PlayerCard key={i} decision={d} defaultOpen={si === 0 && i === 0} />
+          ))}
+        </div>
       ))}
     </div>
   );
