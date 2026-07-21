@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, ClipboardList } from "lucide-react";
+import { MessageCircle, ClipboardList, Calendar } from "lucide-react";
 import type { ChatMessage, DrillDay, PracticePlan, Profile, Review } from "../lib/types";
 import { sportIcon, sportSuggestions } from "../lib/shared";
 
@@ -53,14 +53,14 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
     <div className="space-y-4">
       {plan.weekFocus && (
         <div className="rounded-2xl border border-zinc-700 bg-zinc-800 px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1">🗓️ This Week's Focus</p>
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1"><Calendar className="h-3.5 w-3.5" strokeWidth={2} /> This Week's Focus</p>
           <p className="font-bold text-white">{plan.weekFocus}</p>
         </div>
       )}
 
       {plan.coachNote && (
         <div className="rounded-2xl border border-zinc-800 bg-black px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">💬 From Your Coach</p>
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5"><MessageCircle className="h-3.5 w-3.5" strokeWidth={2} /> From Your Coach</p>
           <p className="text-sm text-white leading-relaxed">{plan.coachNote}</p>
         </div>
       )}

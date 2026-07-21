@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clapperboard } from "lucide-react";
+import { Clapperboard, Lock, AlertTriangle, VideoOff } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team } from "../lib/types";
 import { gradeClass, formatTime, formatDate } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
@@ -1132,7 +1132,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
-              <p className="mt-3 text-xs text-zinc-600 text-center">🔒 Your video is private and only used for analysis — never shared or stored.</p>
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-zinc-600 text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video is private and only used for analysis — never shared or stored.</p>
             </>
           ) : (
             <div className="space-y-3">
@@ -1256,7 +1256,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
           {!loading && analyzeError && (
             <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-red-900 bg-red-950/20 p-6 text-center">
-              <p className="text-2xl">⚠️</p>
+              <AlertTriangle className="h-7 w-7 text-red-400" strokeWidth={1.75} />
               <p className="text-sm text-red-300">{analyzeError}</p>
               {pendingRetry && (
                 <button onClick={pendingRetry}
@@ -1304,7 +1304,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
           {!loading && ((resultMode === "clip" && decisions.length === 0) || (resultMode === "game" && isEmptyGameReport(gameReport))) && (
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 text-center px-6 py-10">
-              <p className="text-3xl">🎥</p>
+              <VideoOff className="h-9 w-9 text-zinc-600" strokeWidth={1.5} />
               <p className="text-base font-semibold text-white">This clip was a little too unclear to break down</p>
               <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
                 Nothing's broken — the analysis ran fine, but the footage was too blurry, too far away, or too fast to read the plays confidently. We'd rather tell you that than make something up.

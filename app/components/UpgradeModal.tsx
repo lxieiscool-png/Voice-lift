@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { Clapperboard, BarChart3, Dumbbell, Share2, TrendingUp } from "lucide-react";
 
 export default function UpgradeModal({ user, onClose }: { user: User | null; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -41,14 +42,14 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
         {/* Features */}
         <div className="px-8 py-6 space-y-3">
           {[
-            { icon: "🎬", text: "Unlimited clip and game analysis"         },
-            { icon: "📊", text: "Full player breakdowns and grade history"  },
-            { icon: "🏋️", text: "Personalized practice plans from CoachIQ" },
-            { icon: "📱", text: "Share grade cards and Stories"             },
-            { icon: "📈", text: "Grade trend tracking across all sessions"  },
+            { icon: Clapperboard, text: "Unlimited clip and game analysis"         },
+            { icon: BarChart3,    text: "Full player breakdowns and grade history"  },
+            { icon: Dumbbell,     text: "Personalized practice plans from CoachIQ" },
+            { icon: Share2,       text: "Share grade cards and Stories"             },
+            { icon: TrendingUp,   text: "Grade trend tracking across all sessions"  },
           ].map(f => (
             <div key={f.text} className="flex items-center gap-3">
-              <span className="text-lg w-7 shrink-0 text-center">{f.icon}</span>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-800/80"><f.icon className="h-3.5 w-3.5 text-zinc-300" strokeWidth={1.75} /></span>
               <p className="text-sm text-zinc-300">{f.text}</p>
             </div>
           ))}
