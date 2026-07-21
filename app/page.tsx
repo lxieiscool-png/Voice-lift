@@ -1466,7 +1466,7 @@ export default function Reel() {
               </h1>
               <p className="mt-1 text-sm text-zinc-500">Track a season, roster, and record across every game you upload.</p>
             </div>
-            <Teams userId={user?.id} sport={profile.sport} reviews={reviews} />
+            <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} />
           </>
         ) : (
           <>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Plus, MapPin, Calendar, ChevronLeft, Loader2 } from "lucide-react";
+import { Users, Plus, MapPin, Calendar, ChevronLeft, Loader2, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "../lib/supabase/client";
 import type { Team, TeamMember, Review } from "../lib/types";
 import { formatDate } from "../lib/decisioniq-helpers";
@@ -42,10 +42,13 @@ function computeSeasonRecord(team: Team, reviews: Review[]) {
   return { wins, losses, unclear, total: games.length };
 }
 
-export default function Teams({ userId, sport, reviews }: { userId?: string; sport?: string; reviews: Review[] }) {
+export default function Teams({ userId, sport, reviews, onReviewsChange }: {
+  userId?: string; sport?: string; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
+}) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [openTeam, setOpenTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
 
@@ -76,6 +79,35 @@ export default function Teams({ userId, sport, reviews }: { userId?: string; spo
     setTeams([team, ...teams]);
     setShowCreate(false);
     setOpenTeam(team);
+  }
+
+  async function updateTeam(input: { name: string; city: string; state: string; season: string; gender: string; ageGroup: string; level: string }) {
+    if (!openTeam) return;
+    const supabase = createClient();
+    const { data, error } = await supabase.from("teams").update({
+      name: input.name.trim(), city: input.city.trim() || null, state: input.state.trim() || null,
+      season: input.season.trim() || null, gender: input.gender || null, age_group: input.ageGroup.trim() || null,
+      level: input.level || null,
+    }).eq("id", openTeam.id).select().single();
+    if (error) { alert(`Couldn't update team: ${error.message}`); return; }
+    const updated = rowToTeam(data);
+    setTeams(teams.map(t => t.id === updated.id ? updated : t));
+    setOpenTeam(updated);
+    setShowEdit(false);
+  }
+
+  async function deleteTeam(team: Team) {
+    if (!confirm(`Delete "${team.name}"? Games you've uploaded stay in your Library, just unlinked from this team.`)) return;
+    const supabase = createClient();
+    // Unlink any reviews pointing at this team first — the FK has no cascade,
+    // so deleting the team while games still reference it would just fail.
+    const { error: unlinkError } = await supabase.from("reviews").update({ team_id: null }).eq("team_id", team.id);
+    if (unlinkError) { alert(`Couldn't delete team: ${unlinkError.message}`); return; }
+    const { error } = await supabase.from("teams").delete().eq("id", team.id);
+    if (error) { alert(`Couldn't delete team: ${error.message}`); return; }
+    onReviewsChange(reviews.map(r => r.teamId === team.id ? { ...r, teamId: null } : r));
+    setTeams(teams.filter(t => t.id !== team.id));
+    setOpenTeam(null);
   }
 
   async function addMember(teamId: string, input: { displayName: string; jerseyNumber: string }) {
@@ -114,6 +146,16 @@ export default function Teams({ userId, sport, reviews }: { userId?: string; spo
                 {openTeam.ageGroup && <span>{openTeam.ageGroup}</span>}
                 {openTeam.level && <span>{openTeam.level}</span>}
               </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => setShowEdit(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-600">
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+              <button onClick={() => deleteTeam(openTeam)}
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-red-400 hover:border-red-900">
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
             </div>
           </div>
 
@@ -163,6 +205,15 @@ export default function Teams({ userId, sport, reviews }: { userId?: string; spo
             )}
           </div>
         </div>
+
+        {showEdit && (
+          <CreateTeamModal
+            title="Edit Team"
+            initial={openTeam}
+            onClose={() => setShowEdit(false)}
+            onCreate={updateTeam}
+          />
+        )}
       </div>
     );
   }
@@ -242,23 +293,25 @@ function RosterEditor({ members, onAdd }: { members: TeamMember[]; onAdd: (m: { 
   );
 }
 
-function CreateTeamModal({ defaultSport, onClose, onCreate }: {
+function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
+  title?: string;
   defaultSport?: string;
+  initial?: Team;
   onClose: () => void;
   onCreate: (input: { name: string; city: string; state: string; season: string; gender: string; ageGroup: string; level: string }) => void;
 }) {
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [season, setSeason] = useState("");
-  const [gender, setGender] = useState("");
-  const [ageGroup, setAgeGroup] = useState("");
-  const [level, setLevel] = useState("");
+  const [name, setName] = useState(initial?.name || "");
+  const [city, setCity] = useState(initial?.city || "");
+  const [state, setState] = useState(initial?.state || "");
+  const [season, setSeason] = useState(initial?.season || "");
+  const [gender, setGender] = useState(initial?.gender || "");
+  const [ageGroup, setAgeGroup] = useState(initial?.ageGroup || "");
+  const [level, setLevel] = useState(initial?.level || "");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6" onClick={e => e.stopPropagation()}>
-        <h3 className="mb-4 text-lg font-bold text-white">Create Team</h3>
+        <h3 className="mb-4 text-lg font-bold text-white">{title || "Create Team"}</h3>
         <div className="space-y-3">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Team name — e.g. Titanium 14U"
             className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white placeholder-zinc-600 outline-none focus:border-zinc-600" />
@@ -296,7 +349,7 @@ function CreateTeamModal({ defaultSport, onClose, onCreate }: {
             onClick={() => name.trim() && onCreate({ name, city, state, season, gender, ageGroup, level })}
             disabled={!name.trim()}
             className="flex-1 rounded-lg bg-white py-2.5 text-sm font-bold text-black hover:bg-zinc-100 disabled:opacity-40">
-            Create
+            {initial ? "Save" : "Create"}
           </button>
         </div>
       </div>
