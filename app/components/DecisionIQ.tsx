@@ -1302,6 +1302,23 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   const [sharing,     setSharing]     = useState<string | null>(null);
   const [renamingId,  setRenamingId]  = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [myTeams,     setMyTeams]     = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    supabase.from("teams").select("id,name").eq("coach_user_id", userId).order("created_at", { ascending: false })
+      .then(({ data }) => setMyTeams(data || []));
+  }, [userId]);
+
+  function linkReviewToTeam(id: string, teamId: string) {
+    saveReviews(reviews.map(r => r.id === id ? { ...r, teamId: teamId || null } : r));
+    if (userId) {
+      const supabase = createClient();
+      supabase.from("reviews").update({ team_id: teamId || null }).eq("id", id).eq("user_id", userId)
+        .then(({ error }) => { if (error) console.error("Failed to link review to team:", error.message); });
+    }
+  }
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); deleteReviewRemote(userId, id); }
@@ -1452,6 +1469,16 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
                   {/* Actions */}
                   {renamingId !== review.id && (
                     <div className="flex items-center gap-1 shrink-0">
+                      {myTeams.length > 0 && (
+                        <select
+                          value={review.teamId || ""}
+                          onClick={e => e.stopPropagation()}
+                          onChange={e => linkReviewToTeam(review.id, e.target.value)}
+                          className="rounded-lg border border-zinc-800 bg-black px-2 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors focus:outline-none">
+                          <option value="">No team</option>
+                          {myTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      )}
                       <button onClick={e => startRename(review, e)}
                         className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
                         Rename
