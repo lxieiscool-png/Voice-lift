@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Clapperboard, Lock, AlertTriangle, VideoOff } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2 } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team } from "../lib/types";
 import { gradeClass, formatTime, formatDate } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
@@ -1363,6 +1363,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
 // ─── Film Library (exported — rendered as its own top-level section) ───────────
 
+type AnalysisJob = {
+  id: string; status: "queued" | "processing" | "complete" | "failed";
+  progress_current: number; progress_total: number; progress_label: string | null;
+  file_name: string | null; sport: string | null; error: string | null; review_id: string | null;
+};
+
 export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   reviews: Review[];
   onReviewsChange: (r: Review[]) => void;
@@ -1376,6 +1382,45 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   const [renamingId,  setRenamingId]  = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [myTeams,     setMyTeams]     = useState<{ id: string; name: string }[]>([]);
+  const [jobs,        setJobs]        = useState<AnalysisJob[]>([]);
+  const reviewsRef = useRef(reviews);
+  reviewsRef.current = reviews;
+
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    let cancelled = false;
+
+    async function poll() {
+      const { data } = await supabase.from("analysis_jobs").select("*")
+        .eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+      if (cancelled || !data) return;
+      setJobs(data as AnalysisJob[]);
+
+      // A job that just finished has a review sitting in Supabase that this
+      // component's local `reviews` state doesn't know about yet — pull it
+      // in so the finished result shows up without a manual page reload.
+      for (const job of data as AnalysisJob[]) {
+        if (job.status === "complete" && job.review_id && !reviewsRef.current.some(r => r.id === job.review_id)) {
+          const { data: row } = await supabase.from("reviews").select("*").eq("id", job.review_id).single();
+          if (row && !reviewsRef.current.some(r => r.id === row.id)) {
+            const mapped: Review = {
+              id: row.id, fileName: row.file_name, sport: row.sport, mode: row.mode,
+              grade: row.grade, timestamp: new Date(row.created_at).getTime(),
+              teamId: row.team_id, opponentName: row.opponent_name, gameType: row.game_type,
+              gameDate: row.game_date, location: row.location,
+              ...(row.data || {}),
+            };
+            saveReviews([mapped, ...reviewsRef.current]);
+          }
+        }
+      }
+    }
+
+    poll();
+    const interval = setInterval(poll, 6000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -1441,21 +1486,49 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     setSharing(null);
   }
 
-  // Empty state — no reviews at all
+  const activeJobs = jobs.filter(j => j.status === "queued" || j.status === "processing");
+  const failedJobs = jobs.filter(j => j.status === "failed");
+  const jobsPanel = (activeJobs.length > 0 || failedJobs.length > 0) && (
+    <div className="mb-4 space-y-2">
+      {activeJobs.map(job => (
+        <div key={job.id} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black/40 px-4 py-3">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-zinc-500" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">{job.file_name || "Untitled game"}</p>
+            <p className="text-xs text-zinc-500">
+              {job.progress_label || "Starting…"}
+              {job.progress_total > 0 && ` — ${job.progress_current}/${job.progress_total}`}
+            </p>
+          </div>
+        </div>
+      ))}
+      {failedJobs.map(job => (
+        <div key={job.id} className="rounded-xl border border-red-900 bg-red-950/20 px-4 py-3">
+          <p className="text-sm font-semibold text-white">{job.file_name || "Untitled game"} — analysis failed</p>
+          <p className="mt-0.5 text-xs text-red-300">{job.error || "Something went wrong."}</p>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Empty state — no reviews at all (still shows in-progress jobs, if any)
   if (reviews.length === 0) {
     return (
-      <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-10 flex flex-col items-center justify-center text-center gap-4">
-        <Clapperboard className="h-10 w-10 text-zinc-600" strokeWidth={1.5} />
-        <div>
-          <p className="text-base font-semibold text-white mb-1">No film yet</p>
-          <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
-            Upload your first clip in DecisionIQ and it'll show up here with your grade, breakdown, and feedback.
-          </p>
+      <div>
+        {jobsPanel}
+        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-10 flex flex-col items-center justify-center text-center gap-4">
+          <Clapperboard className="h-10 w-10 text-zinc-600" strokeWidth={1.5} />
+          <div>
+            <p className="text-base font-semibold text-white mb-1">No film yet</p>
+            <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
+              Upload your first clip in DecisionIQ and it'll show up here with your grade, breakdown, and feedback.
+            </p>
+          </div>
+          <a href="#" onClick={e => { e.preventDefault(); document.querySelector<HTMLButtonElement>("[data-module='decision']")?.click(); }}
+            className="rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
+            Go to DecisionIQ
+          </a>
         </div>
-        <a href="#" onClick={e => { e.preventDefault(); document.querySelector<HTMLButtonElement>("[data-module='decision']")?.click(); }}
-          className="rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
-          Go to DecisionIQ
-        </a>
       </div>
     );
   }
@@ -1469,6 +1542,8 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
           <p className="text-xs text-zinc-600 mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
+
+      {jobsPanel}
 
       {/* Search + Filters */}
       <div className="mb-4 space-y-3">
