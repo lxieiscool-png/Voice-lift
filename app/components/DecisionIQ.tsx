@@ -40,7 +40,7 @@ import { parsePlayerBlocks, parseGameReport, isEmptyGameReport } from "../lib/an
 
 type FrameWithTime = { dataUrl: string; timestamp: number };
 
-async function extractFramesAdaptive(file: File): Promise<{ frames: FrameWithTime[]; mode: "clip" | "game" }> {
+async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames: FrameWithTime[]; mode: "clip" | "game" }> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
     const canvas = document.createElement("canvas");
@@ -61,6 +61,17 @@ async function extractFramesAdaptive(file: File): Promise<{ frames: FrameWithTim
         timestamps = [];
         for (let t = 0.3; t < cap; t += step) timestamps.push(Number(t.toFixed(2)));
         if (timestamps.length === 0) timestamps = [Math.max(duration / 2, 0.3)];
+      } else if (deep) {
+        // Deep path (signed-in users, runs as a background job with up to
+        // 45 min of budget instead of a synchronous request) — sample far
+        // more densely since we're no longer racing a live progress bar.
+        const GAME_MAX_FRAMES = 400;
+        timestamps = [];
+        for (let t = 5; t < duration - 5; t += 8) timestamps.push(t);
+        if (timestamps.length > GAME_MAX_FRAMES) {
+          const step = Math.floor(timestamps.length / GAME_MAX_FRAMES);
+          timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, GAME_MAX_FRAMES);
+        }
       } else {
         // Cap at 72 frames (12 six-frame segments) — matches the YouTube ingestion
         // path. Without this, a long uploaded game could hit ~300 frames / ~50
@@ -833,13 +844,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [expandedReview, setExpandedReview] = useState<number | null>(null);
   const [analyzeError, setAnalyzeError] = useState("");
   const [pendingRetry, setPendingRetry] = useState<(() => void) | null>(null);
+  const [jobStarted,   setJobStarted]   = useState(false);
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); deleteReviewRemote(userId, id); }
 
   // Extract individual frames from storyboard sheets using canvas
-  async function extractFramesFromSheets(sheets: string[], rows: number, cols: number, frameWidth: number, frameHeight: number, frameCount: number, maxFrames = 24): Promise<string[]> {
-    const frames: string[] = [];
+  async function extractFramesFromSheets(sheets: string[], rows: number, cols: number, frameWidth: number, frameHeight: number, frameCount: number, maxFrames = 24, intervalMs = 5000): Promise<FrameWithTime[]> {
+    const frames: FrameWithTime[] = [];
     const canvas = document.createElement("canvas");
     canvas.width = frameWidth;
     canvas.height = frameHeight;
@@ -865,7 +877,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         for (let col = 0; col < cols; col++) {
           if (frameIdx % step === 0) {
             ctx.drawImage(img, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
-            frames.push(canvas.toDataURL("image/jpeg", 0.85));
+            // Each storyboard frame represents a fixed interval of the video —
+            // frameIdx * interval gives the real timestamp this frame was taken
+            // at, instead of the placeholder 0 every YouTube-sourced frame used
+            // to get, which broke segment time labels ("0:00–0:00" for every
+            // segment of a game analyzed from a YouTube link).
+            frames.push({ dataUrl: canvas.toDataURL("image/jpeg", 0.85), timestamp: (frameIdx * intervalMs) / 1000 });
           }
           frameIdx++;
           if (frames.length >= targetFrames) break;
@@ -880,7 +897,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function analyzeYouTube(lenient = false) {
     if (!ytUrl.trim()) return;
     setYtError("");
-    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
+    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false);
     setProgressCurrent(0); setProgressTotal(0);
 
     try {
@@ -896,7 +913,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       setProgressLabel("Extracting frames from video…");
       const frames = await extractFramesFromSheets(
         data.sheets, data.rows, data.cols, data.frameWidth, data.frameHeight, data.frameCount,
-        data.mode === "game" ? 72 : 24
+        data.mode === "game" ? (userId ? 400 : 72) : 24, data.interval
       );
 
       if (frames.length === 0) {
@@ -907,7 +924,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       const mode: "clip" | "game" = data.mode;
       const videoTitle = `YouTube — ${ytUrl}`;
 
-      await runAnalysis(frames.map(f => ({ dataUrl: f, timestamp: 0 })), mode, videoTitle, lenient);
+      await runAnalysis(frames, mode, videoTitle, lenient);
     } catch (err) {
       console.error(err);
       setYtError("Something went wrong. Try a different video.");
@@ -935,6 +952,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       };
       saveReviews([clipReview, ...reviews]);
       persistReview(userId, clipReview);
+    } else if (userId) {
+      // Signed-in users get the deep background job — it can run far longer
+      // than a request/response cycle allows (up to 45 min), and survives
+      // closing this tab. Guests (no account to attach a job to) fall
+      // through to the synchronous path below instead.
+      await runBackgroundGameJob(frames, videoTitle, lenient);
     } else {
       const CHUNK_SIZE = 6;
       const CONCURRENCY = 4;
@@ -992,6 +1015,58 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     }
   }
 
+  async function runBackgroundGameJob(frames: { dataUrl: string; timestamp: number }[], videoTitle: string, lenient: boolean) {
+    setProgressLabel("Starting background analysis…"); setProgressTotal(frames.length);
+    const detectedGameSport = sport || profile.sport || "Unknown";
+    const startRes = await fetch("/api/jobs/start", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId, fileName: videoTitle, sport: detectedGameSport,
+        teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
+        gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+      }),
+    });
+    const startData = await startRes.json().catch(() => ({}));
+    if (startData.error) throw new Error(startData.error);
+    if (!startRes.ok) throw new Error(`Server error ${startRes.status} starting job`);
+    const jobId: string = startData.jobId;
+
+    const UPLOAD_CONCURRENCY = 6;
+    let uploaded = 0;
+    let nextIndex = 0;
+    async function uploadOne(i: number) {
+      const res = await fetch(`/api/jobs/${jobId}/frame`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index: i, dataUrl: frames[i].dataUrl }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status} uploading frame ${i + 1}`);
+      uploaded++;
+      setProgressCurrent(uploaded);
+      setProgressLabel(`Uploading frame ${uploaded} of ${frames.length}…`);
+    }
+    async function uploadWorker() {
+      while (nextIndex < frames.length) {
+        const i = nextIndex++;
+        await uploadOne(i);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, frames.length) }, uploadWorker));
+
+    setProgressLabel("Queuing analysis…");
+    const finalizeRes = await fetch(`/api/jobs/${jobId}/finalize`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId, frameCount: frames.length, timestamps: frames.map(f => f.timestamp),
+        jersey: profile.jersey, teamColor, teamsNote, lenient,
+      }),
+    });
+    const finalizeData = await finalizeRes.json().catch(() => ({}));
+    if (finalizeData.error) throw new Error(finalizeData.error);
+    if (!finalizeRes.ok) throw new Error(`Server error ${finalizeRes.status} queuing analysis`);
+
+    setJobStarted(true);
+  }
+
   async function analyzeVideo(lenient = false) {
     if (!videoFile) return;
 
@@ -1005,7 +1080,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       if (res.status === 403) { onShowUpgrade?.(); return; }
     }
 
-    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null);
+    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false);
     setAnalyzeError(""); setPendingRetry(null);
     setProgressCurrent(0); setProgressTotal(0);
     const doAnalyze = async () => {
@@ -1013,7 +1088,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       setProgressCurrent(0); setProgressTotal(0);
       try {
         setProgressLabel("Extracting frames…");
-        const { frames, mode } = await extractFramesAdaptive(videoFile!);
+        const { frames, mode } = await extractFramesAdaptive(videoFile!, !!userId);
         await runAnalysis(frames, mode, clipTitle.trim() || fileName || "Untitled", lenient);
       } catch (err) {
         console.error(err);
@@ -1190,7 +1265,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             <AnalysisLoader label={progressLabel} current={progressCurrent} total={progressTotal} />
           )}
 
-          {!loading && analyzeError && (
+          {!loading && jobStarted && (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-8 text-center">
+              <Clapperboard className="h-8 w-8 text-emerald-400" strokeWidth={1.5} />
+              <p className="text-base font-semibold text-white">Analysis started</p>
+              <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
+                This runs in the background and can take up to 45 minutes for a full game — feel free to close this tab. Check the Library for progress, and it'll show up there as a finished review when it's done.
+              </p>
+            </div>
+          )}
+
+          {!loading && !jobStarted && analyzeError && (
             <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-red-900 bg-red-950/20 p-6 text-center">
               <AlertTriangle className="h-7 w-7 text-red-400" strokeWidth={1.75} />
               <p className="text-sm text-red-300">{analyzeError}</p>
@@ -1203,7 +1288,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             </div>
           )}
 
-          {!loading && !analyzeError && !resultMode && (
+          {!loading && !analyzeError && !resultMode && !jobStarted && (
             <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/40 to-zinc-950 p-5">
               <p className="mb-4 text-center text-sm text-zinc-500">
                 {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]} — here's what a review looks like:` : "Upload a clip and every player gets a card like this:"}
