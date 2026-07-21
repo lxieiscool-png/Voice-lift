@@ -1,9 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Clapperboard } from "lucide-react";
-import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison } from "../lib/types";
+import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team } from "../lib/types";
 import { gradeClass, formatTime, formatDate } from "../lib/decisioniq-helpers";
+import { createClient } from "../lib/supabase/client";
+
+function persistReview(userId: string | undefined, review: Review) {
+  if (!userId) return;
+  const supabase = createClient();
+  supabase.from("reviews").insert({
+    id: review.id, user_id: userId, file_name: review.fileName, sport: review.sport,
+    mode: review.mode, grade: review.grade, created_at: new Date(review.timestamp).toISOString(),
+    data: { decisions: review.decisions, gameReport: review.gameReport },
+    team_id: review.teamId ?? null, opponent_name: review.opponentName ?? null,
+    game_type: review.gameType ?? null, game_date: review.gameDate ?? null, location: review.location ?? null,
+  }).then(({ error }) => { if (error) console.error("Failed to save review to account:", error.message); });
+}
+
+function deleteReviewRemote(userId: string | undefined, id: string) {
+  if (!userId) return;
+  const supabase = createClient();
+  supabase.from("reviews").delete().eq("id", id).eq("user_id", userId)
+    .then(({ error }) => { if (error) console.error("Failed to delete review from account:", error.message); });
+}
+
+function renameReviewRemote(userId: string | undefined, id: string, fileName: string) {
+  if (!userId) return;
+  const supabase = createClient();
+  supabase.from("reviews").update({ file_name: fileName }).eq("id", id).eq("user_id", userId)
+    .then(({ error }) => { if (error) console.error("Failed to rename review in account:", error.message); });
+}
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
@@ -789,6 +816,26 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [ytError,    setYtError]    = useState("");
   const [sport,      setSport]      = useState("");
   const [loading,    setLoading]    = useState(false);
+  const [myTeams,       setMyTeams]       = useState<Team[]>([]);
+  const [linkedTeamId,  setLinkedTeamId]  = useState("");
+  const [opponentName,  setOpponentName]  = useState("");
+  const [gameType,      setGameType]      = useState("Game");
+  const [gameDate,      setGameDate]      = useState("");
+
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    supabase.from("teams").select("*").eq("coach_user_id", userId).order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (!data) return;
+        setMyTeams(data.map((r: any) => ({
+          id: r.id, name: r.name, city: r.city, state: r.state, season: r.season,
+          gender: r.gender, ageGroup: r.age_group, level: r.level, sport: r.sport,
+          coachUserId: r.coach_user_id, isPublic: r.is_public, slug: r.slug,
+          createdAt: new Date(r.created_at).getTime(),
+        })));
+      });
+  }, [userId]);
   const [progressLabel,   setProgressLabel]   = useState("");
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal,   setProgressTotal]   = useState(0);
@@ -800,7 +847,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [pendingRetry, setPendingRetry] = useState<(() => void) | null>(null);
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
-  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
+  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); deleteReviewRemote(userId, id); }
 
   // Extract individual frames from storyboard sheets using canvas
   async function extractFramesFromSheets(sheets: string[], rows: number, cols: number, frameWidth: number, frameHeight: number, frameCount: number, maxFrames = 24): Promise<string[]> {
@@ -892,7 +939,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
       const myPlayer = findMyPlayer(parsed, profile.jersey, teamColor);
       setDecisions(parsed); setResultMode("clip");
-      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip", grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed }, ...reviews]);
+      const clipReview: Review = {
+        id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip",
+        grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
+        teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
+        gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+      };
+      saveReviews([clipReview, ...reviews]);
+      persistReview(userId, clipReview);
     } else {
       const CHUNK_SIZE = 6;
       const CONCURRENCY = 4;
@@ -939,7 +993,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       setGameReport(report); setResultMode("game");
       // Library tracks YOUR grade when the report identified you, not the whole game's
       const myGrade = (synthData.report ?? "").match(/Your Grade:\s*([A-F][+-]?)/i)?.[1];
-      saveReviews([{ id: crypto.randomUUID(), fileName: videoTitle, sport: detectedGameSport, mode: "game", grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report }, ...reviews]);
+      const gameReview: Review = {
+        id: crypto.randomUUID(), fileName: videoTitle, sport: detectedGameSport, mode: "game",
+        grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report,
+        teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
+        gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+      };
+      saveReviews([gameReview, ...reviews]);
+      persistReview(userId, gameReview);
     }
   }
 
@@ -1072,6 +1133,41 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     value={teamsNote}
                     onChange={e => setTeamsNote(e.target.value)}
                   />
+                  {myTeams.length > 0 && (
+                    <div className="rounded-xl border border-zinc-800 bg-black/40 p-3 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600">Attach to a team (optional)</p>
+                      <select
+                        className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+                        value={linkedTeamId}
+                        onChange={e => setLinkedTeamId(e.target.value)}>
+                        <option value="">Don't attach to a team</option>
+                        {myTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                      {linkedTeamId && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+                            placeholder="Opponent"
+                            value={opponentName}
+                            onChange={e => setOpponentName(e.target.value)}
+                          />
+                          <select
+                            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+                            value={gameType}
+                            onChange={e => setGameType(e.target.value)}>
+                            <option value="Game">Game</option>
+                            <option value="Practice">Practice</option>
+                            <option value="Scrimmage">Scrimmage</option>
+                          </select>
+                          <input type="date"
+                            className="col-span-2 rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+                            value={gameDate}
+                            onChange={e => setGameDate(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
               <input
@@ -1194,9 +1290,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
 // ─── Film Library (exported — rendered as its own top-level section) ───────────
 
-export function FilmLibrary({ reviews, onReviewsChange }: {
+export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   reviews: Review[];
   onReviewsChange: (r: Review[]) => void;
+  userId?: string;
 }) {
   const [expandedReview, setExpandedReview] = useState<number | null>(null);
   const [search,      setSearch]      = useState("");
@@ -1207,11 +1304,14 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
   const [renameValue, setRenameValue] = useState("");
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
-  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); }
+  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); deleteReviewRemote(userId, id); }
   function startRename(review: Review, e: React.MouseEvent) { e.stopPropagation(); setRenamingId(review.id); setRenameValue(review.fileName); }
   function commitRename() {
     if (renamingId) {
-      saveReviews(reviews.map(r => r.id === renamingId ? { ...r, fileName: renameValue.trim() || r.fileName } : r));
+      const trimmed = renameValue.trim();
+      saveReviews(reviews.map(r => r.id === renamingId ? { ...r, fileName: trimmed || r.fileName } : r));
+      const original = reviews.find(r => r.id === renamingId);
+      if (trimmed && original && trimmed !== original.fileName) renameReviewRemote(userId, renamingId, trimmed);
     }
     setRenamingId(null);
   }

@@ -14,6 +14,7 @@ import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
 const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
+const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
 const ParticleField   = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.ParticleField })),   { ssr: false });
 const CursorSpotlight = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.CursorSpotlight })), { ssr: false });
 const GradeOrb        = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.GradeOrb })),        { ssr: false });
@@ -27,6 +28,7 @@ const MODULES = [
   { id: "decision", label: "DecisionIQ", sub: "Film analysis"     },
   { id: "coach",    label: "CoachIQ",    sub: "Personal coaching" },
   { id: "library",  label: "Library",    sub: "Past reviews"      },
+  { id: "teams",    label: "Teams",      sub: "Season & roster"   },
 ] as const;
 type ModuleId = typeof MODULES[number]["id"];
 
@@ -1286,6 +1288,8 @@ export default function Reel() {
       const mapped: Review[] = reviewsData.map(r => ({
         id: r.id, fileName: r.file_name, sport: r.sport, mode: r.mode,
         grade: r.grade, timestamp: new Date(r.created_at).getTime(),
+        teamId: r.team_id, opponentName: r.opponent_name, gameType: r.game_type,
+        gameDate: r.game_date, location: r.location,
         ...(r.data || {}),
       }));
       setReviews(mapped);
@@ -1451,7 +1455,18 @@ export default function Reel() {
             </div>
             <StatsBar reviews={reviews} />
             {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
-            <FilmLibrary reviews={reviews} onReviewsChange={setReviews} />
+            <FilmLibrary reviews={reviews} onReviewsChange={setReviews} userId={user?.id} />
+          </>
+        ) : activeModule === "teams" ? (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Teams
+                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500">Track a season, roster, and record across every game you upload.</p>
+            </div>
+            <Teams userId={user?.id} sport={profile.sport} reviews={reviews} />
           </>
         ) : (
           <>

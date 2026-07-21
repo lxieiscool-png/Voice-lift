@@ -27,9 +27,37 @@ export type Review = {
   id: string; fileName: string; sport: string; mode: "clip" | "game";
   grade: string; timestamp: number;
   decisions?: PlayerDecision[]; gameReport?: GameReport;
+  teamId?: string | null; opponentName?: string | null; gameType?: string | null;
+  gameDate?: string | null; location?: string | null;
 };
 
 export type Profile = { name: string; sport: string; team: string; jersey?: string; position?: string; teamColor?: string };
+
+export type Team = {
+  id: string;
+  name: string;
+  city?: string | null;
+  state?: string | null;
+  season?: string | null;
+  gender?: string | null;
+  ageGroup?: string | null;
+  level?: string | null;
+  sport: string;
+  coachUserId: string;
+  isPublic: boolean;
+  slug?: string | null;
+  createdAt: number;
+};
+
+export type TeamMember = {
+  id: string;
+  teamId: string;
+  userId?: string | null;
+  displayName?: string | null;
+  jerseyNumber?: string | null;
+  role: "coach" | "assistant_coach" | "player";
+  createdAt: number;
+};
 
 export type ChatMessage = { role: "user" | "coach"; content: string };
 
