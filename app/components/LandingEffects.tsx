@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Sphere, MeshDistortMaterial } from "@react-three/drei";
-import * as THREE from "three";
 
 // ─── 1. Mouse-reactive particle field ─────────────────────────────────────────
 // Listens on window so hero content div doesn't block events
@@ -173,44 +170,3 @@ export function fireBurst(e: React.MouseEvent) {
   })();
 }
 
-// ─── 4. Three.js distort orb ─────────────────────────────────────────────────
-
-function OrbMesh() {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const { mouse } = useThree();
-
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return;
-    const t = clock.getElapsedTime();
-    meshRef.current.rotation.x = t * 0.15 + mouse.y * 0.4;
-    meshRef.current.rotation.y = t * 0.22 + mouse.x * 0.4;
-  });
-
-  return (
-    <Sphere ref={meshRef as any} args={[1.6, 64, 64]}>
-      <MeshDistortMaterial
-        color="#ffffff"
-        distort={0.45}
-        speed={2}
-        roughness={0.1}
-        metalness={0.2}
-        opacity={0.18}
-        transparent
-        wireframe
-      />
-    </Sphere>
-  );
-}
-
-export function GradeOrb() {
-  return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-      <Canvas camera={{ position: [0, 0, 4.5], fov: 50 }} dpr={[1, 2]}
-        style={{ background: "transparent" }}>
-        <ambientLight intensity={0.8} />
-        <pointLight position={[4, 4, 4]} intensity={2} />
-        <OrbMesh />
-      </Canvas>
-    </div>
-  );
-}

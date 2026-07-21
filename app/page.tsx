@@ -17,7 +17,6 @@ const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({
 const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
 const ParticleField   = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.ParticleField })),   { ssr: false });
 const CursorSpotlight = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.CursorSpotlight })), { ssr: false });
-const GradeOrb        = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.GradeOrb })),        { ssr: false });
 
 function fireBurst(e: React.MouseEvent) {
   import("./components/LandingEffects").then(m => m.fireBurst(e));
@@ -989,8 +988,14 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 Analyze your film →
               </motion.button>
             </div>
-            <div className="relative flex items-center justify-center p-12 bg-zinc-900/50" style={{ minHeight: 380 }}>
-              <GradeOrb />
+            <div className="relative flex items-center justify-center overflow-hidden p-12 bg-zinc-900/50" style={{ minHeight: 380 }}>
+              <div className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
+                  backgroundSize: "28px 28px",
+                  maskImage: "radial-gradient(circle at center, black, transparent 75%)",
+                  WebkitMaskImage: "radial-gradient(circle at center, black, transparent 75%)",
+                }} />
               <div className="relative z-10 w-full max-w-xs">
                 <FloatingGradeCard />
               </div>
