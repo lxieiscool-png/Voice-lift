@@ -2,9 +2,16 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Try the strongest vision model first; fall back if the account doesn't have it.
-// gpt-5 is a reasoning model — it rejects `temperature`, so params differ per model.
-async function createVisionResponse(input: any) {
+// Clip mode does one deep, single-player-focused coaching writeup per video —
+// worth paying for gpt-5's reasoning. Game-mode segments are mechanical
+// extraction (who's visible, what happened) repeated ~12x per game; reasoning
+// effort there is pure latency/cost with no quality payoff, so those go
+// straight to gpt-4.1. gpt-5 is a reasoning model — it rejects `temperature`,
+// so params differ per model.
+async function createVisionResponse(input: any, useReasoning: boolean) {
+  if (!useReasoning) {
+    return await openai.responses.create({ model: "gpt-4.1", temperature: 0, input });
+  }
   try {
     return await openai.responses.create({ model: "gpt-5", reasoning: { effort: "low" }, input } as any);
   } catch (e) {
@@ -164,7 +171,7 @@ Do not add any other text.`,
           ...imageInputs,
         ],
       },
-    ]);
+    ], !isGameMode);
 
     return Response.json({ feedback: response.output_text });
   } catch (error: any) {
