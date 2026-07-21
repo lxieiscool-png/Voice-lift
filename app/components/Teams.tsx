@@ -120,6 +120,13 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
     setMembers([...members, rowToMember(data)]);
   }
 
+  async function removeMember(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("team_members").delete().eq("id", id);
+    if (error) { alert(`Couldn't remove player: ${error.message}`); return; }
+    setMembers(members.filter(m => m.id !== id));
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-zinc-600" /></div>;
   }
@@ -183,7 +190,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
             <h3 className="mb-3 text-sm font-bold text-white">Roster</h3>
-            <RosterEditor members={members} onAdd={(m) => addMember(openTeam.id, m)} />
+            <RosterEditor members={members} onAdd={(m) => addMember(openTeam.id, m)} onRemove={removeMember} />
           </div>
 
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
@@ -263,7 +270,9 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
   );
 }
 
-function RosterEditor({ members, onAdd }: { members: TeamMember[]; onAdd: (m: { displayName: string; jerseyNumber: string }) => void }) {
+function RosterEditor({ members, onAdd, onRemove }: {
+  members: TeamMember[]; onAdd: (m: { displayName: string; jerseyNumber: string }) => void; onRemove: (id: string) => void;
+}) {
   const [name, setName] = useState("");
   const [jersey, setJersey] = useState("");
   return (
@@ -273,9 +282,12 @@ function RosterEditor({ members, onAdd }: { members: TeamMember[]; onAdd: (m: { 
       ) : (
         <div className="mb-3 space-y-1.5">
           {members.map(m => (
-            <div key={m.id} className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-black/30 px-3 py-1.5 text-sm">
-              <span className="font-bold text-white">{m.jerseyNumber ? `#${m.jerseyNumber}` : "—"}</span>
-              <span className="text-zinc-400">{m.displayName || "Unnamed player"}</span>
+            <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-black/30 px-3 py-1.5 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white">{m.jerseyNumber ? `#${m.jerseyNumber}` : "—"}</span>
+                <span className="text-zinc-400">{m.displayName || "Unnamed player"}</span>
+              </div>
+              <button onClick={() => onRemove(m.id)} className="text-xs font-semibold text-zinc-600 hover:text-red-400">Remove</button>
             </div>
           ))}
         </div>
