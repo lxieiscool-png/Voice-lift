@@ -304,6 +304,21 @@ function ProgressBar({ current, total, label }: { current: number; total: number
 
 // ─── Player Card ──────────────────────────────────────────────────────────────
 
+// Jersey/team color, read from the front of the AI's player label (e.g.
+// "Blue #4 Wing", "White #12 On-ball Guard") — used to accent each card by
+// team instead of every card looking identical regardless of side.
+const JERSEY_COLORS: Record<string, string> = {
+  white: "#d4d4d8", black: "#3f3f46", gray: "#71717a", grey: "#71717a", silver: "#a1a1aa",
+  red: "#ef4444", scarlet: "#dc2626", crimson: "#991b1b", maroon: "#7f1d1d", cardinal: "#991b1b",
+  blue: "#3b82f6", navy: "#1e40af", teal: "#14b8a6", green: "#22c55e",
+  yellow: "#eab308", gold: "#ca8a04", orange: "#f97316", purple: "#a855f7", pink: "#ec4899",
+};
+
+function extractJerseyColor(player: string): { word: string; hex: string } | null {
+  const first = player.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "");
+  return first && JERSEY_COLORS[first] ? { word: first, hex: JERSEY_COLORS[first] } : null;
+}
+
 const DECISION_FIELDS = [
   { key: "whatHappened"     as const, label: "What Happened"      },
   { key: "decisionRead"     as const, label: "Coach's Read"       },
@@ -334,19 +349,23 @@ function PlayerCard({ decision, defaultOpen = false }: {
     });
     setSharing(false);
   }
-  const grade       = decision.grade || "N/A";
-  const displayTeam = decision.player.match(/\(([^)]+)\)/)?.[1] ?? null;
+  const grade  = decision.grade || "N/A";
+  const jersey = extractJerseyColor(decision.player);
 
   return (
-    <div className="border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden">
+    <div className="border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden"
+      style={jersey ? { borderLeftColor: jersey.hex, borderLeftWidth: 4 } : undefined}>
       <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left">
         <GradeBadge grade={grade} large />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
-          {displayTeam && (
-            <span className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-800 text-zinc-400">{displayTeam}</span>
+          {jersey && (
+            <span className="ml-2 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-800 text-zinc-300 align-middle">
+              <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: jersey.hex }} />
+              {jersey.word[0].toUpperCase() + jersey.word.slice(1)}
+            </span>
           )}
           <p className="text-xs text-zinc-600 truncate mt-0.5">{decision.role || decision.sport}</p>
         </div>
