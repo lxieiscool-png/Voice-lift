@@ -392,8 +392,9 @@ function PlayerCard({ decision, defaultOpen = false }: {
 
   return (
     <div className="border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden">
-      <button onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left">
+      <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
+        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
+        className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left">
         <GradeBadge grade={grade} large />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
@@ -409,20 +410,71 @@ function PlayerCard({ decision, defaultOpen = false }: {
           </button>
           <span className="text-[10px] text-zinc-600">{open ? "▲" : "▼"}</span>
         </div>
-      </button>
+      </div>
 
       {open && (
-        <div className="border-t border-zinc-800 px-4 py-4 grid gap-3 sm:grid-cols-2">
-          {decision.whatHappened && (
+        <div className="border-t border-zinc-800 px-4 py-4 space-y-3">
+          {decision.action && (
             <div className="rounded-lg bg-zinc-900 p-3">
-              <SectionLabel>What Happened</SectionLabel>
-              <p className="text-sm text-white leading-relaxed">{decision.whatHappened}</p>
+              <SectionLabel>Action</SectionLabel>
+              <p className="text-sm text-white leading-relaxed">{decision.action}</p>
             </div>
           )}
-          {decision.bestAlternative && (
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {decision.whatHappened && (
+              <div className="rounded-lg bg-zinc-900 p-3">
+                <SectionLabel>What Happened</SectionLabel>
+                <p className="text-sm text-white leading-relaxed">{decision.whatHappened}</p>
+              </div>
+            )}
+            {decision.decisionRead && (
+              <div className="rounded-lg bg-zinc-900 p-3">
+                <SectionLabel>Decision Read</SectionLabel>
+                <p className="text-sm text-white leading-relaxed">{decision.decisionRead}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {decision.bestAlternative && (
+              <div className="rounded-lg bg-zinc-900 p-3">
+                <SectionLabel>Best Alternative</SectionLabel>
+                <p className="text-sm text-white leading-relaxed">{decision.bestAlternative}</p>
+              </div>
+            )}
+            {decision.whyBetter && (
+              <div className="rounded-lg bg-zinc-900 p-3">
+                <SectionLabel>Why It Was Better</SectionLabel>
+                <p className="text-sm text-white leading-relaxed">{decision.whyBetter}</p>
+              </div>
+            )}
+          </div>
+
+          {decision.otherOptions.length > 0 && (
             <div className="rounded-lg bg-zinc-900 p-3">
-              <SectionLabel>Next Time</SectionLabel>
-              <p className="text-sm text-white leading-relaxed">{decision.bestAlternative}</p>
+              <SectionLabel>Other Options</SectionLabel>
+              <ul className="space-y-1">
+                {decision.otherOptions.map((opt, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-white leading-relaxed">
+                    <span className="text-zinc-600 shrink-0">•</span>{opt}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {decision.patternToImprove && (
+            <div className="rounded-lg bg-zinc-900 p-3">
+              <SectionLabel>Pattern To Improve</SectionLabel>
+              <p className="text-sm text-white leading-relaxed">{decision.patternToImprove}</p>
+            </div>
+          )}
+
+          {decision.practiceFocus && (
+            <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-3">
+              <SectionLabel>Practice Focus</SectionLabel>
+              <p className="text-sm text-white leading-relaxed">{decision.practiceFocus}</p>
             </div>
           )}
         </div>
