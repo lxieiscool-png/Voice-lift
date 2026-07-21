@@ -839,6 +839,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [opponentName,  setOpponentName]  = useState("");
   const [gameType,      setGameType]      = useState("Game");
   const [gameDate,      setGameDate]      = useState("");
+  const [isGameFootage, setIsGameFootage] = useState(true);
 
   useEffect(() => {
     if (!userId) return;
@@ -1127,12 +1128,26 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
   const overallGrade = resultMode === "game" ? gameReport?.overallGrade ?? "N/A" : decisions[0]?.grade ?? "N/A";
 
-  // Signed-in users need Team + Opponent set before analyzing — matches
-  // HoopIQ's structured intake. Guests keep the old unrestricted flow: they
-  // have no account to attach a team to, so gating on it would just block
-  // the entire "Try free" onboarding path.
-  const needsTeamInfo = !!userId;
-  const canAnalyze = !needsTeamInfo || (!!linkedTeamId && !!opponentName.trim());
+  // Signed-in users need Jersey Color + Team + Opponent set before analyzing
+  // real team-game footage — matches HoopIQ's structured intake. This only
+  // applies when the upload IS a team game: a random 1v1 or drill clip has
+  // no "opponent" to speak of, so isGameFootage lets the uploader say so and
+  // skip the requirement entirely. Guests keep the old unrestricted flow
+  // regardless — they have no account to attach a team to, so gating on it
+  // would just block the entire "Try free" onboarding path.
+  const needsTeamInfo = !!userId && isGameFootage;
+  const canAnalyze = !needsTeamInfo || (!!linkedTeamId && !!opponentName.trim() && !!teamColor.trim());
+
+  const gameFootageToggle = !!userId && (
+    <div className="flex gap-2 rounded-lg border border-zinc-800 bg-black p-1">
+      {([true, false] as const).map(v => (
+        <button key={String(v)} type="button" onClick={() => setIsGameFootage(v)}
+          className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${isGameFootage === v ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}>
+          {v ? "Team game footage" : "Just a clip (1v1, drill, etc.)"}
+        </button>
+      ))}
+    </div>
+  );
 
   const teamLinkingFields = needsTeamInfo && (
     myTeams.length === 0 ? (
@@ -1229,6 +1244,15 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 value={sport}
                 onChange={e => setSport(e.target.value)}
               />
+              {gameFootageToggle}
+              {needsTeamInfo && (
+                <input
+                  className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
+                  value={teamColor}
+                  onChange={e => setTeamColor(e.target.value)}
+                />
+              )}
               {teamLinkingFields}
               <button
                 onClick={() => analyzeYouTube()}
@@ -1255,9 +1279,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     value={clipTitle}
                     onChange={e => setClipTitle(e.target.value)}
                   />
+                  {gameFootageToggle}
                   <input
                     className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                    placeholder={profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)"}
+                    placeholder={(needsTeamInfo ? "Your jersey color (required) — " : "") + (profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)")}
                     value={teamColor}
                     onChange={e => setTeamColor(e.target.value)}
                   />
