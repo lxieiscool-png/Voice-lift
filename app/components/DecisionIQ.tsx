@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Clapperboard } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison } from "../lib/types";
 import { gradeClass, formatTime, formatDate } from "../lib/decisioniq-helpers";
 
@@ -1012,7 +1013,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-800/80 text-2xl transition-transform group-hover:scale-110">🎬</div>
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-800/80 transition-transform group-hover:scale-110"><Clapperboard className="h-6 w-6 text-zinc-300" strokeWidth={1.75} /></div>
                 <p className="text-sm font-bold text-white">Tap to choose video</p>
                 <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
               </label>
@@ -1254,7 +1255,7 @@ export function FilmLibrary({ reviews, onReviewsChange }: {
   if (reviews.length === 0) {
     return (
       <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-10 flex flex-col items-center justify-center text-center gap-4">
-        <p className="text-4xl">🎬</p>
+        <Clapperboard className="h-10 w-10 text-zinc-600" strokeWidth={1.5} />
         <div>
           <p className="text-base font-semibold text-white mb-1">No film yet</p>
           <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">

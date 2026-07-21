@@ -9,6 +9,7 @@ import { createClient } from "./lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Logo from "./components/Logo";
 import UpgradeModal from "./components/UpgradeModal";
+import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, type LucideIcon } from "lucide-react";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
@@ -160,7 +161,7 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-1">{label}</p>
           {grade
             ? <span className={`inline-block rounded-md px-2.5 py-0.5 text-lg font-bold ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="text-xl font-bold text-white capitalize">{value}{fire ? " 🔥" : ""}</p>
+            : <p className="flex items-center gap-1 text-xl font-bold text-white capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
           }
         </div>
       ))}
@@ -208,17 +209,17 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
-const HOW_STEPS: Record<"decision" | "coach", { icon: string; title: string; desc: string }[]> = {
+const HOW_STEPS: Record<"decision" | "coach", { icon: LucideIcon; title: string; desc: string }[]> = {
   decision: [
-    { icon: "🎬", title: "Upload your footage",      desc: "Short clip or full game — sport, teams, and situation are detected automatically." },
-    { icon: "🧠", title: "Every player is reviewed", desc: "Everyone on screen gets a grade, a breakdown, and what they should've done instead." },
-    { icon: "📋", title: "See the full picture",     desc: "What happened, the better option, and one thing to work on. Games get full reports." },
-    { icon: "📈", title: "Track your progress",      desc: "Every review is saved — watch your grade trend climb over time." },
+    { icon: Clapperboard, title: "Upload your footage",      desc: "Short clip or full game — sport, teams, and situation are detected automatically." },
+    { icon: Brain, title: "Every player is reviewed", desc: "Everyone on screen gets a grade, a breakdown, and what they should've done instead." },
+    { icon: ClipboardList, title: "See the full picture",     desc: "What happened, the better option, and one thing to work on. Games get full reports." },
+    { icon: TrendingUp, title: "Track your progress",      desc: "Every review is saved — watch your grade trend climb over time." },
   ],
   coach: [
-    { icon: "💬", title: "Ask your coach anything",  desc: "Technique, strategy, mindset — answers specific to your sport and your film." },
-    { icon: "🏋️", title: "Get a real practice plan", desc: "A full week of sessions with specific solo drills and exact reps." },
-    { icon: "🎯", title: "Connected to your film",   desc: "Weaknesses found in your film feed straight into your plan." },
+    { icon: MessageCircle, title: "Ask your coach anything",  desc: "Technique, strategy, mindset — answers specific to your sport and your film." },
+    { icon: Dumbbell, title: "Get a real practice plan", desc: "A full week of sessions with specific solo drills and exact reps." },
+    { icon: Target, title: "Connected to your film",   desc: "Weaknesses found in your film feed straight into your plan." },
   ],
 };
 
@@ -255,7 +256,7 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
             {steps.map((s, i) => (
               <div key={s.title} className="group relative rounded-xl border border-zinc-800 bg-black/40 p-4 transition-colors hover:border-zinc-600">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-800/80 text-lg">{s.icon}</span>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-800/80"><s.icon className="h-4.5 w-4.5 text-zinc-300" strokeWidth={1.75} /></span>
                   <span className="text-[10px] font-black tracking-widest text-zinc-700">0{i + 1}</span>
                 </div>
                 <p className="text-sm font-semibold text-white mb-1">{s.title}</p>
@@ -1073,16 +1074,16 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
             {[
-              { tag: "Film Analysis", title: "DecisionIQ", emoji: "🎬",
+              { tag: "Film Analysis", title: "DecisionIQ", icon: Clapperboard,
                 desc: "Upload a clip or full game. Every player graded, every decision broken down.",
                 features: ["Grades every player on screen", "Full game period breakdowns", "Auto-detects sport & jersey numbers", "Grade trend over time"] },
-              { tag: "Personal Coaching", title: "CoachIQ", emoji: "💬",
+              { tag: "Personal Coaching", title: "CoachIQ", icon: MessageCircle,
                 desc: "Your AI coach, 24/7. Chat or build a full weekly practice plan.",
                 features: ["Tailored to your sport & position", "Personalized weekly drill plans", "Solo drills, zero equipment needed", "Speaks like a real coach"] },
-              { tag: "Progress Tracking", title: "Film Library", emoji: "📈",
+              { tag: "Progress Tracking", title: "Film Library", icon: TrendingUp,
                 desc: "Every clip saved and graded. See your improvement over weeks.",
                 features: ["Grade trend chart", "Stats: clips, avg grade, streak", "Search & filter film history", "Shareable grade cards for TikTok"] },
-            ].map(({ tag, title, emoji, desc, features }, i) => (
+            ].map(({ tag, title, icon: Icon, desc, features }, i) => (
               <motion.div key={title}
                 initial={{ opacity: 0, y: 50, scale: 0.9 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
@@ -1090,7 +1091,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 viewport={{ once: true }}>
                 <TiltCard className="h-full">
                   <div className="border border-zinc-800 rounded-2xl p-8 bg-zinc-950 h-full cursor-default">
-                    <div className="text-3xl mb-4">{emoji}</div>
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-800/80"><Icon className="h-5 w-5 text-zinc-300" strokeWidth={1.75} /></div>
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{tag}</p>
                     <h3 className="mb-3 text-2xl font-black">{title}</h3>
                     <p className="mb-6 text-zinc-500 leading-relaxed text-sm">{desc}</p>

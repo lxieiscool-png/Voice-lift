@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MessageCircle, ClipboardList } from "lucide-react";
 import type { ChatMessage, DrillDay, PracticePlan, Profile, Review } from "../lib/types";
 import { sportIcon, sportSuggestions } from "../lib/shared";
 
@@ -205,7 +206,10 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
             onClick={() => setTab(t)}
             className={`flex-1 rounded-xl py-2.5 text-sm font-bold transition-colors ${tab === t ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
           >
-            {t === "chat" ? "💬 Ask Coach" : "📋 Build My Plan"}
+            <span className="inline-flex items-center gap-1.5">
+              {t === "chat" ? <MessageCircle className="h-4 w-4" strokeWidth={2} /> : <ClipboardList className="h-4 w-4" strokeWidth={2} />}
+              {t === "chat" ? "Ask Coach" : "Build My Plan"}
+            </span>
           </button>
         ))}
       </div>
@@ -380,7 +384,7 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
 
             {!planLoading && !plan && !planError && (
               <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-zinc-800 bg-black">
-                <span className="text-5xl">📋</span>
+                <ClipboardList className="h-11 w-11 text-zinc-600" strokeWidth={1.5} />
                 <p className="text-center text-sm text-zinc-500 px-4">
                   Fill in your details and click Build My Plan
                 </p>
