@@ -382,7 +382,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
       style={{ borderLeftColor: team.hex, borderLeftWidth: 4 }}>
       <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
-        className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left">
+        className="flex w-full cursor-pointer items-center gap-3 px-4 py-4 text-left">
         <GradeBadge grade={grade} large />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
@@ -390,7 +390,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
             <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: team.hex }} />
             {capitalize(team.label)}
           </span>
-          <p className="text-xs text-zinc-600 truncate mt-0.5">{decision.role || decision.sport}</p>
+          <p className="text-xs text-zinc-600 truncate mt-1">{decision.role || decision.sport}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={e => handleShare(e, "landscape")} disabled={sharing}
@@ -402,38 +402,38 @@ function PlayerCard({ decision, defaultOpen = false }: {
       </div>
 
       {open && (
-        <div className="border-t border-zinc-800 px-4 py-4 space-y-3">
+        <div className="border-t border-zinc-800 px-5 py-5 space-y-4">
           {decision.action && (
-            <div className="rounded-lg bg-zinc-900 p-3">
+            <div className="rounded-lg bg-zinc-900 p-4">
               <SectionLabel>Action</SectionLabel>
               <p className="text-sm text-white leading-relaxed">{decision.action}</p>
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {decision.whatHappened && (
-              <div className="rounded-lg bg-zinc-900 p-3">
+              <div className="rounded-lg bg-zinc-900 p-4">
                 <SectionLabel>What Happened</SectionLabel>
                 <p className="text-sm text-white leading-relaxed">{decision.whatHappened}</p>
               </div>
             )}
             {decision.decisionRead && (
-              <div className="rounded-lg bg-zinc-900 p-3">
+              <div className="rounded-lg bg-zinc-900 p-4">
                 <SectionLabel>Decision Read</SectionLabel>
                 <p className="text-sm text-white leading-relaxed">{decision.decisionRead}</p>
               </div>
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {decision.bestAlternative && (
-              <div className="rounded-lg bg-zinc-900 p-3">
+              <div className="rounded-lg bg-zinc-900 p-4">
                 <SectionLabel>Best Alternative</SectionLabel>
                 <p className="text-sm text-white leading-relaxed">{decision.bestAlternative}</p>
               </div>
             )}
             {decision.whyBetter && (
-              <div className="rounded-lg bg-zinc-900 p-3">
+              <div className="rounded-lg bg-zinc-900 p-4">
                 <SectionLabel>Why It Was Better</SectionLabel>
                 <p className="text-sm text-white leading-relaxed">{decision.whyBetter}</p>
               </div>
@@ -441,9 +441,9 @@ function PlayerCard({ decision, defaultOpen = false }: {
           </div>
 
           {decision.otherOptions.length > 0 && (
-            <div className="rounded-lg bg-zinc-900 p-3">
+            <div className="rounded-lg bg-zinc-900 p-4">
               <SectionLabel>Other Options</SectionLabel>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {decision.otherOptions.map((opt, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-white leading-relaxed">
                     <span className="text-zinc-600 shrink-0">•</span>{opt}
@@ -454,14 +454,14 @@ function PlayerCard({ decision, defaultOpen = false }: {
           )}
 
           {decision.patternToImprove && (
-            <div className="rounded-lg bg-zinc-900 p-3">
+            <div className="rounded-lg bg-zinc-900 p-4">
               <SectionLabel>Pattern To Improve</SectionLabel>
               <p className="text-sm text-white leading-relaxed">{decision.patternToImprove}</p>
             </div>
           )}
 
           {decision.practiceFocus && (
-            <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-3">
+            <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-4">
               <SectionLabel>Practice Focus</SectionLabel>
               <p className="text-sm text-white leading-relaxed">{decision.practiceFocus}</p>
             </div>
@@ -488,7 +488,7 @@ function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
 
   if (sections.length < 2) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {decisions.map((d, i) => (
           <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
         ))}
@@ -497,10 +497,10 @@ function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-6 sm:grid-cols-2">
       {sections.map((s, si) => (
-        <div key={s.label} className="space-y-2">
-          <div className="flex items-center gap-2 px-1">
+        <div key={s.label} className="space-y-3">
+          <div className="flex items-center gap-2 px-1 pb-1">
             <span className="h-2.5 w-2.5 rounded-full border border-black/20" style={{ backgroundColor: s.hex }} />
             <p className="text-xs font-black uppercase tracking-widest text-zinc-400">{capitalize(s.label)} · {s.decisions.length}</p>
           </div>
