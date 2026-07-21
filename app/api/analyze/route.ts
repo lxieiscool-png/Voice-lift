@@ -39,11 +39,13 @@ export async function POST(req: Request) {
 
     const isGameMode = mode === "game";
 
+    // Static instructions come first and stay byte-identical across every
+    // segment call for a game (~12 calls, run concurrently) — this maximizes
+    // the prefix OpenAI's automatic prompt caching can match, cutting cost
+    // and latency on every call after the first. Segment-specific context
+    // (which changes every call) goes at the very end instead of up top.
     const prompt = isGameMode
       ? `You are an elite sports analyst reviewing game film with a coach. Be precise — only report what you can clearly see. Never guess or fabricate details.
-
-Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
-Sport: ${sport || "auto-detect from frames"}${teamContext}
 
 Carefully study every frame before responding. Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
@@ -64,6 +66,10 @@ Decision Quality:
 
 Tactical Pattern:
 [One concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
+
+--- SEGMENT CONTEXT ---
+Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
+Sport: ${sport || "auto-detect from frames"}${teamContext}
 `
       : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
