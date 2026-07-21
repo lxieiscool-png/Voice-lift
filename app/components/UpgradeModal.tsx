@@ -60,7 +60,7 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
           <div className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-4 flex items-center justify-between">
             <div>
               <p className="text-base font-bold text-white">Reel Pro</p>
-              <p className="text-xs text-zinc-500">Cancel anytime</p>
+              <p className="text-xs text-zinc-500">Billed monthly</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-black text-white">$8<span className="text-sm font-normal text-zinc-500">/mo</span></p>

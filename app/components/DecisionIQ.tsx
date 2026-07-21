@@ -1228,7 +1228,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-zinc-600 text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video is private and only used for analysis — never shared or stored.</p>
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-zinc-600 text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video is private and only used for analysis — never shared with anyone else. Frames may be held temporarily during processing and are deleted once your analysis is done.</p>
             </>
           ) : (
             <div className="space-y-3">

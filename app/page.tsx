@@ -945,7 +945,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7 }}
             className="mx-auto mb-10 max-w-lg text-base text-zinc-400 leading-relaxed sm:text-lg">
-            Film analysis. AI coaching. Practice plans. All free, for every athlete.
+            Film analysis. AI coaching. Practice plans. Free to start, for every athlete.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.7 }}
             className="flex flex-wrap items-center justify-center gap-3">
@@ -1049,12 +1049,12 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 A private coach can cost $100–$300 an hour. Most young athletes never get access to that level of feedback.
               </p>
               <p className="text-zinc-400 leading-relaxed">
-                Reel was built to change that. Upload any clip and get elite-level tactical analysis. Free, for everyone.
+                Reel was built to change that. Upload any clip and get elite-level tactical analysis — free to start, for everyone.
               </p>
             </div>
             <div className="grid gap-4">
               {[
-                { stat: "Free", desc: "No subscriptions, no paywalls. Always free for athletes." },
+                { stat: "Free to start", desc: "2 free analyses every month, no card required. Upgrade to Reel Pro for unlimited." },
                 { stat: "Built for hoops & volleyball", desc: "Best-in-class analysis for basketball and volleyball. Other sports supported in beta." },
                 { stat: "Any level", desc: "Middle school to college. Beginners to advanced." },
               ].map(({ stat, desc }, i) => (
