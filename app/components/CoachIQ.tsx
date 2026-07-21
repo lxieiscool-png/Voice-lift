@@ -158,10 +158,14 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages, profile, recentPatterns }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (data.error) throw new Error(data.error);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       setMessages(prev => [...prev, { role: "coach", content: data.reply ?? "No response." }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "coach", content: "Something went wrong. Try again." }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("rate");
+      setMessages(prev => [...prev, { role: "coach", content: isRateLimit ? "Too many requests right now — give it a moment and try again." : "Something went wrong reaching your coach. Try again." }]);
     }
     setChatLoading(false);
   }
