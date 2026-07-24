@@ -76,6 +76,9 @@ Key Events:
 Player Tracking:
 - [One line for EVERY active player visible in this segment, from BOTH teams — in basketball that's usually 8–10 lines, not 2–3. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
 
+Stat Events:
+- [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard". The event MUST be one of exactly these tokens: made_2, made_3, missed_2, missed_3, made_ft, missed_ft, rebound, assist, steal, turnover, block, foul. Rules: only log an event when the outcome is genuinely visible across the frames — never guess make vs miss; if you can see a shot went up but not whether it fell, DO NOT log it. Do not infer events between frames you cannot see. One line per event; the same event may involve two lines (e.g. a steal AND the resulting turnover). Write "None" if nothing countable is clearly visible.]
+
 Decision Quality:
 [2–3 sentences directly to the athlete. Be honest and specific about what you saw — not generic. Reference actual events from the frames.]
 

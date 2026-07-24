@@ -6,6 +6,20 @@ export type PlayerDecision = {
 
 export type PlayerStat = { label: string; raw: string };
 
+// Auto-generated box score, tallied deterministically from the per-segment
+// "Stat Events" the vision model logs. Best-effort (see the honesty caveats in
+// the stat-extraction prompt) — labeled as an AI estimate in the UI.
+export type PlayerBoxStat = {
+  player: string;        // display label, e.g. "Blue #12"
+  team: string;          // normalized team key, e.g. "blue"
+  jersey: string | null;
+  pts: number;
+  fgm: number; fga: number;
+  tpm: number; tpa: number;
+  ftm: number; fta: number;
+  reb: number; ast: number; stl: number; tov: number; blk: number; pf: number;
+};
+
 export type TeamComparison = {
   teamA: string; teamB: string;
   score: string | null;          // "46–44" or null if no scoreboard was visible
@@ -19,6 +33,7 @@ export type GameReport = {
   foulPatterns: string; decisionTrends: string; strengths: string[];
   improvements: string[]; practiceFocus: string; playerStats: PlayerStat[];
   teamComparison?: TeamComparison | null;
+  boxScore?: PlayerBoxStat[];
 };
 
 export type ChunkSummary = { index: number; start: string; end: string; text: string };

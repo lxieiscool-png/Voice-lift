@@ -1,4 +1,70 @@
-import type { PlayerDecision, GameReport, PlayerStat, TeamComparison } from "../types";
+import type { PlayerDecision, GameReport, PlayerStat, TeamComparison, PlayerBoxStat } from "../types";
+
+const STAT_EVENTS = new Set([
+  "made_2", "made_3", "missed_2", "missed_3", "made_ft", "missed_ft",
+  "rebound", "assist", "steal", "turnover", "block", "foul",
+]);
+
+const COLOR_WORDS = new Set([
+  "white", "black", "gray", "grey", "silver", "red", "scarlet", "crimson", "maroon", "burgundy",
+  "blue", "navy", "teal", "cyan", "green", "olive", "lime", "yellow", "gold", "orange",
+  "purple", "violet", "pink", "magenta", "brown", "tan", "home", "away",
+]);
+
+function emptyBoxStat(player: string, team: string, jersey: string | null): PlayerBoxStat {
+  return { player, team, jersey, pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, reb: 0, ast: 0, stl: 0, tov: 0, blk: 0, pf: 0 };
+}
+
+// Tally a box score deterministically from the per-segment "Stat Events" lines.
+// We do the counting in code rather than asking the model to sum across dozens
+// of segments — LLMs are unreliable at arithmetic over long lists. Time chunks
+// don't overlap, so summing per-segment events avoids double counting.
+export function buildBoxScore(chunkTexts: string[]): PlayerBoxStat[] {
+  const byKey = new Map<string, PlayerBoxStat>();
+
+  for (const text of chunkTexts) {
+    // Only scan lines inside a "Stat Events:" section so we don't misread other
+    // lines that happen to contain a pipe.
+    const section = text.match(/Stat Events:\s*([\s\S]*?)(?=\n[A-Z][\w &/]+:|===|$)/i)?.[1] ?? "";
+    for (const rawLine of section.split("\n")) {
+      const line = rawLine.replace(/^[-•*]\s*/, "").trim();
+      const m = line.match(/^(.+?)\s*\|\s*([a-z_2-3]+)\b/i);
+      if (!m) continue;
+      const event = m[2].toLowerCase();
+      if (!STAT_EVENTS.has(event)) continue;
+
+      const label = m[1].trim();
+      const jersey = label.match(/#\s*(\d{1,2})/)?.[1] ?? null;
+      const firstWord = label.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
+      const team = COLOR_WORDS.has(firstWord) ? firstWord : "unknown";
+      const key = `${team}#${jersey ?? label.toLowerCase()}`;
+      const display = jersey ? `${team === "unknown" ? "" : team[0].toUpperCase() + team.slice(1) + " "}#${jersey}`.trim() : label;
+
+      if (!byKey.has(key)) byKey.set(key, emptyBoxStat(display, team, jersey));
+      const s = byKey.get(key)!;
+
+      switch (event) {
+        case "made_2":   s.fgm++; s.fga++; s.pts += 2; break;
+        case "missed_2": s.fga++; break;
+        case "made_3":   s.fgm++; s.fga++; s.tpm++; s.tpa++; s.pts += 3; break;
+        case "missed_3": s.fga++; s.tpa++; break;
+        case "made_ft":  s.ftm++; s.fta++; s.pts += 1; break;
+        case "missed_ft": s.fta++; break;
+        case "rebound":  s.reb++; break;
+        case "assist":   s.ast++; break;
+        case "steal":    s.stl++; break;
+        case "turnover": s.tov++; break;
+        case "block":    s.blk++; break;
+        case "foul":     s.pf++; break;
+      }
+    }
+  }
+
+  // Drop rows with no meaningful production, then sort by points.
+  return [...byKey.values()]
+    .filter(s => s.pts || s.fga || s.reb || s.ast || s.stl || s.tov || s.blk || s.pf)
+    .sort((a, b) => b.pts - a.pts || b.fga - a.fga);
+}
 
 export function extractGrade(text: string) {
   return text.match(/(?:Overall\s+)?Decision\s+Grade:\s*([A-F][+-]?)/i)?.[1] ?? "N/A";

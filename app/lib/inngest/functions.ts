@@ -4,7 +4,7 @@ import { inngest } from "./client";
 import { createAdminClient } from "../supabase/admin";
 import { analyzeChunk, SportsCheckError } from "../analysis/analyzeChunk";
 import { synthesizeGameReport } from "../analysis/synthesize";
-import { parseGameReport } from "../analysis/parsers";
+import { parseGameReport, buildBoxScore } from "../analysis/parsers";
 import { formatTime } from "../decisioniq-helpers";
 
 // Scaffolding check — confirms the Inngest dev server can reach this app and
@@ -123,6 +123,7 @@ export const analyzeGameJob = inngest.createFunction(
 
     const reviewId = await step.run("save-review", async () => {
       const report = parseGameReport(reportText);
+      report.boxScore = buildBoxScore(chunkSummaries.map(c => c.text));
       const myGrade = reportText.match(/Your Grade:\s*([A-F][+-]?)/i)?.[1];
       const id = randomUUID();
       const { error } = await supabase.from("reviews").insert({

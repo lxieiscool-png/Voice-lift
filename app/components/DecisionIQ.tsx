@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X } from "lucide-react";
-import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team } from "../lib/types";
+import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
 import { TeamSectionHeader, GameCard, teamAvatarColor } from "./GameCards";
@@ -36,7 +36,7 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
-import { parsePlayerBlocks, parseGameReport, isEmptyGameReport } from "../lib/analysis/parsers";
+import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore } from "../lib/analysis/parsers";
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
 
@@ -104,14 +104,17 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
         if (timestamps.length === 0) timestamps = [Math.max(duration / 2, 0.3)];
       } else if (deep) {
         // Deep path (signed-in users, runs as a background job with up to
-        // 45 min of budget instead of a synchronous request) — sample far
-        // more densely since we're no longer racing a live progress bar.
-        const GAME_MAX_FRAMES = 400;
+        // 45 min of budget). Sample finer than before (every 5s), then
+        // motion-filter during capture (below) to drop near-identical /
+        // dead-time frames — so the frame budget is spent on active play
+        // instead of timeouts and huddles. Cap candidates so seeking stays
+        // bounded; kept frames are capped again after filtering.
+        const CANDIDATE_CAP = 520;
         timestamps = [];
-        for (let t = 5; t < duration - 5; t += 8) timestamps.push(t);
-        if (timestamps.length > GAME_MAX_FRAMES) {
-          const step = Math.floor(timestamps.length / GAME_MAX_FRAMES);
-          timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, GAME_MAX_FRAMES);
+        for (let t = 5; t < duration - 5; t += 5) timestamps.push(t);
+        if (timestamps.length > CANDIDATE_CAP) {
+          const step = Math.floor(timestamps.length / CANDIDATE_CAP);
+          timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, CANDIDATE_CAP);
         }
       } else {
         // Cap at 72 frames (12 six-frame segments) — matches the YouTube ingestion
@@ -127,11 +130,40 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
         }
       }
       canvas.width = 1280; canvas.height = 720;
+
+      // Cheap motion signature (tiny grayscale thumbnail) used only on the deep
+      // path to skip frames that barely changed from the last kept one.
+      const SIG_W = 32, SIG_H = 18;
+      const MOTION_THRESHOLD = 9;  // mean per-pixel grayscale delta (0–255) to count as "changed"
+      const MAX_GAP = 20;          // force-keep at least this often (s) so static stretches still get sampled
+      const GAME_MAX_FRAMES = 400;
+      const sigCanvas = document.createElement("canvas");
+      sigCanvas.width = SIG_W; sigCanvas.height = SIG_H;
+      const sigCtx = sigCanvas.getContext("2d", { willReadFrequently: true });
+      const signature = (): number[] | null => {
+        if (!sigCtx) return null;
+        sigCtx.drawImage(video, 0, 0, SIG_W, SIG_H);
+        const d = sigCtx.getImageData(0, 0, SIG_W, SIG_H).data;
+        const g = new Array(SIG_W * SIG_H);
+        for (let i = 0; i < g.length; i++) { const p = i * 4; g[i] = d[p] * 0.299 + d[p + 1] * 0.587 + d[p + 2] * 0.114; }
+        return g;
+      };
+      const meanDiff = (a: number[], b: number[]) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
+
       const frames: FrameWithTime[] = [];
+      let lastSig: number[] | null = null;
+      let lastKeptTime = -Infinity;
       for (const time of timestamps) {
         await new Promise<void>((done) => {
           video.currentTime = time;
           video.onseeked = () => {
+            if (deep) {
+              const sig = signature();
+              const changed = !lastSig || !sig || meanDiff(sig, lastSig) > MOTION_THRESHOLD;
+              const gap = time - lastKeptTime >= MAX_GAP;
+              if (!changed && !gap) { done(); return; }
+              lastSig = sig; lastKeptTime = time;
+            }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             frames.push({ dataUrl: canvas.toDataURL("image/jpeg", 0.85), timestamp: time });
             done();
@@ -139,7 +171,13 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
         });
       }
       URL.revokeObjectURL(url);
-      resolve({ frames, mode });
+      // Final safety cap so a very active game can't blow the frame budget.
+      let out = frames;
+      if (out.length > GAME_MAX_FRAMES) {
+        const step = out.length / GAME_MAX_FRAMES;
+        out = Array.from({ length: GAME_MAX_FRAMES }, (_, i) => frames[Math.floor(i * step)]);
+      }
+      resolve({ frames: out, mode });
     };
     video.onerror = () => reject("Video failed to load.");
   });
@@ -568,6 +606,64 @@ function playerInitials(label: string) {
   return label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
+function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
+  // Split into two teams by the normalized team key, largest first.
+  const groups = new Map<string, PlayerBoxStat[]>();
+  for (const r of rows) {
+    const k = r.team || "unknown";
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(r);
+  }
+  const teams = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 2);
+  const cols: { key: keyof PlayerBoxStat; label: string }[] = [
+    { key: "pts", label: "PTS" }, { key: "reb", label: "REB" }, { key: "ast", label: "AST" },
+    { key: "stl", label: "STL" }, { key: "tov", label: "TO" }, { key: "blk", label: "BLK" }, { key: "pf", label: "PF" },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-black text-white">Box Score</p>
+        <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
+      </div>
+      <p className="mb-3 text-[11px] leading-relaxed text-zinc-600">
+        Auto-counted from what the AI could clearly see. Fast plays between sampled frames get missed, so treat these as approximate — especially rebounds and steals.
+      </p>
+      <div className="space-y-4">
+        {teams.map(([team, players]) => (
+          <div key={team}>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-zinc-400">{team === "unknown" ? "Players" : team}</p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] text-right text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-wide text-zinc-600">
+                    <th className="py-1 pr-2 text-left font-semibold">Player</th>
+                    <th className="py-1 px-1.5 font-semibold">FG</th>
+                    <th className="py-1 px-1.5 font-semibold">3P</th>
+                    <th className="py-1 px-1.5 font-semibold">FT</th>
+                    {cols.map(c => <th key={c.key} className="py-1 px-1.5 font-semibold">{c.label}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {players.sort((a, b) => b.pts - a.pts).map((p, i) => (
+                    <tr key={i} className="border-t border-zinc-900">
+                      <td className="py-1.5 pr-2 text-left font-semibold text-white">{p.player}</td>
+                      <td className="py-1.5 px-1.5 text-zinc-400">{p.fgm}-{p.fga}</td>
+                      <td className="py-1.5 px-1.5 text-zinc-400">{p.tpm}-{p.tpa}</td>
+                      <td className="py-1.5 px-1.5 text-zinc-400">{p.ftm}-{p.fta}</td>
+                      {cols.map(c => <td key={c.key} className={`py-1.5 px-1.5 ${c.key === "pts" ? "font-bold text-white" : "text-zinc-300"}`}>{p[c.key] as number}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function GameResultsView({ report, onClose, backLabel = "New analysis" }: { report: GameReport; onClose: () => void; backLabel?: string }) {
   const [focus, setFocus] = useState<PlayerStat | null>(null);
   const tc = report.teamComparison ?? null;
@@ -647,6 +743,9 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
             ))}
           </div>
         )}
+
+        {/* Auto box score */}
+        {report.boxScore && report.boxScore.length > 0 && <BoxScorePanel rows={report.boxScore} />}
 
         {/* Coaching sections */}
         <div className="grid gap-2 sm:grid-cols-2">
@@ -1138,6 +1237,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       if (synthData.error) throw new Error(synthData.error);
       setProgressCurrent(chunks.length + 1);
       const report = parseGameReport(synthData.report ?? "");
+      report.boxScore = buildBoxScore(chunkSummaries.map(c => c.text));
       const detectedGameSport = sport || profile.sport || "Unknown";
       setGameReport(report); setResultMode("game");
       // Library tracks YOUR grade when the report identified you, not the whole game's
