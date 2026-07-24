@@ -1047,14 +1047,30 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     setLoading(false); setProgressLabel("");
   }
 
+  // Returns true if blocked (caller should stop). Non-incrementing courtesy
+  // pre-check so we can show the upgrade modal before doing any work; the
+  // authoritative gate lives server-side in /api/jobs/start and /api/analyze.
+  // Fails OPEN on a network error — a transient /api/usage blip shouldn't
+  // strand a user, and the server gate will still enforce the real cap.
+  async function usageBlocked(mode: "clip" | "game"): Promise<boolean> {
+    if (!userId) return false;
+    try {
+      const check = await fetch(`/api/usage?userId=${userId}&kind=${mode}`).then(r => r.json());
+      if (check && check.ok === false) { onShowUpgrade?.(); return true; }
+    } catch { /* fail open */ }
+    return false;
+  }
+
   async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string, lenient = false) {
+    if (await usageBlocked(mode)) { setLoading(false); setProgressLabel(""); return; }
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
       const [res, thumbnailUrl] = await Promise.all([
-        fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient }) }),
+        fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient, userId }) }),
         captureThumbnail(frames),
       ]);
       const data = await res.json().catch(() => ({}));
+      if (res.status === 403 && data.error === "limit_reached") { onShowUpgrade?.(); return; }
       if (data.error) throw new Error(data.error);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       setProgressCurrent(1);
@@ -1152,6 +1168,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       }),
     });
     const startData = await startRes.json().catch(() => ({}));
+    if (startRes.status === 403 && startData.error === "limit_reached") { setLoading(false); setProgressLabel(""); onShowUpgrade?.(); return; }
     if (startData.error) throw new Error(startData.error);
     if (!startRes.ok) throw new Error(`Server error ${startRes.status} starting job`);
     const jobId: string = startData.jobId;
@@ -1194,16 +1211,6 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
   async function analyzeVideo(lenient = false) {
     if (!videoFile) return;
-
-    // Usage gate — check + increment before starting
-    if (userId && !isPro) {
-      const res  = await fetch("/api/usage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      if (res.status === 403) { onShowUpgrade?.(); return; }
-    }
 
     setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false);
     setAnalyzeError(""); setPendingRetry(null);

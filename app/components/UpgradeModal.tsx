@@ -35,14 +35,14 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
           <button onClick={onClose}
             className="absolute right-5 top-5 text-zinc-600 hover:text-white transition-colors text-xl leading-none">✕</button>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">Reel Pro</p>
-          <h2 className="text-2xl font-black tracking-tight text-white">You&apos;ve used your 2 free analyses</h2>
-          <p className="mt-2 text-sm text-zinc-500">Upgrade to keep going. Unlimited film, unlimited feedback.</p>
+          <h2 className="text-2xl font-black tracking-tight text-white">You&apos;ve hit your free limit</h2>
+          <p className="mt-2 text-sm text-zinc-500">Upgrade to Reel Pro for more games and clips every month.</p>
         </div>
 
         {/* Features */}
         <div className="px-8 py-6 space-y-3">
           {[
-            { icon: Clapperboard, text: "Unlimited clip and game analysis"         },
+            { icon: Clapperboard, text: "8 full game analyses + 100 clips a month"   },
             { icon: BarChart3,    text: "Full player breakdowns and grade history"  },
             { icon: Dumbbell,     text: "Personalized practice plans from CoachIQ" },
             { icon: Share2,       text: "Share grade cards and Stories"             },

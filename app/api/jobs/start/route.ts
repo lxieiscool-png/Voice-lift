@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
+import { checkAndIncrementUsage } from "../../../lib/usage";
 
 // Creates a job row the client can then upload frames against. Frames are
 // uploaded one at a time in separate requests (see [jobId]/frame) rather
@@ -8,6 +9,16 @@ import { createAdminClient } from "../../../lib/supabase/admin";
 export async function POST(req: NextRequest) {
   const { userId, fileName, sport, teamId, opponentName, gameType, gameDate, location, thumbnailUrl } = await req.json();
   if (!userId) return NextResponse.json({ error: "Missing userId." }, { status: 400 });
+
+  // Authoritative spend gate for the expensive game path — the client's
+  // pre-check is only a courtesy; this is what actually protects cost.
+  const usage = await checkAndIncrementUsage(userId, "game");
+  if (!usage.ok) {
+    return NextResponse.json(
+      { error: "limit_reached", limit: usage.limit, count: usage.count, isPro: usage.isPro },
+      { status: 403 },
+    );
+  }
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.from("analysis_jobs").insert({

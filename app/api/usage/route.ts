@@ -1,55 +1,30 @@
-// GET  /api/usage?userId=… — returns { count, is_pro, limit }
-// POST /api/usage        — increments count, returns { ok, count, is_pro, limit }
+// GET  /api/usage?userId=…&kind=game|clip — non-incrementing status (used by
+//      the client for a courtesy pre-check so it can show the upgrade modal
+//      before starting work).
+// POST /api/usage { userId, kind } — check + increment. Kept for compatibility,
+//      but the authoritative spend gate now lives in the routes that actually
+//      cost money (/api/jobs/start for games, /api/analyze for clips).
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getUsage, checkAndIncrementUsage, USAGE_LIMITS, type UsageKind } from "../../lib/usage";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const FREE_LIMIT = 2;
-const monthKey = () => new Date().toISOString().slice(0, 7); // "2026-06"
+function parseKind(v: string | null | undefined): UsageKind {
+  return v === "game" ? "game" : "clip";
+}
 
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");
-  if (!userId) return NextResponse.json({ count: 0, is_pro: false, limit: FREE_LIMIT });
-
-  const { data } = await supabase
-    .from("profiles").select("is_pro, monthly_analyses, month_key").eq("id", userId).single();
-
-  const mk     = monthKey();
-  const count  = data?.month_key === mk ? (data?.monthly_analyses ?? 0) : 0;
-  const is_pro = data?.is_pro ?? false;
-
-  return NextResponse.json({ count, is_pro, limit: FREE_LIMIT });
+  const kind = parseKind(req.nextUrl.searchParams.get("kind"));
+  if (!userId) return NextResponse.json({ ok: true, count: 0, is_pro: false, limit: USAGE_LIMITS[kind].free, kind });
+  const s = await getUsage(userId, kind);
+  return NextResponse.json({ ok: s.ok, count: s.count, is_pro: s.isPro, limit: s.limit, kind: s.kind });
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await req.json();
-  if (!userId) return NextResponse.json({ ok: true, count: 0, is_pro: false, limit: FREE_LIMIT });
-
-  const { data } = await supabase
-    .from("profiles").select("is_pro, monthly_analyses, month_key").eq("id", userId).single();
-
-  const mk     = monthKey();
-  const is_pro = data?.is_pro ?? false;
-
-  // Pro users bypass tracking
-  if (is_pro) return NextResponse.json({ ok: true, count: 0, is_pro: true, limit: FREE_LIMIT });
-
-  // Reset if new month
-  const prevCount = data?.month_key === mk ? (data?.monthly_analyses ?? 0) : 0;
-
-  if (prevCount >= FREE_LIMIT) {
-    return NextResponse.json({ ok: false, count: prevCount, is_pro: false, limit: FREE_LIMIT }, { status: 403 });
-  }
-
-  const newCount = prevCount + 1;
-  await supabase.from("profiles")
-    .update({ monthly_analyses: newCount, month_key: mk })
-    .eq("id", userId);
-
-  return NextResponse.json({ ok: true, count: newCount, is_pro: false, limit: FREE_LIMIT });
+  const { userId, kind: rawKind } = await req.json();
+  const kind = parseKind(rawKind);
+  if (!userId) return NextResponse.json({ ok: true, count: 0, is_pro: false, limit: USAGE_LIMITS[kind].free, kind });
+  const s = await checkAndIncrementUsage(userId, kind);
+  return NextResponse.json({ ok: s.ok, count: s.count, is_pro: s.isPro, limit: s.limit, kind: s.kind },
+    { status: s.ok ? 200 : 403 });
 }
