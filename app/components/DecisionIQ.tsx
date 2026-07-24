@@ -568,7 +568,7 @@ function playerInitials(label: string) {
   return label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
-export function GameResultsView({ report, onClose }: { report: GameReport; onClose: () => void }) {
+export function GameResultsView({ report, onClose, backLabel = "New analysis" }: { report: GameReport; onClose: () => void; backLabel?: string }) {
   const [focus, setFocus] = useState<PlayerStat | null>(null);
   const tc = report.teamComparison ?? null;
 
@@ -594,7 +594,7 @@ export function GameResultsView({ report, onClose }: { report: GameReport; onClo
         <div className="flex items-center justify-between">
           <button onClick={onClose}
             className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
-            ← New analysis
+            ← {backLabel}
           </button>
           <p className="text-sm font-black text-white">Game Report</p>
           <div className={`rounded-lg px-3 py-1 text-base font-black ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
@@ -1881,7 +1881,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       {/* Review detail overlay */}
       {openReview && (
         openReview.mode === "game" && openReview.gameReport
-          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} />
+          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back to library" />
           : (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
@@ -1929,7 +1929,7 @@ function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkT
         <MoreVertical className="h-4 w-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-7 z-20 w-44 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-xl"
+        <div className="absolute right-0 bottom-full mb-1 z-30 w-44 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-xl"
           onClick={e => e.stopPropagation()}>
           <button onClick={() => { setOpen(false); onOpen(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Open report</button>
           <button onClick={() => { setOpen(false); onRename(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Rename</button>

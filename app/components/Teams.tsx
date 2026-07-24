@@ -318,7 +318,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
       {/* Game report overlay */}
       {openReview && (
         openReview.mode === "game" && openReview.gameReport
-          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} />
+          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back" />
           : (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">

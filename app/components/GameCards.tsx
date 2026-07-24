@@ -89,9 +89,12 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     : "bg-zinc-700 text-white";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+    // No overflow-hidden on the root: the card's ⋮ menu is an absolutely
+    // positioned dropdown that must be free to extend past the card edge.
+    // Rounded-corner clipping lives on the thumbnail button instead.
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-950">
       {/* Thumbnail */}
-      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-950 disabled:cursor-default">
+      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 disabled:cursor-default">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumbnailUrl} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
