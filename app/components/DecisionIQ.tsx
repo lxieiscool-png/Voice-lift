@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2 } from "lucide-react";
+import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team } from "../lib/types";
-import { gradeClass, formatTime, formatDate } from "../lib/decisioniq-helpers";
+import { gradeClass, formatTime, formatDate, gameResult } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
+import { TeamSectionHeader, GameCard, teamAvatarColor } from "./GameCards";
 
 function persistReview(userId: string | undefined, review: Review) {
   if (!userId) return;
@@ -15,6 +16,7 @@ function persistReview(userId: string | undefined, review: Review) {
     data: { decisions: review.decisions, gameReport: review.gameReport },
     team_id: review.teamId ?? null, opponent_name: review.opponentName ?? null,
     game_type: review.gameType ?? null, game_date: review.gameDate ?? null, location: review.location ?? null,
+    thumbnail_url: review.thumbnailUrl ?? null,
   }).then(({ error }) => { if (error) console.error("Failed to save review to account:", error.message); });
 }
 
@@ -35,6 +37,45 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
 import { parsePlayerBlocks, parseGameReport, isEmptyGameReport } from "../lib/analysis/parsers";
+
+// ─── Thumbnail ────────────────────────────────────────────────────────────────
+
+// Picks a representative frame (roughly a third of the way in — past any
+// intro/tip-off dead air but before the video ends), downscales it, and uploads
+// it to the public game-thumbnails bucket for Library/Teams card previews.
+// Best-effort: any failure returns null and the caller carries on without a
+// thumbnail rather than failing the whole analysis.
+async function captureThumbnail(frames: { dataUrl: string; timestamp: number }[]): Promise<string | null> {
+  try {
+    if (!frames.length) return null;
+    const source = frames[Math.floor(frames.length / 3)] ?? frames[0];
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = source.dataUrl;
+    });
+    const maxW = 640;
+    const scale = Math.min(1, maxW / (img.width || maxW));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round((img.width || maxW) * scale);
+    canvas.height = Math.round((img.height || maxW * 0.5625) * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
+    const res = await fetch("/api/thumbnail", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataUrl }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => ({}));
+    return data.url ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Frame Extraction ─────────────────────────────────────────────────────────
 
@@ -472,7 +513,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
   );
 }
 
-function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
+export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
   // Group into team rosters by jersey/team tag so a two-team clip shows two
   // side-by-side sections instead of one flat, unsorted list.
   const groups = new Map<string, { label: string; hex: string; decisions: PlayerDecision[] }>();
@@ -527,7 +568,7 @@ function playerInitials(label: string) {
   return label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
-function GameResultsView({ report, onClose }: { report: GameReport; onClose: () => void }) {
+export function GameResultsView({ report, onClose }: { report: GameReport; onClose: () => void }) {
   const [focus, setFocus] = useState<PlayerStat | null>(null);
   const tc = report.teamComparison ?? null;
 
@@ -1009,7 +1050,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function runAnalysis(frames: { dataUrl: string; timestamp: number }[], mode: "clip" | "game", videoTitle: string, lenient = false) {
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
-      const res  = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient }) });
+      const [res, thumbnailUrl] = await Promise.all([
+        fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient }) }),
+        captureThumbnail(frames),
+      ]);
       const data = await res.json().catch(() => ({}));
       if (data.error) throw new Error(data.error);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -1023,6 +1067,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+        thumbnailUrl,
       };
       saveReviews([clipReview, ...reviews]);
       persistReview(userId, clipReview);
@@ -1066,7 +1111,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         }
       }
       setProgressLabel(`Analyzing ${chunks.length} segments…`);
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length) }, worker));
+      const [, thumbnailUrl] = await Promise.all([
+        Promise.all(Array.from({ length: Math.min(CONCURRENCY, chunks.length) }, worker)),
+        captureThumbnail(frames),
+      ]);
       setProgressLabel("Building game report…");
       const synthRes  = await fetch("/api/synthesize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, chunkSummaries, teamsNote, jersey: profile.jersey, teamColor }) });
       if (!synthRes.ok) throw new Error(`Server error ${synthRes.status} on synthesis`);
@@ -1083,6 +1131,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+        thumbnailUrl,
       };
       saveReviews([gameReview, ...reviews]);
       persistReview(userId, gameReview);
@@ -1092,12 +1141,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function runBackgroundGameJob(frames: { dataUrl: string; timestamp: number }[], videoTitle: string, lenient: boolean) {
     setProgressLabel("Starting background analysis…"); setProgressTotal(frames.length);
     const detectedGameSport = sport || profile.sport || "Unknown";
+    const thumbnailUrl = await captureThumbnail(frames);
     const startRes = await fetch("/api/jobs/start", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId, fileName: videoTitle, sport: detectedGameSport,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+        thumbnailUrl,
       }),
     });
     const startData = await startRes.json().catch(() => ({}));
@@ -1483,6 +1534,7 @@ type AnalysisJob = {
   id: string; status: "queued" | "processing" | "complete" | "failed";
   progress_current: number; progress_total: number; progress_label: string | null;
   file_name: string | null; sport: string | null; error: string | null; review_id: string | null;
+  team_id: string | null; opponent_name: string | null; thumbnail_url: string | null; created_at: string;
 };
 
 export function FilmLibrary({ reviews, onReviewsChange, userId }: {
@@ -1490,13 +1542,14 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   onReviewsChange: (r: Review[]) => void;
   userId?: string;
 }) {
-  const [expandedReview, setExpandedReview] = useState<number | null>(null);
+  const [openReview,  setOpenReview]  = useState<Review | null>(null);
   const [search,      setSearch]      = useState("");
   const [modeFilter,  setModeFilter]  = useState<"all" | "clip" | "game">("all");
   const [gradeFilter, setGradeFilter] = useState<"all" | "good" | "mid" | "poor">("all");
   const [sharing,     setSharing]     = useState<string | null>(null);
   const [renamingId,  setRenamingId]  = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [collapsed,   setCollapsed]   = useState<Set<string>>(new Set());
   const [myTeams,     setMyTeams]     = useState<{ id: string; name: string }[]>([]);
   const [jobs,        setJobs]        = useState<AnalysisJob[]>([]);
   const reviewsRef = useRef(reviews);
@@ -1524,7 +1577,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
               id: row.id, fileName: row.file_name, sport: row.sport, mode: row.mode,
               grade: row.grade, timestamp: new Date(row.created_at).getTime(),
               teamId: row.team_id, opponentName: row.opponent_name, gameType: row.game_type,
-              gameDate: row.game_date, location: row.location,
+              gameDate: row.game_date, location: row.location, thumbnailUrl: row.thumbnail_url,
               ...(row.data || {}),
             };
             saveReviews([mapped, ...reviewsRef.current]);
@@ -1555,8 +1608,8 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   }
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
-  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); deleteReviewRemote(userId, id); }
-  function startRename(review: Review, e: React.MouseEvent) { e.stopPropagation(); setRenamingId(review.id); setRenameValue(review.fileName); }
+  function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setOpenReview(null); deleteReviewRemote(userId, id); }
+  function startRename(review: Review) { setRenamingId(review.id); setRenameValue(review.fileName); }
   function commitRename() {
     if (renamingId) {
       const trimmed = renameValue.trim();
@@ -1566,8 +1619,13 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     }
     setRenamingId(null);
   }
-  function onToggle(i: number) { setExpandedReview(expandedReview === i ? null : i); }
-  function onDelete(id: string) { deleteReview(id); }
+  function toggleTeam(key: string) {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   const GRADE_NUM: Record<string, number> = {
     "A+": 13, "A": 12, "A-": 11, "B+": 10, "B": 9, "B-": 8,
@@ -1587,8 +1645,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     return true;
   });
 
-  async function handleShareReview(review: Review, e: React.MouseEvent) {
-    e.stopPropagation();
+  async function handleShareReview(review: Review) {
     setSharing(review.id);
     const firstPlayer = review.decisions?.[0];
     await shareGradeCard({
@@ -1649,17 +1706,57 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     );
   }
 
+  // Group reviews (and in-flight jobs) into collapsible team sections, plus an
+  // "Unassigned" catch-all for anything not linked to a team — mirrors HoopIQ's
+  // My Games layout.
+  const filtersActive = modeFilter !== "all" || gradeFilter !== "all" || search.trim() !== "";
+  const teamNameById = new Map(myTeams.map(t => [t.id, t.name]));
+  type Group = { key: string; name: string; teamId: string | null; reviews: Review[]; jobs: AnalysisJob[]; latest: number };
+  const groupMap = new Map<string, Group>();
+  const ensureGroup = (teamId: string | null) => {
+    const key = teamId || "__unassigned__";
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        key, teamId, reviews: [], jobs: [], latest: 0,
+        name: teamId ? (teamNameById.get(teamId) || "Team") : "Unassigned",
+      });
+    }
+    return groupMap.get(key)!;
+  };
+  for (const r of filtered) {
+    const g = ensureGroup(r.teamId || null);
+    g.reviews.push(r);
+    g.latest = Math.max(g.latest, r.timestamp);
+  }
+  if (!filtersActive) {
+    for (const j of [...activeJobs, ...failedJobs]) {
+      const g = ensureGroup(j.team_id || null);
+      g.jobs.push(j);
+      g.latest = Math.max(g.latest, new Date(j.created_at).getTime() || Date.now());
+    }
+  }
+  const groups = [...groupMap.values()].sort((a, b) => {
+    if (a.key === "__unassigned__") return 1;
+    if (b.key === "__unassigned__") return -1;
+    return b.latest - a.latest;
+  });
+
+  const dateLabel = (r: Review) => {
+    const base = r.gameDate
+      ? new Date(r.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : formatDate(r.timestamp);
+    return r.gameType ? `${base} · ${r.gameType}` : base;
+  };
+
   return (
     <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-white">Film Library</p>
-          <p className="text-xs text-zinc-600 mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-zinc-600 mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""} · organized by team</p>
         </div>
       </div>
-
-      {jobsPanel}
 
       {/* Search + Filters */}
       <div className="mb-4 space-y-3">
@@ -1686,95 +1783,172 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="flex h-24 items-center justify-center rounded-lg border border-zinc-800">
           <p className="text-sm text-zinc-600">No reviews match your filters.</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((review) => {
-            const originalIndex = reviews.indexOf(review);
-            const isOpen = expandedReview === originalIndex;
+        <div className="space-y-3">
+          {groups.map(group => {
+            const isCollapsed = collapsed.has(group.key);
+            // Best-effort record from this team's linked games.
+            let wins = 0, losses = 0;
+            for (const r of group.reviews) {
+              const res = gameResult(r, group.name === "Unassigned" ? null : group.name);
+              if (res?.outcome === "W") wins++;
+              else if (res?.outcome === "L") losses++;
+            }
+            const record = wins + losses > 0 ? `${wins}-${losses}` : null;
+            const count = group.reviews.length + group.jobs.length;
             return (
-              <div key={review.id} className="border border-zinc-800 rounded-xl overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3">
-                  {/* Grade pill */}
-                  <div className="shrink-0">
-                    <GradeBadge grade={review.grade} large />
-                  </div>
-
-                  {/* Meta */}
-                  {renamingId === review.id ? (
-                    <div className="flex-1 min-w-0 flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                      <input
-                        autoFocus
-                        value={renameValue}
-                        onChange={e => setRenameValue(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenamingId(null); }}
-                        className="flex-1 min-w-0 rounded-lg border border-zinc-700 bg-black px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-zinc-500"
+              <div key={group.key} className="rounded-2xl border border-zinc-800 bg-black/20">
+                <TeamSectionHeader
+                  name={group.name}
+                  initials={group.teamId ? teamInitials(group.name) : "—"}
+                  colorClass={group.teamId ? teamAvatarColor(group.key) : "bg-zinc-700"}
+                  subtitle={`${count} ${count === 1 ? "game" : "games"}`}
+                  record={record}
+                  recordTone={record ? (wins >= losses ? "win" : "loss") : "neutral"}
+                  open={!isCollapsed}
+                  onToggle={() => toggleTeam(group.key)}
+                />
+                {!isCollapsed && (
+                  <div className="grid gap-3 p-3 pt-0 sm:grid-cols-2 lg:grid-cols-3">
+                    {group.jobs.map(job => (
+                      <GameCard
+                        key={job.id}
+                        thumbnailUrl={job.thumbnail_url}
+                        sport={job.sport || ""}
+                        dateLabel={job.opponent_name ? `vs ${job.opponent_name}` : "Processing"}
+                        title={job.file_name || "Untitled game"}
+                        status={job.status === "failed"
+                          ? { label: "Failed", tone: "failed" }
+                          : { label: job.progress_label || "Analyzing…", tone: "processing" }}
                       />
-                      <button onClick={commitRename} className="rounded-lg bg-white px-2.5 py-1.5 text-[10px] font-semibold text-black">Save</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => onToggle(originalIndex)} className="flex-1 min-w-0 text-left">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-white truncate">{review.fileName || review.sport}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${review.mode === "game" ? "bg-zinc-800 text-zinc-400" : "bg-zinc-800 text-zinc-400"}`}>
-                          {review.mode === "game" ? "Game" : "Clip"}
-                        </span>
-                        {review.mode === "clip" && review.decisions && (
-                          <span className="text-[10px] text-zinc-600">{review.decisions.length} players</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-600 mt-0.5 truncate capitalize">{review.sport} · {formatDate(review.timestamp)}</p>
-                    </button>
-                  )}
-
-                  {/* Actions */}
-                  {renamingId !== review.id && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      {myTeams.length > 0 && (
-                        <select
-                          value={review.teamId || ""}
-                          onClick={e => e.stopPropagation()}
-                          onChange={e => linkReviewToTeam(review.id, e.target.value)}
-                          className="rounded-lg border border-zinc-800 bg-black px-2 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors focus:outline-none">
-                          <option value="">No team</option>
-                          {myTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                      )}
-                      <button onClick={e => startRename(review, e)}
-                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
-                        Rename
-                      </button>
-                      <button onClick={e => handleShareReview(review, e)} disabled={sharing === review.id}
-                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors disabled:opacity-40">
-                        {sharing === review.id ? "…" : "Share"}
-                      </button>
-                      <button onClick={() => onToggle(originalIndex)}
-                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
-                        {isOpen ? "Close" : "View"}
-                      </button>
-                      <button onClick={() => onDelete(review.id)}
-                        className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 hover:text-red-400 hover:border-red-900 transition-colors">
-                        Del
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {isOpen && (
-                  <div className="border-t border-zinc-800 p-4">
-                    {review.mode === "clip" && review.decisions
-                      ? <PlayerCardList decisions={review.decisions} />
-                      : review.mode === "game" && review.gameReport
-                      ? <GameResultsView report={review.gameReport} onClose={() => onToggle(originalIndex)} />
-                      : <p className="text-xs text-zinc-600">No data saved for this review.</p>}
+                    ))}
+                    {group.reviews.map(review => (
+                      <GameCard
+                        key={review.id}
+                        thumbnailUrl={review.thumbnailUrl}
+                        sport={review.sport}
+                        dateLabel={dateLabel(review)}
+                        title={review.opponentName ? `vs ${review.opponentName}` : (review.fileName || review.sport)}
+                        grade={review.grade}
+                        result={gameResult(review, group.name === "Unassigned" ? null : group.name)}
+                        onClick={() => setOpenReview(review)}
+                        menu={
+                          <ReviewMenu
+                            review={review}
+                            teams={myTeams}
+                            sharing={sharing === review.id}
+                            onOpen={() => setOpenReview(review)}
+                            onRename={() => startRename(review)}
+                            onShare={() => handleShareReview(review)}
+                            onLinkTeam={(teamId) => linkReviewToTeam(review.id, teamId)}
+                            onDelete={() => deleteReview(review.id)}
+                          />
+                        }
+                      />
+                    ))}
                   </div>
                 )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Rename modal */}
+      {renamingId && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={() => setRenamingId(null)}>
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950 p-5" onClick={e => e.stopPropagation()}>
+            <p className="mb-3 text-sm font-bold text-white">Rename</p>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenamingId(null); }}
+              className="w-full rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+            />
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setRenamingId(null)} className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm font-semibold text-zinc-300 hover:bg-zinc-900">Cancel</button>
+              <button onClick={commitRename} className="flex-1 rounded-lg bg-white py-2 text-sm font-bold text-black hover:bg-zinc-100">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review detail overlay */}
+      {openReview && (
+        openReview.mode === "game" && openReview.gameReport
+          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} />
+          : (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
+              <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <button onClick={() => setOpenReview(null)}
+                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+                    ← Back to library
+                  </button>
+                  <p className="truncate px-3 text-sm font-black text-white">{openReview.fileName || openReview.sport}</p>
+                  <button onClick={() => setOpenReview(null)} className="text-zinc-500 hover:text-white"><X className="h-5 w-5" /></button>
+                </div>
+                {openReview.mode === "clip" && openReview.decisions
+                  ? <PlayerCardList decisions={openReview.decisions} />
+                  : <p className="text-sm text-zinc-600">No data saved for this review.</p>}
+              </div>
+            </div>
+          )
+      )}
+    </div>
+  );
+}
+
+// Overflow (⋮) menu for a game card in the Film Library.
+function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkTeam, onDelete }: {
+  review: Review;
+  teams: { id: string; name: string }[];
+  sharing: boolean;
+  onOpen: () => void;
+  onRename: () => void;
+  onShare: () => void;
+  onLinkTeam: (teamId: string) => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [open]);
+  return (
+    <div className="relative shrink-0">
+      <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+        className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-white">
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-7 z-20 w-44 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-xl"
+          onClick={e => e.stopPropagation()}>
+          <button onClick={() => { setOpen(false); onOpen(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Open report</button>
+          <button onClick={() => { setOpen(false); onRename(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Rename</button>
+          <button onClick={() => { setOpen(false); onShare(); }} disabled={sharing} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800 disabled:opacity-40">{sharing ? "Sharing…" : "Share"}</button>
+          {teams.length > 0 && (
+            <div className="border-t border-zinc-800">
+              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">Move to team</p>
+              <select
+                value={review.teamId || ""}
+                onChange={e => { onLinkTeam(e.target.value); setOpen(false); }}
+                className="mx-2 mb-1 w-[calc(100%-1rem)] rounded-lg border border-zinc-800 bg-black px-2 py-1.5 text-xs text-zinc-300 focus:outline-none">
+                <option value="">Unassigned</option>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="border-t border-zinc-800">
+            <button onClick={() => { setOpen(false); onDelete(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-red-400 hover:bg-red-950/40">Delete</button>
+          </div>
         </div>
       )}
     </div>

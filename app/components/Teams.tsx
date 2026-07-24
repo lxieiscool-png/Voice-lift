@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Plus, MapPin, Calendar, ChevronLeft, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Users, Plus, MapPin, Calendar, ChevronLeft, Loader2, Pencil, Trash2, Settings2, X } from "lucide-react";
 import { createClient } from "../lib/supabase/client";
 import type { Team, TeamMember, Review } from "../lib/types";
-import { formatDate } from "../lib/decisioniq-helpers";
+import { formatDate, gameResult } from "../lib/decisioniq-helpers";
+import { TeamSectionHeader, GameCard, teamAvatarColor, teamInitials } from "./GameCards";
+import { GameResultsView, PlayerCardList } from "./DecisionIQ";
 
 function rowToTeam(r: any): Team {
   return {
@@ -51,6 +53,16 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
   const [showEdit, setShowEdit] = useState(false);
   const [openTeam, setOpenTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [openReview, setOpenReview] = useState<Review | null>(null);
+
+  function toggleTeam(key: string) {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -247,25 +259,84 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
       )}
 
       {teams.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-3">
           {teams.map(t => {
             const record = computeSeasonRecord(t, reviews);
+            const games = reviews
+              .filter(r => r.teamId === t.id)
+              .sort((a, b) => (b.gameDate ? new Date(b.gameDate).getTime() : b.timestamp) - (a.gameDate ? new Date(a.gameDate).getTime() : a.timestamp));
+            const isCollapsed = collapsed.has(t.id);
+            const subtitle = [[t.ageGroup, t.gender].filter(Boolean).join(" "), t.season, `${games.length} ${games.length === 1 ? "game" : "games"}`]
+              .filter(Boolean).join(" · ");
             return (
-              <button key={t.id} onClick={() => setOpenTeam(t)}
-                className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-left transition-colors hover:border-zinc-600">
-                <p className="font-bold text-white">{t.name}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  {[t.ageGroup, t.gender, t.season].filter(Boolean).join(" · ") || "No details yet"}
-                </p>
-                {(t.city || t.state) && <p className="mt-1 text-xs text-zinc-600">{[t.city, t.state].filter(Boolean).join(", ")}</p>}
-                <p className="mt-3 text-sm font-semibold text-zinc-300">{record.total > 0 ? `${record.wins}-${record.losses}` : "No games tracked"}</p>
-              </button>
+              <div key={t.id} className="rounded-2xl border border-zinc-800 bg-black/20">
+                <TeamSectionHeader
+                  name={t.name}
+                  initials={teamInitials(t.name)}
+                  colorClass={teamAvatarColor(t.id)}
+                  badge={t.level}
+                  subtitle={subtitle}
+                  record={record.total > 0 ? `${record.wins} – ${record.losses}` : null}
+                  recordTone={record.total > 0 ? (record.wins >= record.losses ? "win" : "loss") : "neutral"}
+                  open={!isCollapsed}
+                  onToggle={() => toggleTeam(t.id)}
+                  actions={
+                    <button onClick={() => setOpenTeam(t)}
+                      className="flex items-center gap-1.5 rounded-lg border border-zinc-800 px-2.5 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-600">
+                      <Settings2 className="h-3.5 w-3.5" /> Manage
+                    </button>
+                  }
+                />
+                {!isCollapsed && (
+                  games.length === 0 ? (
+                    <p className="px-4 pb-4 text-sm text-zinc-500">No games linked yet. When uploading in DecisionIQ, attach the game to this team — or use a game's ⋮ menu in the Library.</p>
+                  ) : (
+                    <div className="grid gap-3 p-3 pt-0 sm:grid-cols-2 lg:grid-cols-3">
+                      {games.map(g => (
+                        <GameCard
+                          key={g.id}
+                          thumbnailUrl={g.thumbnailUrl}
+                          sport={g.sport}
+                          dateLabel={g.gameDate ? new Date(g.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : formatDate(g.timestamp)}
+                          title={g.opponentName ? `vs ${g.opponentName}` : (g.fileName || g.sport)}
+                          grade={g.grade}
+                          result={gameResult(g, t.name)}
+                          onClick={() => setOpenReview(g)}
+                        />
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
             );
           })}
         </div>
       )}
 
       {showCreate && <CreateTeamModal defaultSport={sport} onClose={() => setShowCreate(false)} onCreate={createTeam} />}
+
+      {/* Game report overlay */}
+      {openReview && (
+        openReview.mode === "game" && openReview.gameReport
+          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} />
+          : (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
+              <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <button onClick={() => setOpenReview(null)}
+                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+                    ← Back
+                  </button>
+                  <p className="truncate px-3 text-sm font-black text-white">{openReview.fileName || openReview.sport}</p>
+                  <button onClick={() => setOpenReview(null)} className="text-zinc-500 hover:text-white"><X className="h-5 w-5" /></button>
+                </div>
+                {openReview.mode === "clip" && openReview.decisions
+                  ? <PlayerCardList decisions={openReview.decisions} />
+                  : <p className="text-sm text-zinc-600">No data saved for this review.</p>}
+              </div>
+            </div>
+          )
+      )}
     </div>
   );
 }

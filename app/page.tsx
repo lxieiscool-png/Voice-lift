@@ -1294,7 +1294,7 @@ export default function Reel() {
         id: r.id, fileName: r.file_name, sport: r.sport, mode: r.mode,
         grade: r.grade, timestamp: new Date(r.created_at).getTime(),
         teamId: r.team_id, opponentName: r.opponent_name, gameType: r.game_type,
-        gameDate: r.game_date, location: r.location,
+        gameDate: r.game_date, location: r.location, thumbnailUrl: r.thumbnail_url,
         ...(r.data || {}),
       }));
       setReviews(mapped);

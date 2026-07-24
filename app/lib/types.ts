@@ -28,7 +28,7 @@ export type Review = {
   grade: string; timestamp: number;
   decisions?: PlayerDecision[]; gameReport?: GameReport;
   teamId?: string | null; opponentName?: string | null; gameType?: string | null;
-  gameDate?: string | null; location?: string | null;
+  gameDate?: string | null; location?: string | null; thumbnailUrl?: string | null;
 };
 
 export type Profile = { name: string; sport: string; team: string; jersey?: string; position?: string; teamColor?: string };

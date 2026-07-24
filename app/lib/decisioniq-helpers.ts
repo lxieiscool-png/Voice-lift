@@ -1,4 +1,25 @@
-import type { PlayerDecision } from "./types";
+import type { PlayerDecision, Review } from "./types";
+
+// Best-effort W/L/T for a single game, from the AI-detected winner in the game
+// report's team comparison. Returns null when there's no reliable result to
+// show (a clip, no team comparison, or an unclear winner) — same honesty
+// stance as the grading prompts: we don't invent a result that isn't there.
+export function gameResult(review: Review, teamName?: string | null): { outcome: "W" | "L" | "T"; score: string | null } | null {
+  const tc = review.gameReport?.teamComparison;
+  if (!tc) return null;
+  const winner = (tc.winner || "").toLowerCase().trim();
+  if (!winner || winner === "unclear") return null;
+
+  const mine = (teamName || "").toLowerCase().trim();
+  const opp = (review.opponentName || tc.teamB || "").toLowerCase().trim();
+
+  if (/\btie\b|\bdraw\b/.test(winner)) return { outcome: "T", score: tc.score };
+  if (mine && (winner.includes(mine) || mine.includes(winner))) return { outcome: "W", score: tc.score };
+  if (opp && (winner.includes(opp) || opp.includes(winner))) return { outcome: "L", score: tc.score };
+  // Without a known "my team" name we can't say which side won — show no W/L
+  // badge rather than guessing.
+  return null;
+}
 
 export const GRADE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   "A+": { bg: "bg-emerald-500", text: "text-white",  border: "border-emerald-500" },
