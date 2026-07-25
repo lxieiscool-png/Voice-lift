@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Dumbbell, Loader2, CheckCircle2, AlertTriangle, Upload } from "lucide-react";
 import type { DrillFeedback, Profile } from "../lib/types";
 import { parseDrillFeedback } from "../lib/analysis/parsers";
+import { Button } from "./ui/button";
 
 // Short single-player clip → sample ~18 frames evenly. A drill is one person
 // close to the camera, so we don't need the game path's density or motion
@@ -107,12 +108,9 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
         <input type="file" accept="video/*" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
       </label>
 
-      <button
-        onClick={run}
-        disabled={loading || !drill.trim() || !file}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
+      <Button onClick={run} disabled={loading || !drill.trim() || !file} size="lg" className="mt-3 w-full">
         {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Checking your form…</> : "Check my drill"}
-      </button>
+      </Button>
 
       {error && (
         <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/20 px-3 py-2.5 text-sm text-red-300">
