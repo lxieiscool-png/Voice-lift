@@ -109,9 +109,9 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
         // dead-time frames — so the frame budget is spent on active play
         // instead of timeouts and huddles. Cap candidates so seeking stays
         // bounded; kept frames are capped again after filtering.
-        const CANDIDATE_CAP = 520;
+        const CANDIDATE_CAP = 320;
         timestamps = [];
-        for (let t = 5; t < duration - 5; t += 5) timestamps.push(t);
+        for (let t = 5; t < duration - 5; t += 6) timestamps.push(t);
         if (timestamps.length > CANDIDATE_CAP) {
           const step = Math.floor(timestamps.length / CANDIDATE_CAP);
           timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, CANDIDATE_CAP);
@@ -136,7 +136,7 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
       const SIG_W = 32, SIG_H = 18;
       const MOTION_THRESHOLD = 9;  // mean per-pixel grayscale delta (0–255) to count as "changed"
       const MAX_GAP = 20;          // force-keep at least this often (s) so static stretches still get sampled
-      const GAME_MAX_FRAMES = 400;
+      const GAME_MAX_FRAMES = 240; // frame budget (was 400) — biggest lever on per-game cost; same model, so read quality per frame is unchanged
       const sigCanvas = document.createElement("canvas");
       sigCanvas.width = SIG_W; sigCanvas.height = SIG_H;
       const sigCtx = sigCanvas.getContext("2d", { willReadFrequently: true });
