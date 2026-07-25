@@ -132,7 +132,7 @@ export async function POST(req: Request) {
       // silently produces a garbage 3-player "analysis" — refuse honestly
       // when the video is long OR we can't verify its length.
       if (!knownDuration || knownDuration > 120) {
-        return NextResponse.json({ error: "YouTube wouldn't give us enough video data for this one — this looks like more than a short clip, and 4 preview thumbnails can't cover it. Download the video and upload it as a file to get the full game report with team rosters." }, { status: 400 });
+        return NextResponse.json({ error: "YouTube wouldn't share enough of this video to analyze it properly — that happens a lot with full games. Upload the video file instead to get the complete report (that's also our sharpest analysis)." }, { status: 400 });
       }
       const thumbUrls = ["hqdefault", "hq1", "hq2", "hq3"].map(
         n => `https://i.ytimg.com/vi/${videoId}/${n}.jpg`

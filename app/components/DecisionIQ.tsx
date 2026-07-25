@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video } from "lucide-react";
+import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video, Upload } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
@@ -1486,6 +1486,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               {ytError && (
                 <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3">
                   <p className="text-sm text-red-400">{ytError}</p>
+                  <Button variant="secondary" size="sm" className="mt-2.5"
+                    onClick={() => { setInputTab("file"); setYtError(""); }}>
+                    <Upload className="h-3.5 w-3.5" /> Switch to file upload
+                  </Button>
                 </div>
               )}
               <p className="text-xs text-muted-foreground">Must be a public video — private, unlisted, or age-restricted videos won't work. For the sharpest analysis, uploading the actual video file is still best.</p>
