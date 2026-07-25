@@ -96,6 +96,26 @@ export function formatTime(seconds: number) {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// ─── Drill Check handoff ──────────────────────────────────────────────────────
+// Bridges a prescribed drill from anywhere in the app (a report's Practice
+// Focus) into CoachIQ's Drill Check tab: stash the drill, fire an event;
+// page.tsx switches modules and CoachIQ picks the drill up.
+export const DRILL_PREFILL_KEY = "reel-drill-prefill";
+export const OPEN_DRILL_EVENT = "reel-open-drill-check";
+
+export function openDrillCheck(drill: string) {
+  try { localStorage.setItem(DRILL_PREFILL_KEY, drill); } catch {}
+  window.dispatchEvent(new CustomEvent(OPEN_DRILL_EVENT));
+}
+
+export function takeDrillPrefill(): string {
+  try {
+    const v = localStorage.getItem(DRILL_PREFILL_KEY) ?? "";
+    localStorage.removeItem(DRILL_PREFILL_KEY);
+    return v;
+  } catch { return ""; }
+}
+
 export function formatDate(ts: number) {
   const d = new Date(ts);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · " +

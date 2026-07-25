@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, ClipboardList, Calendar, Dumbbell } from "lucide-react";
 import type { ChatMessage, DrillDay, PracticePlan, Profile, Review } from "../lib/types";
 import { sportIcon, sportSuggestions } from "../lib/shared";
+import { takeDrillPrefill, OPEN_DRILL_EVENT } from "../lib/decisioniq-helpers";
 import DrillCheck from "./DrillCheck";
 
 // ─── Plan Parser ──────────────────────────────────────────────────────────────
@@ -112,6 +113,20 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
 
 export default function CoachIQ({ profile, reviews, userId }: { profile: Profile; reviews: Review[]; userId?: string }) {
   const [tab, setTab] = useState<"chat" | "plan" | "drill">("chat");
+  const [drillPrefill, setDrillPrefill] = useState("");
+
+  // Pick up a drill handed over from a report's "Check my drill" button —
+  // both when CoachIQ mounts (module just switched) and if the event fires
+  // while already mounted. Keyed remount below resets DrillCheck's state.
+  useEffect(() => {
+    const pickup = () => {
+      const drill = takeDrillPrefill();
+      if (drill) { setDrillPrefill(drill); setTab("drill"); }
+    };
+    pickup();
+    window.addEventListener(OPEN_DRILL_EVENT, pickup);
+    return () => window.removeEventListener(OPEN_DRILL_EVENT, pickup);
+  }, []);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -407,7 +422,7 @@ export default function CoachIQ({ profile, reviews, userId }: { profile: Profile
       )}
 
       {/* Drill Check tab */}
-      {tab === "drill" && <DrillCheck profile={profile} userId={userId} />}
+      {tab === "drill" && <DrillCheck key={drillPrefill || "blank"} profile={profile} userId={userId} initialDrill={drillPrefill} />}
     </div>
   );
 }

@@ -1203,6 +1203,14 @@ export default function Reel() {
   const [isPro,           setIsPro]           = useState(false);
   const [upgradeSuccess,  setUpgradeSuccess]  = useState(false);
 
+  // "Check my drill" from a report jumps to CoachIQ (which opens its Drill
+  // Check tab and picks up the prefilled drill from localStorage).
+  useEffect(() => {
+    const open = () => setActiveModule("coach");
+    window.addEventListener("reel-open-drill-check", open);
+    return () => window.removeEventListener("reel-open-drill-check", open);
+  }, []);
+
   const supabase = createClient();
 
   useEffect(() => {

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X } from "lucide-react";
+import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat } from "../lib/types";
-import { gradeClass, formatTime, formatDate, gameResult } from "../lib/decisioniq-helpers";
+import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
 import { TeamSectionHeader, GameCard, teamAvatarColor } from "./GameCards";
+import { Button } from "./ui/button";
 
 function persistReview(userId: string | undefined, review: Review) {
   if (!userId) return;
@@ -543,6 +544,10 @@ function PlayerCard({ decision, defaultOpen = false }: {
             <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-4">
               <SectionLabel>Practice Focus</SectionLabel>
               <p className="text-sm text-foreground leading-relaxed">{decision.practiceFocus}</p>
+              <Button variant="secondary" size="sm" className="mt-3"
+                onClick={e => { e.stopPropagation(); openDrillCheck(decision.practiceFocus); }}>
+                <Video className="h-3.5 w-3.5" /> Check my drill
+              </Button>
             </div>
           )}
         </div>
@@ -755,6 +760,12 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
             <div key={key} className="border border-border rounded-lg p-3">
               <SectionLabel>{label}</SectionLabel>
               <p className="text-sm text-foreground leading-relaxed">{val as string}</p>
+              {key === "practiceFocus" && (
+                <Button variant="secondary" size="sm" className="mt-3"
+                  onClick={() => openDrillCheck(val as string)}>
+                  <Video className="h-3.5 w-3.5" /> Check my drill
+                </Button>
+              )}
             </div>
           );
         })}

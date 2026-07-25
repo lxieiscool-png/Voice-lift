@@ -59,6 +59,25 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState<DrillFeedback | null>(null);
+  const [howto, setHowto] = useState("");
+  const [howtoLoading, setHowtoLoading] = useState(false);
+
+  async function showHowto() {
+    if (!drill.trim() || howtoLoading) return;
+    setHowtoLoading(true); setHowto("");
+    try {
+      const res = await fetch("/api/drill/howto", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drill: drill.trim(), sport: profile?.sport }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setHowto(data.howto || data.error || "Couldn't build instructions — try again.");
+    } catch {
+      setHowto("Couldn't build instructions — check your connection and try again.");
+    } finally {
+      setHowtoLoading(false);
+    }
+  }
 
   async function run() {
     if (!drill.trim() || !file) return;
@@ -101,6 +120,20 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
         rows={2}
         className="mb-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
       />
+
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <Button variant="outline" size="sm" onClick={showHowto} disabled={!drill.trim() || howtoLoading}>
+          {howtoLoading ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing it up…</> : "Show me how to do it"}
+        </Button>
+        {howto && <button onClick={() => setHowto("")} className="text-xs text-muted-foreground hover:text-foreground">Hide</button>}
+      </div>
+
+      {howto && (
+        <div className="mb-3 rounded-lg border border-border bg-muted p-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">How to do this drill</p>
+          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">{howto}</pre>
+        </div>
+      )}
 
       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground hover:border-ring">
         <Upload className="h-4 w-4" />
