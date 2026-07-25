@@ -45,7 +45,7 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
     return (
       <button
         onClick={() => { setDraft({ name: "", sport: "", team: "", jersey: "" }); setEditing(true); }}
-        className="mb-6 w-full border border-dashed border-zinc-800 py-3 text-sm text-zinc-600 hover:border-zinc-600 hover:text-zinc-400 transition-colors rounded-xl"
+        className="mb-6 w-full border border-dashed border-border py-3 text-sm text-muted-foreground hover:border-ring hover:text-muted-foreground transition-colors rounded-xl"
       >
         Set up your athlete profile
       </button>
@@ -54,28 +54,28 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
 
   if (editing) {
     return (
-      <div className="mb-6 border border-zinc-800 bg-zinc-950 rounded-xl p-5">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Profile</p>
+      <div className="mb-6 border border-border bg-card rounded-xl p-5">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Your name" value={draft.name ?? ""} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Primary sport" value={draft.sport ?? ""} onChange={e => setDraft(d => ({ ...d, sport: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Team / school" value={draft.team ?? ""} onChange={e => setDraft(d => ({ ...d, team: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Jersey number (e.g. 23) — tracks your grades over time"
             value={draft.jersey ?? ""} onChange={e => setDraft(d => ({ ...d, jersey: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Position (e.g. Point Guard)"
             value={draft.position ?? ""} onChange={e => setDraft(d => ({ ...d, position: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Team jersey colors (e.g. White, or 'mixed white + blue')"
             value={draft.teamColor ?? ""} onChange={e => setDraft(d => ({ ...d, teamColor: e.target.value }))} />
         </div>
         <div className="mt-3 flex gap-2">
-          <button onClick={save} className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">Save</button>
-          <button onClick={() => setEditing(false)} className="rounded-lg px-4 py-2 text-sm text-zinc-500 hover:text-white transition-colors">Cancel</button>
+          <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Save</button>
+          <button onClick={() => setEditing(false)} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
         </div>
       </div>
     );
@@ -83,14 +83,14 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
 
   const avg = averageGrade(reviews.map(r => r.grade).filter(g => g && g !== "N/A"));
   return (
-    <div className="mb-6 flex items-center justify-between rounded-2xl border border-zinc-800 bg-gradient-to-r from-zinc-900/70 to-zinc-950 px-4 py-3.5">
+    <div className="mb-6 flex items-center justify-between rounded-2xl border border-border bg-gradient-to-r from-muted/70 to-card px-4 py-3.5">
       <div className="flex items-center gap-3.5 min-w-0">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-400 text-black text-sm font-black shadow-lg shadow-white/10">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-400 text-primary-foreground text-sm font-black shadow-lg shadow-white/10">
           {profile.jersey ? `#${profile.jersey}` : profile.name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-white">{profile.name}</p>
-          <p className="truncate text-xs text-zinc-500">
+          <p className="truncate text-sm font-bold text-foreground">{profile.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
             {[profile.sport, profile.team].filter(Boolean).join(" · ") || "Athlete"}
           </p>
         </div>
@@ -98,20 +98,20 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
       <div className="flex items-center gap-2 shrink-0">
         {reviews.length > 0 && (
           <>
-            <div className="hidden sm:flex flex-col items-center rounded-xl border border-zinc-800 bg-black/40 px-3 py-1.5">
-              <span className="text-sm font-black text-white leading-tight">{reviews.length}</span>
-              <span className="text-[9px] uppercase tracking-widest text-zinc-600">clips</span>
+            <div className="hidden sm:flex flex-col items-center rounded-xl border border-border bg-muted px-3 py-1.5">
+              <span className="text-sm font-black text-foreground leading-tight">{reviews.length}</span>
+              <span className="text-[9px] uppercase tracking-widest text-muted-foreground">clips</span>
             </div>
             {avg !== "N/A" && (
-              <div className="hidden sm:flex flex-col items-center rounded-xl border border-zinc-800 bg-black/40 px-3 py-1.5">
-                <span className="text-sm font-black leading-tight text-white">{avg}</span>
-                <span className="text-[9px] uppercase tracking-widest text-zinc-600">avg grade</span>
+              <div className="hidden sm:flex flex-col items-center rounded-xl border border-border bg-muted px-3 py-1.5">
+                <span className="text-sm font-black leading-tight text-foreground">{avg}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">avg grade</span>
               </div>
             )}
           </>
         )}
         <button onClick={() => { setDraft(profile); setEditing(true); }}
-          className="rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors">
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
           Edit
         </button>
       </div>
@@ -161,11 +161,11 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
   return (
     <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
       {stats.map(({ label, value, grade, fire }) => (
-        <div key={label} className="border border-zinc-800 bg-zinc-950 rounded-xl px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-1">{label}</p>
+        <div key={label} className="border border-border bg-card rounded-xl px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
           {grade
             ? <span className={`inline-block rounded-md px-2.5 py-0.5 text-lg font-bold ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="flex items-center gap-1 text-xl font-bold text-white capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
+            : <p className="flex items-center gap-1 text-xl font-bold text-foreground capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
           }
         </div>
       ))}
@@ -190,8 +190,8 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
   const poly  = pts.map(p => `${p.x},${p.y}`).join(" ");
 
   return (
-    <div className="mb-5 border border-zinc-800 bg-zinc-950 rounded-xl p-4">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Grade Trend</p>
+    <div className="mb-5 border border-border bg-card rounded-xl p-4">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Grade Trend</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 110 }}>
         {[{ v: 13, l: "A+" }, { v: 9, l: "B" }, { v: 6, l: "C" }, { v: 1, l: "F" }].map(({ v, l }) => (
           <g key={v}>
@@ -242,37 +242,37 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
   const steps = HOW_STEPS[activeModule];
 
   return (
-    <div className="mb-6 rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 overflow-hidden">
+    <div className="mb-6 rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card overflow-hidden">
       <button onClick={toggle}
         className="flex w-full items-center justify-between px-5 py-4 text-left">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-0.5">How it works</p>
-          <p className="text-sm font-semibold text-white">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">How it works</p>
+          <p className="text-sm font-semibold text-foreground">
             {activeModule === "decision" ? "From raw footage to real feedback" : "From questions to a real plan"}
           </p>
         </div>
-        <span className="rounded-md border border-zinc-800 px-2 py-1 text-[10px] font-semibold text-zinc-500">{open ? "HIDE" : "SHOW"}</span>
+        <span className="rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{open ? "HIDE" : "SHOW"}</span>
       </button>
 
       {open && (
-        <div className="border-t border-zinc-800/60 p-5 space-y-4">
+        <div className="border-t border-border/60 p-5 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
-              <div key={s.title} className="group relative rounded-xl border border-zinc-800 bg-black/40 p-4 transition-colors hover:border-zinc-600">
+              <div key={s.title} className="group relative rounded-xl border border-border bg-muted p-4 transition-colors hover:border-ring">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-800/80"><s.icon className="h-4.5 w-4.5 text-zinc-300" strokeWidth={1.75} /></span>
-                  <span className="text-[10px] font-black tracking-widest text-zinc-700">0{i + 1}</span>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/80"><s.icon className="h-4.5 w-4.5 text-foreground" strokeWidth={1.75} /></span>
+                  <span className="text-[10px] font-black tracking-widest text-muted-foreground">0{i + 1}</span>
                 </div>
-                <p className="text-sm font-semibold text-white mb-1">{s.title}</p>
-                <p className="text-xs text-zinc-500 leading-relaxed">{s.desc}</p>
+                <p className="text-sm font-semibold text-foreground mb-1">{s.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
 
           {activeModule === "decision" && (
-            <p className="text-xs text-zinc-500 leading-relaxed px-1">
-              <span className="font-semibold text-zinc-300">DecisionIQ</span> is your film room.{" "}
-              <span className="font-semibold text-zinc-300">CoachIQ</span> is your coach on the sideline — analyze a clip, then build a plan around what you found.
+            <p className="text-xs text-muted-foreground leading-relaxed px-1">
+              <span className="font-semibold text-foreground">DecisionIQ</span> is your film room.{" "}
+              <span className="font-semibold text-foreground">CoachIQ</span> is your coach on the sideline — analyze a clip, then build a plan around what you found.
             </p>
           )}
         </div>
@@ -322,31 +322,31 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
       {open && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />}
 
       {/* Drawer */}
-      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-zinc-950 border-l border-zinc-800 transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-card border-l border-border transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex h-full flex-col overflow-y-auto">
 
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
-            <p className="text-sm font-semibold text-white">Settings</p>
-            <button onClick={onClose} className="text-xs text-zinc-600 hover:text-white transition-colors">Close</button>
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <p className="text-sm font-semibold text-foreground">Settings</p>
+            <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Close</button>
           </div>
 
           <div className="flex-1 space-y-6 p-5">
 
             {/* Profile */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Profile</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
               <div className="space-y-2">
                 {(["name", "sport", "team", "jersey"] as const).map(k => (
                   <input key={k}
-                    className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder={k === "name" ? "Your name" : k === "sport" ? "Primary sport" : k === "team" ? "Team / school" : "Jersey number (e.g. 23)"}
                     value={draft[k] ?? ""}
                     onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))}
                   />
                 ))}
                 <button onClick={save}
-                  className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                  className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
                   {saved ? "Saved" : "Save Profile"}
                 </button>
               </div>
@@ -354,7 +354,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Stats */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Your Stats</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Your Stats</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Total Reviews", value: reviews.length },
@@ -362,9 +362,9 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                   { label: "Games", value: reviews.filter(r => r.mode === "game").length },
                   { label: "Sports", value: new Set(reviews.map(r => r.sport.toLowerCase())).size },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-lg border border-zinc-800 px-3 py-2.5">
-                    <p className="text-[10px] text-zinc-600 mb-0.5">{label}</p>
-                    <p className="text-lg font-bold text-white">{value}</p>
+                  <div key={label} className="rounded-lg border border-border px-3 py-2.5">
+                    <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
+                    <p className="text-lg font-bold text-foreground">{value}</p>
                   </div>
                 ))}
               </div>
@@ -372,26 +372,26 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Data */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Data</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Data</p>
               <div className="space-y-2">
                 <button onClick={exportHistory} disabled={reviews.length === 0}
-                  className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900 disabled:opacity-30 transition-colors">
+                  className="w-full rounded-lg border border-border py-2.5 text-sm text-foreground hover:bg-muted disabled:opacity-30 transition-colors">
                   Export History
                 </button>
                 {!confirmClear
                   ? <button onClick={() => setConfirmClear(true)} disabled={reviews.length === 0}
-                      className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-500 hover:text-red-400 hover:border-red-900 disabled:opacity-30 transition-colors">
+                      className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 disabled:opacity-30 transition-colors">
                       Clear All History
                     </button>
                   : <div className="rounded-lg border border-red-900 p-3 space-y-2">
-                      <p className="text-xs text-zinc-400">Delete all {reviews.length} reviews? This can't be undone.</p>
+                      <p className="text-xs text-muted-foreground">Delete all {reviews.length} reviews? This can't be undone.</p>
                       <div className="flex gap-2">
                         <button onClick={() => { onClearHistory(); setConfirmClear(false); onClose(); }}
-                          className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors">
+                          className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-foreground hover:bg-red-700 transition-colors">
                           Delete All
                         </button>
                         <button onClick={() => setConfirmClear(false)}
-                          className="flex-1 rounded-lg border border-zinc-700 py-2 text-xs text-zinc-400 hover:text-white transition-colors">
+                          className="flex-1 rounded-lg border border-border py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                           Cancel
                         </button>
                       </div>
@@ -402,23 +402,23 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Account */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Account</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Account</p>
               {user ? (
                 <div className="space-y-2">
-                  <div className="rounded-lg border border-zinc-800 p-3">
-                    <p className="text-xs text-zinc-500 mb-0.5">Signed in as</p>
-                    <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-xs text-muted-foreground mb-0.5">Signed in as</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{user.email}</p>
                   </div>
                   <button onClick={onSignOut}
-                    className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-400 hover:text-red-400 hover:border-red-900 transition-colors">
+                    className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 transition-colors">
                     Sign Out
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500">Sign in to save your history across all devices.</p>
+                  <p className="text-xs text-muted-foreground">Sign in to save your history across all devices.</p>
                   <button onClick={onSignIn}
-                    className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                    className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
                     Sign in with Google
                   </button>
                 </div>
@@ -428,11 +428,11 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* About */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">About</p>
-              <div className="rounded-lg border border-zinc-800 p-4 space-y-1">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">About</p>
+              <div className="rounded-lg border border-border p-4 space-y-1">
                 <Logo size="sm" className="mb-1" />
-                <p className="text-xs text-zinc-500">Coaching for every athlete. Any sport, any level.</p>
-                <p className="text-xs text-zinc-700 mt-2">Built with DecisionIQ + CoachIQ</p>
+                <p className="text-xs text-muted-foreground">Coaching for every athlete. Any sport, any level.</p>
+                <p className="text-xs text-muted-foreground mt-2">Built with DecisionIQ + CoachIQ</p>
               </div>
             </div>
 
@@ -474,27 +474,27 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm p-0 sm:p-6">
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-8 shadow-2xl">
         {/* Progress */}
         <div className="mb-8 flex gap-1.5">
           {slides.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-white" : "bg-zinc-800"}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-primary" : "bg-accent"}`} />
           ))}
         </div>
 
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{s.eyebrow}</p>
-        <h2 className="mb-3 text-2xl font-black tracking-tight text-white">{s.title}</h2>
-        <p className="mb-8 text-sm text-zinc-400 leading-relaxed">{s.body}</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.eyebrow}</p>
+        <h2 className="mb-3 text-2xl font-black tracking-tight text-foreground">{s.title}</h2>
+        <p className="mb-8 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => isLast ? onDone() : setStep(s => s + 1)}
-            className="flex-1 rounded-xl bg-white py-3.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors"
+            className="flex-1 rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             {s.cta}
           </button>
           {!isLast && (
-            <button onClick={onDone} className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+            <button onClick={onDone} className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors">
               Skip
             </button>
           )}
@@ -527,7 +527,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       content: (
         <input
           autoFocus
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+          className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
           placeholder="Your first name"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -543,7 +543,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         <div className="grid grid-cols-2 gap-2">
           {SPORTS.map(s => (
             <button key={s} onClick={() => setSport(s)}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${sport === s ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${sport === s ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
               {s}
             </button>
           ))}
@@ -557,7 +557,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       content: (
         <input
           autoFocus
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+          className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
           placeholder={`e.g. Point guard, Striker, Quarterback…`}
           value={position}
           onChange={e => setPosition(e.target.value)}
@@ -573,14 +573,14 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         <div className="flex flex-col gap-2">
           <input
             autoFocus
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+            className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
             placeholder="Jersey number (e.g. 23)"
             value={jersey}
             onChange={e => setJersey(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
             inputMode="numeric"
           />
           <input
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+            className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
             placeholder="Team jersey colors (e.g. White, or 'mixed white + blue pinnies')"
             value={teamColor}
             onChange={e => setTeamColor(e.target.value)}
@@ -596,7 +596,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         <div className="flex flex-col gap-2">
           {LEVELS.map(l => (
             <button key={l} onClick={() => setLevel(l)}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${level === l ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${level === l ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
               {l}
             </button>
           ))}
@@ -613,8 +613,8 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
             const on = goals.includes(g);
             return (
               <button key={g} onClick={() => setGoals(on ? goals.filter(x => x !== g) : [...goals, g])}
-                className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors flex items-center gap-3 ${on ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
-                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${on ? "border-black bg-black text-white" : "border-zinc-600"}`}>{on ? "✓" : ""}</span>
+                className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors flex items-center gap-3 ${on ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${on ? "border-black bg-background text-foreground" : "border-ring"}`}>{on ? "✓" : ""}</span>
                 {g}
               </button>
             );
@@ -630,34 +630,34 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-      <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Close */}
-        <button onClick={onClose} className="absolute right-5 top-5 text-zinc-600 hover:text-white transition-colors text-xl leading-none">✕</button>
+        <button onClick={onClose} className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
 
         {/* Progress dots */}
         <div className="mb-8 flex gap-1.5">
           {steps.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-white" : "bg-zinc-800"}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-accent"}`} />
           ))}
         </div>
 
         {/* Content */}
-        <h2 className="mb-1 text-xl font-black tracking-tight text-white">{current.title}</h2>
-        <p className="mb-6 text-sm text-zinc-500">{current.sub}</p>
+        <h2 className="mb-1 text-xl font-black tracking-tight text-foreground">{current.title}</h2>
+        <p className="mb-6 text-sm text-muted-foreground">{current.sub}</p>
         {current.content}
 
         {/* Actions */}
         <div className="mt-6 flex gap-3">
           {step > 0 && (
             <button onClick={() => setStep(s => s - 1)}
-              className="rounded-xl border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-400 hover:text-white transition-colors">
+              className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
               Back
             </button>
           )}
           <button
             onClick={() => isLast ? onContinue({ name, sport, position, level, goals, jersey, teamColor }) : setStep(s => s + 1)}
             disabled={!current.canNext}
-            className="flex-1 rounded-xl bg-white py-3 text-sm font-bold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors">
+            className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-30 hover:bg-primary/90 transition-colors">
             {isLast ? "Create my account →" : step === 2 ? "Skip" : "Continue"}
           </button>
         </div>
@@ -707,23 +707,23 @@ function FloatingGradeCard() {
       animate={{ y: [0, -14, 0], rotateZ: [-1, 1, -1] }}
       transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       style={{ transformStyle: "preserve-3d", perspective: 800 }}
-      className="mx-auto w-72 rounded-2xl border border-zinc-700 bg-zinc-900/80 backdrop-blur-sm p-6 shadow-2xl"
+      className="mx-auto w-72 rounded-2xl border border-border bg-muted/80 backdrop-blur-sm p-6 shadow-2xl"
     >
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-2xl font-black text-white">A</div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-2xl font-black text-foreground">A</div>
         <div>
-          <p className="font-bold text-white text-sm">White Point Guard</p>
-          <p className="text-xs text-zinc-500">Basketball · Drive read</p>
+          <p className="font-bold text-foreground text-sm">White Point Guard</p>
+          <p className="text-xs text-muted-foreground">Basketball · Drive read</p>
         </div>
       </div>
       <div className="space-y-2">
-        <div className="rounded-lg bg-zinc-800 px-3 py-2">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5">What Happened</p>
-          <p className="text-xs text-zinc-300">Drove baseline, drew two defenders, kicked to open corner.</p>
+        <div className="rounded-lg bg-accent px-3 py-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5">What Happened</p>
+          <p className="text-xs text-foreground">Drove baseline, drew two defenders, kicked to open corner.</p>
         </div>
-        <div className="rounded-lg bg-zinc-800 px-3 py-2">
-          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5">Next Time</p>
-          <p className="text-xs text-zinc-300">Same read — attack the gap earlier before help arrives.</p>
+        <div className="rounded-lg bg-accent px-3 py-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5">Next Time</p>
+          <p className="text-xs text-foreground">Same read — attack the gap earlier before help arrives.</p>
         </div>
       </div>
     </motion.div>
@@ -741,12 +741,12 @@ function StatTrackingPanel() {
     <motion.div
       initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }} transition={{ duration: 0.7 }}
-      className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8"
+      className="rounded-3xl border border-border bg-card p-6 sm:p-8"
     >
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Stat tracking</p>
-          <p className="text-lg font-black text-white">This game</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Stat tracking</p>
+          <p className="text-lg font-black text-foreground">This game</p>
         </div>
         <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">↑ trending up</span>
       </div>
@@ -754,20 +754,20 @@ function StatTrackingPanel() {
         {stats.map((s, i) => (
           <div key={s.label}>
             <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-zinc-300">{s.label}</span>
-              <span className="text-sm font-black text-white">{s.value} <span className="text-[11px] font-medium text-zinc-600">{s.sub}</span></span>
+              <span className="text-sm font-semibold text-foreground">{s.label}</span>
+              <span className="text-sm font-black text-foreground">{s.value} <span className="text-[11px] font-medium text-muted-foreground">{s.sub}</span></span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-1.5 overflow-hidden rounded-full bg-accent">
               <motion.div
                 initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }}
                 viewport={{ once: true }} transition={{ delay: 0.3 + i * 0.12, duration: 0.8, ease: "easeOut" }}
-                className="h-full rounded-full bg-white"
+                className="h-full rounded-full bg-primary"
               />
             </div>
           </div>
         ))}
       </div>
-      <p className="mt-6 text-xs leading-relaxed text-zinc-500">
+      <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
         Every clip is tracked over time — watch your shooting, decisions, and ball security improve week over week.
       </p>
     </motion.div>
@@ -779,7 +779,7 @@ function AnalysisDemo() {
     <motion.div
       initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }} transition={{ duration: 0.7 }}
-      className="relative overflow-hidden rounded-3xl border border-zinc-800"
+      className="relative overflow-hidden rounded-3xl border border-border"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/demo-basketball.jpg" alt="Basketball layup being analyzed by Reel" className="block w-full" />
@@ -788,7 +788,7 @@ function AnalysisDemo() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
       {/* live badge */}
-      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur">
+      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -803,7 +803,7 @@ function AnalysisDemo() {
         className="absolute" style={{ left: "49%", top: "30%", width: "23%", height: "46%" }}
       >
         <div className="h-full w-full rounded-xl border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
-        <span className="absolute -top-5 left-0 whitespace-nowrap rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">#30 · Blue</span>
+        <span className="absolute -top-5 left-0 whitespace-nowrap rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-foreground">#30 · Blue</span>
       </motion.div>
 
       {/* defender tag */}
@@ -812,25 +812,25 @@ function AnalysisDemo() {
         viewport={{ once: true }} transition={{ delay: 0.7 }}
         className="absolute" style={{ left: "30%", top: "39%" }}
       >
-        <span className="whitespace-nowrap rounded-md bg-red-500/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-lg">Late contest</span>
+        <span className="whitespace-nowrap rounded-md bg-red-500/90 px-2 py-0.5 text-[10px] font-bold text-foreground shadow-lg">Late contest</span>
       </motion.div>
 
       {/* grade card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }} transition={{ delay: 0.95 }}
-        className="absolute bottom-3 right-3 w-60 max-w-[72%] rounded-2xl border border-zinc-700 bg-zinc-900/85 p-4 shadow-2xl backdrop-blur-md sm:bottom-5 sm:right-5"
+        className="absolute bottom-3 right-3 w-60 max-w-[72%] rounded-2xl border border-border bg-muted/85 p-4 shadow-2xl backdrop-blur-md sm:bottom-5 sm:right-5"
       >
         <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-lg font-black text-white">A-</div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-lg font-black text-foreground">A-</div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-white">#30 · Blue</p>
-            <p className="text-xs text-zinc-400">Basketball · Finish at rim</p>
+            <p className="text-sm font-bold text-foreground">#30 · Blue</p>
+            <p className="text-xs text-muted-foreground">Basketball · Finish at rim</p>
           </div>
         </div>
-        <div className="rounded-lg bg-zinc-800 px-3 py-2">
-          <p className="mb-0.5 text-[9px] uppercase tracking-widest text-zinc-500">The read</p>
-          <p className="text-xs leading-relaxed text-zinc-300">Rose up through contact and drew the foul — aggressive, correct call against a late closeout.</p>
+        <div className="rounded-lg bg-accent px-3 py-2">
+          <p className="mb-0.5 text-[9px] uppercase tracking-widest text-muted-foreground">The read</p>
+          <p className="text-xs leading-relaxed text-foreground">Rose up through contact and drew the foul — aggressive, correct call against a late closeout.</p>
         </div>
       </motion.div>
     </motion.div>
@@ -850,7 +850,7 @@ function AnimatedGrid() {
       </svg>
       {[...Array(6)].map((_, i) => (
         <motion.div key={i}
-          className="absolute rounded-full bg-white/5 blur-3xl"
+          className="absolute rounded-full bg-primary/5 blur-3xl"
           style={{ width: 300 + i * 80, height: 300 + i * 80, left: `${10 + i * 15}%`, top: `${5 + i * 12}%` }}
           animate={{ x: [0, 30, 0], y: [0, -20, 0], opacity: [0.3, 0.6, 0.3] }}
           transition={{ duration: 6 + i * 1.5, repeat: Infinity, delay: i * 0.8, ease: "easeInOut" }}
@@ -888,7 +888,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
   const heroTextY   = useTransform(scrollYProgress, [0, 1], ["0%", "-20%"]);
 
   return (
-    <div className="bg-black text-white overflow-x-hidden">
+    <div className="bg-background text-foreground overflow-x-hidden">
       <AnimatePresence>
         {showSignUp && (
           <SignUpModal
@@ -905,14 +905,14 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Logo size="md" />
           <div className="flex items-center gap-3">
-            <button onClick={onEnterApp} className="hidden sm:block text-sm text-zinc-500 hover:text-white transition-colors">Try free</button>
+            <button onClick={onEnterApp} className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Try free</button>
             <button onClick={onSignIn} disabled={signingIn}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50">
+              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:text-foreground hover:border-ring transition-colors disabled:opacity-50">
               {signingIn ? "…" : "Log in"}
             </button>
             <motion.button onClick={() => setShowSignUp(true)} disabled={signingIn}
               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black disabled:opacity-50">
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
               Sign up
             </motion.button>
           </div>
@@ -939,27 +939,27 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         <motion.div style={{ opacity: heroOpacity, y: heroTextY }}
           className="relative flex h-full flex-col items-center justify-center px-6 text-center pt-20">
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
-            className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+            className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
             Coaching for every athlete
           </motion.p>
           <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="mb-6 text-5xl font-black leading-[1.05] tracking-tight sm:text-7xl lg:text-[96px]">
-            Every athlete<br />deserves a<br /><span className="text-zinc-500">great coach.</span>
+            Every athlete<br />deserves a<br /><span className="text-muted-foreground">great coach.</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7 }}
-            className="mx-auto mb-10 max-w-lg text-base text-zinc-400 leading-relaxed sm:text-lg">
+            className="mx-auto mb-10 max-w-lg text-base text-muted-foreground leading-relaxed sm:text-lg">
             Film analysis. AI coaching. Practice plans. Free to start, for every athlete.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.7 }}
             className="flex flex-wrap items-center justify-center gap-3">
             <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }} disabled={signingIn}
               whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.96 }}
-              className="rounded-xl bg-white px-8 py-4 text-base font-bold text-black shadow-xl shadow-white/10 disabled:opacity-50">
+              className="rounded-xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-white/10 disabled:opacity-50">
               Get started free
             </motion.button>
             <motion.button onClick={onSignIn} disabled={signingIn}
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              className="rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors disabled:opacity-50">
+              className="rounded-xl border border-border px-8 py-4 text-base font-semibold text-foreground hover:border-ring hover:text-foreground transition-colors disabled:opacity-50">
               {signingIn ? "Redirecting…" : "Log in"}
             </motion.button>
           </motion.div>
@@ -967,31 +967,31 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         </motion.div>
 
         <motion.div animate={{ y: [0, 10, 0], opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2.2, repeat: Infinity }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-zinc-600">
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-muted-foreground">
           <span className="text-xs tracking-widest uppercase">Scroll</span>
-          <div className="h-6 w-px bg-zinc-700" />
+          <div className="h-6 w-px bg-accent" />
         </motion.div>
       </section>
 
       {/* ── Grade card: zooms in from small ── */}
-      <ZoomSection className="py-4 px-4 bg-black">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+      <ZoomSection className="py-4 px-4 bg-background">
+        <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card overflow-hidden">
           <div className="grid gap-0 lg:grid-cols-2">
             <div className="p-12 lg:p-16 flex flex-col justify-center">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">What you get</p>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">What you get</p>
               <h2 className="mb-5 text-3xl font-black tracking-tight sm:text-5xl leading-tight">
-                Real grades.<br />Real feedback.<br /><span className="text-zinc-500">Real improvement.</span>
+                Real grades.<br />Real feedback.<br /><span className="text-muted-foreground">Real improvement.</span>
               </h2>
-              <p className="text-zinc-500 leading-relaxed mb-8 text-sm sm:text-base">
+              <p className="text-muted-foreground leading-relaxed mb-8 text-sm sm:text-base">
                 Upload any clip and get a full breakdown of every decision — what happened, what the smarter play was, and exactly how to practice it solo.
               </p>
               <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }}
                 whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                className="self-start rounded-xl bg-white px-7 py-3.5 text-sm font-bold text-black">
+                className="self-start rounded-xl bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground">
                 Analyze your film →
               </motion.button>
             </div>
-            <div className="relative flex items-center justify-center overflow-hidden p-12 bg-zinc-900/50" style={{ minHeight: 380 }}>
+            <div className="relative flex items-center justify-center overflow-hidden p-12 bg-muted/50" style={{ minHeight: 380 }}>
               <div className="pointer-events-none absolute inset-0"
                 style={{
                   backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
@@ -1008,10 +1008,10 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       </ZoomSection>
 
       {/* ── Live analysis demo: real photo with fake overlays ── */}
-      <ZoomSection className="py-4 px-4 bg-black">
+      <ZoomSection className="py-4 px-4 bg-background">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 text-center">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">See it in action</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">See it in action</p>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Every decision, graded.</h2>
           </div>
           <div className="grid items-center gap-4 lg:grid-cols-2">
@@ -1022,7 +1022,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       </ZoomSection>
 
       {/* ── Photo grid: zooms in ── */}
-      <ZoomSection className="py-4 px-4 bg-black">
+      <ZoomSection className="py-4 px-4 bg-background">
         <div className="mx-auto max-w-6xl grid grid-cols-2 sm:grid-cols-4 rounded-3xl overflow-hidden" style={{ height: 300 }}>
           {[
             { src: "/grid-basketball.jpg", alt: "Driving to the rim" },
@@ -1040,18 +1040,18 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       </ZoomSection>
 
       {/* ── Mission: zooms in ── */}
-      <ZoomSection className="py-4 px-4 bg-black">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-zinc-800 bg-zinc-950 p-10 sm:p-16">
+      <ZoomSection className="py-4 px-4 bg-background">
+        <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-10 sm:p-16">
           <div className="grid gap-14 lg:grid-cols-2 items-center">
             <div>
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Our Mission</p>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Our Mission</p>
               <h2 className="mb-6 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl leading-tight">
-                Talent is everywhere.<br /><span className="text-zinc-500">Opportunity isn't.</span>
+                Talent is everywhere.<br /><span className="text-muted-foreground">Opportunity isn't.</span>
               </h2>
-              <p className="text-zinc-500 leading-relaxed mb-4">
+              <p className="text-muted-foreground leading-relaxed mb-4">
                 A private coach can cost $100–$300 an hour. Most young athletes never get access to that level of feedback.
               </p>
-              <p className="text-zinc-400 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed">
                 Reel was built to change that. Upload any clip and get elite-level tactical analysis — free to start, for everyone.
               </p>
             </div>
@@ -1062,11 +1062,11 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 { stat: "Any level", desc: "Middle school to college. Beginners to advanced." },
               ].map(({ stat, desc }, i) => (
                 <TiltCard key={stat}>
-                  <motion.div className="border border-zinc-800 rounded-2xl p-5 bg-black cursor-default"
+                  <motion.div className="border border-border rounded-2xl p-5 bg-background cursor-default"
                     initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1, duration: 0.6 }} viewport={{ once: true }}>
-                    <p className="text-2xl font-black text-white mb-1">{stat}</p>
-                    <p className="text-sm text-zinc-500">{desc}</p>
+                    <p className="text-2xl font-black text-foreground mb-1">{stat}</p>
+                    <p className="text-sm text-muted-foreground">{desc}</p>
                   </motion.div>
                 </TiltCard>
               ))}
@@ -1076,10 +1076,10 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       </ZoomSection>
 
       {/* ── Features: each card zooms in staggered ── */}
-      <ZoomSection className="py-4 px-4 bg-black">
+      <ZoomSection className="py-4 px-4 bg-background">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-10">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">The Platform</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">The Platform</p>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Three tools. One mission.</h2>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -1100,16 +1100,16 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 transition={{ delay: i * 0.12, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
                 viewport={{ once: true }}>
                 <TiltCard className="h-full">
-                  <div className="border border-zinc-800 rounded-2xl p-8 bg-zinc-950 h-full cursor-default">
-                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-800/80"><Icon className="h-5 w-5 text-zinc-300" strokeWidth={1.75} /></div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{tag}</p>
+                  <div className="border border-border rounded-2xl p-8 bg-card h-full cursor-default">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent/80"><Icon className="h-5 w-5 text-foreground" strokeWidth={1.75} /></div>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{tag}</p>
                     <h3 className="mb-3 text-2xl font-black">{title}</h3>
-                    <p className="mb-6 text-zinc-500 leading-relaxed text-sm">{desc}</p>
+                    <p className="mb-6 text-muted-foreground leading-relaxed text-sm">{desc}</p>
                     <div className="space-y-2.5">
                       {features.map((f) => (
                         <div key={f} className="flex items-start gap-2.5">
-                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-white/60" />
-                          <p className="text-sm text-zinc-400">{f}</p>
+                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                          <p className="text-sm text-muted-foreground">{f}</p>
                         </div>
                       ))}
                     </div>
@@ -1122,10 +1122,10 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       </ZoomSection>
 
       {/* ── How it works: steps zoom in one by one ── */}
-      <ZoomSection className="py-4 px-4 bg-black">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-zinc-800 bg-zinc-950 p-10 sm:p-16">
+      <ZoomSection className="py-4 px-4 bg-background">
+        <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-10 sm:p-16">
           <div className="text-center mb-12">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Simple by design</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Simple by design</p>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Start in 30 seconds.</h2>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
@@ -1140,10 +1140,10 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 transition={{ delay: i * 0.15, duration: 0.6 }}
                 viewport={{ once: true }}>
                 <TiltCard>
-                  <div className="rounded-2xl border border-zinc-800 bg-black p-7 cursor-default">
-                    <p className="mb-4 text-5xl font-black text-zinc-800">{s.num}</p>
-                    <p className="mb-2 text-base font-bold text-white">{s.title}</p>
-                    <p className="text-sm text-zinc-500 leading-relaxed">{s.desc}</p>
+                  <div className="rounded-2xl border border-border bg-background p-7 cursor-default">
+                    <p className="mb-4 text-5xl font-black text-foreground">{s.num}</p>
+                    <p className="mb-2 text-base font-bold text-foreground">{s.title}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
                   </div>
                 </TiltCard>
               </motion.div>
@@ -1153,8 +1153,8 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       </ZoomSection>
 
       {/* ── CTA: big zoom in ── */}
-      <ZoomSection className="py-4 px-4 pb-8 bg-black">
-        <div className="relative mx-auto max-w-6xl rounded-3xl overflow-hidden bg-white text-black">
+      <ZoomSection className="py-4 px-4 pb-8 bg-background">
+        <div className="relative mx-auto max-w-6xl rounded-3xl overflow-hidden bg-primary text-primary-foreground">
           <div className="absolute inset-0 opacity-5">
             <AnimatedGrid />
           </div>
@@ -1162,26 +1162,26 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             <h2 className="mb-5 text-4xl font-black tracking-tight sm:text-6xl">
               Your film room.<br />Your coach.<br />Your edge.
             </h2>
-            <p className="mb-10 text-zinc-600 text-lg max-w-md mx-auto">
+            <p className="mb-10 text-muted-foreground text-lg max-w-md mx-auto">
               No experience required. No equipment. No cost. Ever.
             </p>
             <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }}
               whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-black text-white px-10 py-4 text-base font-bold shadow-2xl">
+              className="rounded-xl bg-background text-foreground px-10 py-4 text-base font-bold shadow-2xl">
               Create free account →
             </motion.button>
-            <p className="mt-4 text-sm text-zinc-500">
-              <button onClick={onEnterApp} className="underline underline-offset-2 hover:text-zinc-800 transition-colors">Try without an account</button>
+            <p className="mt-4 text-sm text-muted-foreground">
+              <button onClick={onEnterApp} className="underline underline-offset-2 hover:text-foreground transition-colors">Try without an account</button>
             </p>
           </div>
         </div>
       </ZoomSection>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 px-6 py-8 bg-black">
+      <footer className="border-t border-border px-6 py-8 bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Logo size="sm" className="opacity-30" />
-          <p className="text-xs text-zinc-700">Coaching for every athlete.</p>
+          <p className="text-xs text-muted-foreground">Coaching for every athlete.</p>
         </div>
       </footer>
     </div>
@@ -1356,8 +1356,8 @@ export default function Reel() {
   // Show loading spinner briefly
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <p className="text-zinc-700 text-sm animate-pulse">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground text-sm animate-pulse">Loading…</p>
       </div>
     );
   }
@@ -1387,7 +1387,7 @@ export default function Reel() {
       {upgradeSuccess && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-emerald-800 bg-emerald-950 px-5 py-3 shadow-2xl">
           <span className="text-emerald-400 text-lg">✓</span>
-          <p className="text-sm font-semibold text-white">Welcome to Reel Pro! Unlimited film, unlimited growth.</p>
+          <p className="text-sm font-semibold text-foreground">Welcome to Reel Pro! Unlimited film, unlimited growth.</p>
         </div>
       )}
 
@@ -1440,7 +1440,7 @@ export default function Reel() {
               <img src={user.user_metadata.avatar_url} alt="Your avatar"
                 className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
             ) : user ? (
-              <span className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
+              <span className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-500 text-foreground text-[10px] font-bold shrink-0">
                 {(user.email || "?").charAt(0).toUpperCase()}
               </span>
             ) : null}
@@ -1460,9 +1460,9 @@ export default function Reel() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 Library
-                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">All your past film sessions — search, filter, and replay any review.</p>
+              <p className="mt-1 text-sm text-muted-foreground">All your past film sessions — search, filter, and replay any review.</p>
             </div>
             <StatsBar reviews={reviews} />
             {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
@@ -1473,9 +1473,9 @@ export default function Reel() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 Teams
-                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">Track a season, roster, and record across every game you upload.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Track a season, roster, and record across every game you upload.</p>
             </div>
             <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} />
           </>
@@ -1484,9 +1484,9 @@ export default function Reel() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 Drill Check
-                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">Got a drill from your report? Record yourself doing it and get instant form feedback.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Got a drill from your report? Record yourself doing it and get instant form feedback.</p>
             </div>
             <ProfileCard profile={profile} onSave={saveProfile} reviews={reviews} />
             <DrillCheck profile={profile} userId={user?.id} />
@@ -1497,9 +1497,9 @@ export default function Reel() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
-                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {activeModule === "decision"
                   ? "Upload a clip or full game. Every player gets analyzed: offense, defense, and everything in between."
                   : "Your personal coach. Ask anything, or build a custom practice plan tailored to your game."}

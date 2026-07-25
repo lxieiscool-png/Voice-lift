@@ -39,20 +39,20 @@ export function TeamSectionHeader({ name, initials, colorClass, badge, subtitle,
   const recordColor =
     recordTone === "win" ? "text-emerald-400 border-emerald-900/60"
     : recordTone === "loss" ? "text-red-400 border-red-900/60"
-    : "text-zinc-400 border-zinc-800";
+    : "text-muted-foreground border-border";
   return (
     <div className="flex items-center gap-3 px-1 py-2">
       <button onClick={onToggle} className="flex flex-1 items-center gap-3 text-left min-w-0">
-        <span className="text-zinc-500 shrink-0">{open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</span>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black text-white ${colorClass}`}>
+        <span className="text-muted-foreground shrink-0">{open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</span>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black text-foreground ${colorClass}`}>
           {initials}
         </span>
         <span className="min-w-0">
           <span className="flex items-center gap-2">
-            <span className="truncate text-base font-black text-white">{name}</span>
-            {badge && <span className="shrink-0 rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{badge}</span>}
+            <span className="truncate text-base font-black text-foreground">{name}</span>
+            {badge && <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{badge}</span>}
           </span>
-          {subtitle && <span className="block truncate text-xs text-zinc-500 mt-0.5">{subtitle}</span>}
+          {subtitle && <span className="block truncate text-xs text-muted-foreground mt-0.5">{subtitle}</span>}
         </span>
       </button>
       <div className="flex items-center gap-2 shrink-0">
@@ -84,17 +84,17 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     : status?.tone === "failed" ? "text-red-400 border-red-900/60 bg-red-950/30"
     : "text-amber-400 border-amber-900/60 bg-amber-950/30";
   const resultColor =
-    result?.outcome === "W" ? "bg-emerald-600 text-white"
-    : result?.outcome === "L" ? "bg-red-600 text-white"
-    : "bg-zinc-700 text-white";
+    result?.outcome === "W" ? "bg-emerald-600 text-foreground"
+    : result?.outcome === "L" ? "bg-red-600 text-foreground"
+    : "bg-accent text-foreground";
 
   return (
     // No overflow-hidden on the root: the card's ⋮ menu is an absolutely
     // positioned dropdown that must be free to extend past the card edge.
     // Rounded-corner clipping lives on the thumbnail button instead.
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950">
+    <div className="rounded-2xl border border-border bg-card">
       {/* Thumbnail */}
-      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 disabled:cursor-default">
+      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-muted to-card disabled:cursor-default">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumbnailUrl} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />
@@ -106,7 +106,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
         <span className="absolute inset-0 flex items-center justify-center">
           {processing ? (
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/60 backdrop-blur">
-              <Loader2 className="h-6 w-6 animate-spin text-white" />
+              <Loader2 className="h-6 w-6 animate-spin text-foreground" />
             </span>
           ) : grade ? (
             <span className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-black shadow-lg ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
@@ -119,11 +119,11 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
       {/* Meta */}
       <div className="p-3.5">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-xs text-zinc-500 truncate">{dateLabel}</p>
+          <p className="text-xs text-muted-foreground truncate">{dateLabel}</p>
           {menu}
         </div>
         <button onClick={onClick} disabled={!onClick} className="mt-1 block w-full text-left disabled:cursor-default">
-          <p className="truncate text-sm font-bold text-white">{title}</p>
+          <p className="truncate text-sm font-bold text-foreground">{title}</p>
         </button>
         <div className="mt-2.5 flex items-center gap-2">
           {result && (

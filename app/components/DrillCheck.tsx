@@ -47,7 +47,7 @@ const VERDICT_UI: Record<DrillFeedback["verdict"], { label: string; cls: string 
   yes:     { label: "Looking good",   cls: "text-emerald-400 border-emerald-900/60 bg-emerald-950/30" },
   mostly:  { label: "Mostly there",   cls: "text-lime-400 border-lime-900/60 bg-lime-950/30" },
   no:      { label: "Needs work",     cls: "text-amber-400 border-amber-900/60 bg-amber-950/30" },
-  unclear: { label: "Couldn't tell",  cls: "text-zinc-400 border-zinc-800 bg-zinc-900" },
+  unclear: { label: "Couldn't tell",  cls: "text-muted-foreground border-border bg-muted" },
 };
 
 export default function DrillCheck({ profile, userId, initialDrill = "" }: {
@@ -83,25 +83,25 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
   const verdict = feedback ? VERDICT_UI[feedback.verdict] : null;
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-5">
+    <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-5">
       <div className="mb-4 flex items-center gap-2">
-        <Dumbbell className="h-4 w-4 text-zinc-400" />
+        <Dumbbell className="h-4 w-4 text-muted-foreground" />
         <div>
-          <p className="text-sm font-semibold text-white">Drill Check</p>
-          <p className="text-xs text-zinc-600">Record yourself doing a drill — get instant form feedback.</p>
+          <p className="text-sm font-semibold text-foreground">Drill Check</p>
+          <p className="text-xs text-muted-foreground">Record yourself doing a drill — get instant form feedback.</p>
         </div>
       </div>
 
-      <label className="mb-1.5 block text-xs font-semibold text-zinc-400">The drill you're working on</label>
+      <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">The drill you're working on</label>
       <textarea
         value={drill}
         onChange={e => setDrill(e.target.value)}
         placeholder="Paste the drill from your report, or describe it — e.g. 'Form shooting: one-hand follow-through, 3 sets of 20, hold the finish.'"
         rows={2}
-        className="mb-3 w-full resize-none rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
+        className="mb-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
       />
 
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-700 bg-black/40 px-3 py-4 text-sm text-zinc-400 hover:border-zinc-500">
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground hover:border-ring">
         <Upload className="h-4 w-4" />
         {file ? file.name : "Upload a clip of yourself doing the drill"}
         <input type="file" accept="video/*" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
@@ -110,7 +110,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
       <button
         onClick={run}
         disabled={loading || !drill.trim() || !file}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-bold text-black hover:bg-zinc-100 disabled:opacity-40">
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
         {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Checking your form…</> : "Check my drill"}
       </button>
 
@@ -126,21 +126,21 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
             <CheckCircle2 className="h-4 w-4" /> {verdict.label}
           </div>
           {feedback.didWell && (
-            <div className="rounded-lg bg-zinc-900 p-3">
+            <div className="rounded-lg bg-muted p-3">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-500">What you did well</p>
-              <p className="text-sm text-white leading-relaxed">{feedback.didWell}</p>
+              <p className="text-sm text-foreground leading-relaxed">{feedback.didWell}</p>
             </div>
           )}
           {feedback.mainFix && (
-            <div className="rounded-lg bg-zinc-900 p-3">
+            <div className="rounded-lg bg-muted p-3">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-500">Fix this</p>
-              <p className="text-sm text-white leading-relaxed">{feedback.mainFix}</p>
+              <p className="text-sm text-foreground leading-relaxed">{feedback.mainFix}</p>
             </div>
           )}
           {feedback.focusNext && (
             <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-3">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">Next rep, focus on</p>
-              <p className="text-sm text-white leading-relaxed">{feedback.focusNext}</p>
+              <p className="text-sm text-foreground leading-relaxed">{feedback.focusNext}</p>
             </div>
           )}
         </div>

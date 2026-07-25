@@ -366,16 +366,16 @@ function GradeBadge({ grade, large }: { grade: string; large?: boolean }) {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{children}</p>;
+  return <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{children}</p>;
 }
 
 function ProgressBar({ current, total, label }: { current: number; total: number; label: string }) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   return (
     <div className="space-y-1.5">
-      <div className="flex justify-between text-xs text-zinc-600"><span>{label}</span><span>{pct}%</span></div>
-      <div className="h-px w-full bg-zinc-800">
-        <div className="h-px bg-white transition-all duration-300" style={{ width: `${pct}%` }} />
+      <div className="flex justify-between text-xs text-muted-foreground"><span>{label}</span><span>{pct}%</span></div>
+      <div className="h-px w-full bg-accent">
+        <div className="h-px bg-primary transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -457,75 +457,75 @@ function PlayerCard({ decision, defaultOpen = false }: {
   const team  = extractTeamTag(decision.player);
 
   return (
-    <div className="border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden"
+    <div className="border border-border bg-card rounded-xl overflow-hidden"
       style={{ borderLeftColor: team.hex, borderLeftWidth: 4 }}>
       <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
         className="flex w-full cursor-pointer items-center gap-3 px-4 py-4 text-left">
         <GradeBadge grade={grade} large />
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-white">{decision.player || "Unknown Player"}</span>
-          <span className="ml-2 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-800 text-zinc-300 align-middle">
+          <span className="text-sm font-semibold text-foreground">{decision.player || "Unknown Player"}</span>
+          <span className="ml-2 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-accent text-foreground align-middle">
             <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: team.hex }} />
             {capitalize(team.label)}
           </span>
-          <p className="text-xs text-zinc-600 truncate mt-1">{decision.role || decision.sport}</p>
+          <p className="text-xs text-muted-foreground truncate mt-1">{decision.role || decision.sport}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={e => handleShare(e, "landscape")} disabled={sharing}
-            className="rounded-lg border border-zinc-800 px-2.5 py-1 text-[10px] font-semibold text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors disabled:opacity-40">
+            className="rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors disabled:opacity-40">
             {sharing ? "…" : "Share"}
           </button>
-          <span className="text-[10px] text-zinc-600">{open ? "▲" : "▼"}</span>
+          <span className="text-[10px] text-muted-foreground">{open ? "▲" : "▼"}</span>
         </div>
       </div>
 
       {open && (
-        <div className="border-t border-zinc-800 px-5 py-5 space-y-4">
+        <div className="border-t border-border px-5 py-5 space-y-4">
           {decision.action && (
-            <div className="rounded-lg bg-zinc-900 p-4">
+            <div className="rounded-lg bg-muted p-4">
               <SectionLabel>Action</SectionLabel>
-              <p className="text-sm text-white leading-relaxed">{decision.action}</p>
+              <p className="text-sm text-foreground leading-relaxed">{decision.action}</p>
             </div>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             {decision.whatHappened && (
-              <div className="rounded-lg bg-zinc-900 p-4">
+              <div className="rounded-lg bg-muted p-4">
                 <SectionLabel>What Happened</SectionLabel>
-                <p className="text-sm text-white leading-relaxed">{decision.whatHappened}</p>
+                <p className="text-sm text-foreground leading-relaxed">{decision.whatHappened}</p>
               </div>
             )}
             {decision.decisionRead && (
-              <div className="rounded-lg bg-zinc-900 p-4">
+              <div className="rounded-lg bg-muted p-4">
                 <SectionLabel>Decision Read</SectionLabel>
-                <p className="text-sm text-white leading-relaxed">{decision.decisionRead}</p>
+                <p className="text-sm text-foreground leading-relaxed">{decision.decisionRead}</p>
               </div>
             )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {decision.bestAlternative && (
-              <div className="rounded-lg bg-zinc-900 p-4">
+              <div className="rounded-lg bg-muted p-4">
                 <SectionLabel>Best Alternative</SectionLabel>
-                <p className="text-sm text-white leading-relaxed">{decision.bestAlternative}</p>
+                <p className="text-sm text-foreground leading-relaxed">{decision.bestAlternative}</p>
               </div>
             )}
             {decision.whyBetter && (
-              <div className="rounded-lg bg-zinc-900 p-4">
+              <div className="rounded-lg bg-muted p-4">
                 <SectionLabel>Why It Was Better</SectionLabel>
-                <p className="text-sm text-white leading-relaxed">{decision.whyBetter}</p>
+                <p className="text-sm text-foreground leading-relaxed">{decision.whyBetter}</p>
               </div>
             )}
           </div>
 
           {decision.otherOptions.length > 0 && (
-            <div className="rounded-lg bg-zinc-900 p-4">
+            <div className="rounded-lg bg-muted p-4">
               <SectionLabel>Other Options</SectionLabel>
               <ul className="space-y-1.5">
                 {decision.otherOptions.map((opt, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-white leading-relaxed">
-                    <span className="text-zinc-600 shrink-0">•</span>{opt}
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground leading-relaxed">
+                    <span className="text-muted-foreground shrink-0">•</span>{opt}
                   </li>
                 ))}
               </ul>
@@ -533,16 +533,16 @@ function PlayerCard({ decision, defaultOpen = false }: {
           )}
 
           {decision.patternToImprove && (
-            <div className="rounded-lg bg-zinc-900 p-4">
+            <div className="rounded-lg bg-muted p-4">
               <SectionLabel>Pattern To Improve</SectionLabel>
-              <p className="text-sm text-white leading-relaxed">{decision.patternToImprove}</p>
+              <p className="text-sm text-foreground leading-relaxed">{decision.patternToImprove}</p>
             </div>
           )}
 
           {decision.practiceFocus && (
             <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-4">
               <SectionLabel>Practice Focus</SectionLabel>
-              <p className="text-sm text-white leading-relaxed">{decision.practiceFocus}</p>
+              <p className="text-sm text-foreground leading-relaxed">{decision.practiceFocus}</p>
             </div>
           )}
         </div>
@@ -581,7 +581,7 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
         <div key={s.label} className="space-y-3">
           <div className="flex items-center gap-2 px-1 pb-1">
             <span className="h-2.5 w-2.5 rounded-full border border-black/20" style={{ backgroundColor: s.hex }} />
-            <p className="text-xs font-black uppercase tracking-widest text-zinc-400">{capitalize(s.label)} · {s.decisions.length}</p>
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{capitalize(s.label)} · {s.decisions.length}</p>
           </div>
           {s.decisions.map((d, i) => (
             <PlayerCard key={i} decision={d} defaultOpen={si === 0 && i === 0} />
@@ -621,22 +621,22 @@ function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+    <div className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-black text-white">Box Score</p>
+        <p className="text-sm font-black text-foreground">Box Score</p>
         <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
       </div>
-      <p className="mb-3 text-[11px] leading-relaxed text-zinc-600">
+      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
         Auto-counted from what the AI could clearly see. Fast plays between sampled frames get missed, so treat these as approximate — especially rebounds and steals.
       </p>
       <div className="space-y-4">
         {teams.map(([team, players]) => (
           <div key={team}>
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-zinc-400">{team === "unknown" ? "Players" : team}</p>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">{team === "unknown" ? "Players" : team}</p>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[420px] text-right text-xs">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-wide text-zinc-600">
+                  <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
                     <th className="py-1 pr-2 text-left font-semibold">Player</th>
                     <th className="py-1 px-1.5 font-semibold">FG</th>
                     <th className="py-1 px-1.5 font-semibold">3P</th>
@@ -646,12 +646,12 @@ function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
                 </thead>
                 <tbody>
                   {players.sort((a, b) => b.pts - a.pts).map((p, i) => (
-                    <tr key={i} className="border-t border-zinc-900">
-                      <td className="py-1.5 pr-2 text-left font-semibold text-white">{p.player}</td>
-                      <td className="py-1.5 px-1.5 text-zinc-400">{p.fgm}-{p.fga}</td>
-                      <td className="py-1.5 px-1.5 text-zinc-400">{p.tpm}-{p.tpa}</td>
-                      <td className="py-1.5 px-1.5 text-zinc-400">{p.ftm}-{p.fta}</td>
-                      {cols.map(c => <td key={c.key} className={`py-1.5 px-1.5 ${c.key === "pts" ? "font-bold text-white" : "text-zinc-300"}`}>{p[c.key] as number}</td>)}
+                    <tr key={i} className="border-t border-border">
+                      <td className="py-1.5 pr-2 text-left font-semibold text-foreground">{p.player}</td>
+                      <td className="py-1.5 px-1.5 text-muted-foreground">{p.fgm}-{p.fga}</td>
+                      <td className="py-1.5 px-1.5 text-muted-foreground">{p.tpm}-{p.tpa}</td>
+                      <td className="py-1.5 px-1.5 text-muted-foreground">{p.ftm}-{p.fta}</td>
+                      {cols.map(c => <td key={c.key} className={`py-1.5 px-1.5 ${c.key === "pts" ? "font-bold text-foreground" : "text-foreground"}`}>{p[c.key] as number}</td>)}
                     </tr>
                   ))}
                 </tbody>
@@ -684,15 +684,15 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
   const focusStat = focus ? parseStatLine(focus.raw) : null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
       <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <button onClick={onClose}
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
             ← {backLabel}
           </button>
-          <p className="text-sm font-black text-white">Game Report</p>
+          <p className="text-sm font-black text-foreground">Game Report</p>
           <div className={`rounded-lg px-3 py-1 text-base font-black ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
             {report.overallGrade}
           </div>
@@ -700,8 +700,8 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
 
         {/* Team comparison chart */}
         {tc ? <TeamComparisonPanel tc={tc} /> : (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-            <p className="text-sm text-zinc-500">Team comparison wasn't possible for this footage — not enough clearly visible team-level data (score, both teams on screen, etc.).</p>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-sm text-muted-foreground">Team comparison wasn't possible for this footage — not enough clearly visible team-level data (score, both teams on screen, etc.).</p>
           </div>
         )}
 
@@ -709,23 +709,23 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
         {teams.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2">
             {teams.map((t, ti) => (
-              <div key={ti} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+              <div key={ti} className="rounded-2xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-black capitalize text-white">{t.name}</p>
-                  <span className="text-xs text-zinc-600">{t.players.length} tracked</span>
+                  <p className="text-sm font-black capitalize text-foreground">{t.name}</p>
+                  <span className="text-xs text-muted-foreground">{t.players.length} tracked</span>
                 </div>
                 <div className="space-y-2">
                   {t.players.map((p, i) => {
                     const s = parseStatLine(p.raw);
                     return (
                       <button key={i} onClick={() => setFocus(p)}
-                        className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-black px-3 py-2.5 text-left transition-colors hover:border-zinc-500">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-zinc-300">
+                        className="flex w-full items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-ring">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-foreground">
                           {s.jersey ? `#${s.jersey}` : playerInitials(p.label)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-white">{p.label}</span>
-                          <span className="block text-[11px] text-zinc-500">
+                          <span className="block truncate text-sm font-semibold text-foreground">{p.label}</span>
+                          <span className="block text-[11px] text-muted-foreground">
                             {s.sharp > 0 && <span className="text-emerald-500">{s.sharp} sharp</span>}
                             {s.sharp > 0 && s.costly > 0 && <span> · </span>}
                             {s.costly > 0 && <span className="text-red-500">{s.costly} costly</span>}
@@ -734,7 +734,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
                             {s.sharp === 0 && s.costly === 0 && s.fouls === 0 && <span>tracked</span>}
                           </span>
                         </span>
-                        <span className="text-zinc-600">›</span>
+                        <span className="text-muted-foreground">›</span>
                       </button>
                     );
                   })}
@@ -752,19 +752,19 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
         {GAME_SECTIONS.map(({ key, label }) => {
           const val = report[key]; if (!val) return null;
           return (
-            <div key={key} className="border border-zinc-800 rounded-lg p-3">
+            <div key={key} className="border border-border rounded-lg p-3">
               <SectionLabel>{label}</SectionLabel>
-              <p className="text-sm text-zinc-300 leading-relaxed">{val as string}</p>
+              <p className="text-sm text-foreground leading-relaxed">{val as string}</p>
             </div>
           );
         })}
 
         {report.strengths.length > 0 && (
-          <div className="border border-zinc-800 rounded-lg p-3">
+          <div className="border border-border rounded-lg p-3">
             <SectionLabel>Strengths</SectionLabel>
             <ul className="space-y-1.5">
               {report.strengths.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
                   <span className="text-emerald-600 shrink-0 mt-0.5">+</span>{s}
                 </li>
               ))}
@@ -773,11 +773,11 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
         )}
 
         {report.improvements.length > 0 && (
-          <div className="border border-zinc-800 rounded-lg p-3">
+          <div className="border border-border rounded-lg p-3">
             <SectionLabel>Work On</SectionLabel>
             <ul className="space-y-1.5">
               {report.improvements.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300">
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
                   <span className="text-orange-600 shrink-0 mt-0.5">→</span>{s}
                 </li>
               ))}
@@ -790,37 +790,37 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
       {/* Player detail modal */}
       {focus && focusStat && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={() => setFocus(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-950 p-6" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
             <div className="mb-4 flex items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-800 text-lg font-black text-white">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-black text-foreground">
                 {focusStat.jersey ? `#${focusStat.jersey}` : playerInitials(focus.label)}
               </span>
               <div className="min-w-0">
-                <p className="text-base font-black text-white">{focus.label}</p>
-                {focusStat.team && <p className="text-xs capitalize text-zinc-500">{focusStat.team}</p>}
+                <p className="text-base font-black text-foreground">{focus.label}</p>
+                {focusStat.team && <p className="text-xs capitalize text-muted-foreground">{focusStat.team}</p>}
               </div>
             </div>
             <div className="mb-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-zinc-900 py-3">
+              <div className="rounded-xl bg-muted py-3">
                 <p className="text-xl font-black text-emerald-500">{focusStat.sharp}</p>
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Sharp</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Sharp</p>
               </div>
-              <div className="rounded-xl bg-zinc-900 py-3">
+              <div className="rounded-xl bg-muted py-3">
                 <p className="text-xl font-black text-red-500">{focusStat.costly}</p>
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Costly</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Costly</p>
               </div>
-              <div className="rounded-xl bg-zinc-900 py-3">
+              <div className="rounded-xl bg-muted py-3">
                 <p className="text-xl font-black text-amber-500">{focusStat.fouls}</p>
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500">Fouls</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Fouls</p>
               </div>
             </div>
             {focusStat.standout && (
-              <div className="mb-4 rounded-xl bg-zinc-900 p-3">
-                <p className="mb-1 text-[10px] uppercase tracking-widest text-zinc-500">Standout moment</p>
-                <p className="text-sm leading-relaxed text-zinc-300">{focusStat.standout}</p>
+              <div className="mb-4 rounded-xl bg-muted p-3">
+                <p className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Standout moment</p>
+                <p className="text-sm leading-relaxed text-foreground">{focusStat.standout}</p>
               </div>
             )}
-            <button onClick={() => setFocus(null)} className="w-full rounded-xl bg-white py-2.5 text-sm font-bold text-black">Close</button>
+            <button onClick={() => setFocus(null)} className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground">Close</button>
           </div>
         </div>
       )}
@@ -840,28 +840,28 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
   const [scoreA, scoreB] = tc.score?.match(/(\d+)\s*[–\-:]\s*(\d+)/)?.slice(1) ?? [null, null];
 
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-lg">
+    <div className="rounded-2xl border border-border bg-card p-5">
       {/* Header: teams + score */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
             {teamInitials(tc.teamA)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-zinc-900">{tc.teamA}</p>
-            <p className="text-xs text-zinc-500">Home / Team A</p>
+            <p className="truncate text-sm font-bold text-foreground">{tc.teamA}</p>
+            <p className="text-xs text-muted-foreground">Home / Team A</p>
           </div>
         </div>
 
         <div className="shrink-0 text-center">
           {scoreA && scoreB ? (
             <p className="text-2xl font-black tracking-tight">
-              <span className={aWon ? "text-zinc-900" : "text-zinc-400"}>{scoreA}</span>
-              <span className="text-zinc-300"> – </span>
-              <span className={bWon ? "text-zinc-900" : "text-zinc-400"}>{scoreB}</span>
+              <span className={aWon ? "text-foreground" : "text-muted-foreground"}>{scoreA}</span>
+              <span className="text-foreground"> – </span>
+              <span className={bWon ? "text-foreground" : "text-muted-foreground"}>{scoreB}</span>
             </p>
           ) : (
-            <p className="text-xs font-semibold text-zinc-400">VS</p>
+            <p className="text-xs font-semibold text-muted-foreground">VS</p>
           )}
           {tc.winner && (
             <div className="mt-0.5 flex justify-center gap-1.5">
@@ -872,12 +872,12 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
         </div>
 
         <div className="flex items-center gap-3 min-w-0 flex-row-reverse">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
             {teamInitials(tc.teamB)}
           </div>
           <div className="min-w-0 text-right">
-            <p className="truncate text-sm font-bold text-zinc-900">{tc.teamB}</p>
-            <p className="text-xs text-zinc-500">Away / Team B</p>
+            <p className="truncate text-sm font-bold text-foreground">{tc.teamB}</p>
+            <p className="text-xs text-muted-foreground">Away / Team B</p>
           </div>
         </div>
       </div>
@@ -891,9 +891,9 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
             return (
               <div key={i}>
                 <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className="font-bold text-zinc-900">{a}</span>
-                  <span className="font-semibold text-zinc-700">{label}</span>
-                  <span className="font-bold text-zinc-900">{b}</span>
+                  <span className="font-bold text-foreground">{a}</span>
+                  <span className="font-semibold text-muted-foreground">{label}</span>
+                  <span className="font-bold text-foreground">{b}</span>
                 </div>
                 <div className="flex h-1.5 gap-1 overflow-hidden rounded-full">
                   <div className="rounded-full bg-emerald-600" style={{ width: `${aPct}%` }} />
@@ -907,11 +907,11 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
 
       {/* Why */}
       {tc.why && (
-        <div className="mt-5 rounded-xl bg-zinc-50 p-4">
+        <div className="mt-5 rounded-xl bg-muted p-4">
           <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
             ✓ {tc.winner ? `Why ${tc.winner} won` : "What decided it"}
           </p>
-          <p className="text-sm leading-relaxed text-zinc-600">{tc.why}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{tc.why}</p>
         </div>
       )}
     </div>
@@ -973,9 +973,9 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
     <div className="flex flex-col items-center justify-center py-10 gap-8">
       {/* Animated orb */}
       <div className="relative flex items-center justify-center">
-        <div className="h-16 w-16 rounded-full border-2 border-zinc-800 animate-ping absolute opacity-20" />
-        <div className="h-10 w-10 rounded-full bg-white/10 border border-zinc-700 flex items-center justify-center">
-          <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
+        <div className="h-16 w-16 rounded-full border-2 border-border animate-ping absolute opacity-20" />
+        <div className="h-10 w-10 rounded-full bg-primary/10 border border-border flex items-center justify-center">
+          <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
         </div>
       </div>
 
@@ -986,17 +986,17 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
           const active  = i === stepIndex;
           const pending = i > stepIndex;
           return (
-            <div key={step.key} className={`flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all ${active ? "border border-zinc-700 bg-zinc-900" : "opacity-30"}`}>
+            <div key={step.key} className={`flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all ${active ? "border border-border bg-muted" : "opacity-30"}`}>
               <div className={`h-4 w-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
-                done ? "bg-white text-black" : active ? "border border-white" : "border border-zinc-700"
+                done ? "bg-primary text-primary-foreground" : active ? "border border-white" : "border border-border"
               }`}>
                 {done ? "✓" : active ? <span className="animate-pulse">●</span> : ""}
               </div>
-              <span className={`text-sm ${active ? "text-white font-semibold" : pending ? "text-zinc-700" : "text-zinc-500"}`}>
+              <span className={`text-sm ${active ? "text-foreground font-semibold" : pending ? "text-muted-foreground" : "text-muted-foreground"}`}>
                 {step.label}
               </span>
               {active && total > 1 && (
-                <span className="ml-auto text-xs text-zinc-600 tabular-nums">{pct}%</span>
+                <span className="ml-auto text-xs text-muted-foreground tabular-nums">{pct}%</span>
               )}
             </div>
           );
@@ -1005,7 +1005,7 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
 
       {/* Sub-label for segment progress */}
       {label && total > 1 && (
-        <p className="text-xs text-zinc-600 text-center">{label}</p>
+        <p className="text-xs text-muted-foreground text-center">{label}</p>
       )}
     </div>
   );
@@ -1351,10 +1351,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const canAnalyze = !needsTeamInfo || (!!linkedTeamId && !!opponentName.trim() && !!teamColor.trim());
 
   const gameFootageToggle = !!userId && (
-    <div className="flex gap-2 rounded-lg border border-zinc-800 bg-black p-1">
+    <div className="flex gap-2 rounded-lg border border-border bg-background p-1">
       {([true, false] as const).map(v => (
         <button key={String(v)} type="button" onClick={() => setIsGameFootage(v)}
-          className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${isGameFootage === v ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}>
+          className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${isGameFootage === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
           {v ? "Team game footage" : "Just a clip (1v1, drill, etc.)"}
         </button>
       ))}
@@ -1364,17 +1364,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const teamLinkingFields = needsTeamInfo && (
     myTeams.length === 0 ? (
       <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3 text-center">
-        <p className="text-sm text-white">You need a team before you can analyze film.</p>
+        <p className="text-sm text-foreground">You need a team before you can analyze film.</p>
         <button onClick={() => document.querySelector<HTMLButtonElement>("[data-module='teams']")?.click()}
-          className="mt-2 rounded-lg bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-100">
+          className="mt-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90">
           Create a team
         </button>
       </div>
     ) : (
-      <div className="rounded-xl border border-zinc-800 bg-black/40 p-3 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600">Team &amp; opponent (required)</p>
+      <div className="rounded-xl border border-border bg-muted p-3 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Team &amp; opponent (required)</p>
         <select
-          className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
           value={linkedTeamId}
           onChange={e => setLinkedTeamId(e.target.value)}>
           <option value="">Select your team…</option>
@@ -1382,13 +1382,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </select>
         <div className="grid grid-cols-2 gap-2">
           <input
-            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Opponent"
             value={opponentName}
             onChange={e => setOpponentName(e.target.value)}
           />
           <select
-            className="rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
             value={gameType}
             onChange={e => setGameType(e.target.value)}>
             <option value="Game">Game</option>
@@ -1396,7 +1396,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             <option value="Scrimmage">Scrimmage</option>
           </select>
           <input type="date"
-            className="col-span-2 rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+            className="col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
             value={gameDate}
             onChange={e => setGameDate(e.target.value)}
           />
@@ -1412,14 +1412,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       <div className="grid gap-5 lg:grid-cols-2">
 
         {/* Upload */}
-        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-4 sm:p-5">
-          <p className="mb-4 text-sm font-semibold text-white">Upload</p>
+        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
+          <p className="mb-4 text-sm font-semibold text-foreground">Upload</p>
 
           {/* Tab switcher */}
-          <div className="mb-4 flex gap-1 rounded-lg border border-zinc-800 bg-black p-0.5">
+          <div className="mb-4 flex gap-1 rounded-lg border border-border bg-background p-0.5">
             {(["file", "youtube"] as const).map(tab => (
               <button key={tab} onClick={() => { setInputTab(tab); setYtError(""); }}
-                className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}>
+                className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 {tab === "file" ? "Video File" : "YouTube Link"}
               </button>
             ))}
@@ -1427,31 +1427,31 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
           {inputTab === "file" ? (
             <>
-              <label className="group block cursor-pointer rounded-2xl border-2 border-dashed border-zinc-800 bg-gradient-to-b from-zinc-900/30 to-transparent p-8 text-center transition-all hover:border-zinc-500 hover:from-zinc-900/60 active:scale-[0.99]">
+              <label className="group block cursor-pointer rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/30 to-transparent p-8 text-center transition-all hover:border-ring hover:from-muted/60 active:scale-[0.99]">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor(profile.teamColor || "");
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-800/80 transition-transform group-hover:scale-110"><Clapperboard className="h-6 w-6 text-zinc-300" strokeWidth={1.75} /></div>
-                <p className="text-sm font-bold text-white">Tap to choose video</p>
-                <p className="mt-1 text-xs text-zinc-600">Clip or full game — adapts automatically</p>
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/80 transition-transform group-hover:scale-110"><Clapperboard className="h-6 w-6 text-foreground" strokeWidth={1.75} /></div>
+                <p className="text-sm font-bold text-foreground">Tap to choose video</p>
+                <p className="mt-1 text-xs text-muted-foreground">Clip or full game — adapts automatically</p>
               </label>
-              {videoUrl && <video className="mt-4 w-full rounded-lg border border-zinc-800" src={videoUrl} controls />}
-              {fileName && <p className="mt-2 text-xs text-zinc-500 truncate">{fileName}</p>}
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-zinc-600 text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video is private and only used for analysis — never shared with anyone else. Frames may be held temporarily during processing and are deleted once your analysis is done.</p>
+              {videoUrl && <video className="mt-4 w-full rounded-lg border border-border" src={videoUrl} controls />}
+              {fileName && <p className="mt-2 text-xs text-muted-foreground truncate">{fileName}</p>}
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video is private and only used for analysis — never shared with anyone else. Frames may be held temporarily during processing and are deleted once your analysis is done.</p>
             </>
           ) : (
             <div className="space-y-3">
               <input
-                className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                 placeholder="Paste a YouTube link (video or Short)"
                 value={ytUrl}
                 onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
               />
               <input
-                className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                 placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                 value={sport}
                 onChange={e => setSport(e.target.value)}
@@ -1459,7 +1459,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               {gameFootageToggle}
               {needsTeamInfo && (
                 <input
-                  className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                   placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
                   value={teamColor}
                   onChange={e => setTeamColor(e.target.value)}
@@ -1469,7 +1469,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <button
                 onClick={() => analyzeYouTube()}
                 disabled={loading || !ytUrl.trim() || !canAnalyze}
-                className="w-full rounded-xl bg-white py-3.5 text-base font-bold text-black hover:bg-zinc-200 transition-colors disabled:opacity-40">
+                className="w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
                 {loading ? "Analyzing…" : "Analyze YouTube Video"}
               </button>
               {ytError && (
@@ -1477,7 +1477,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   <p className="text-sm text-red-400">{ytError}</p>
                 </div>
               )}
-              <p className="text-xs text-zinc-600">Must be a public video — private, unlisted, or age-restricted videos won't work. For the sharpest analysis, uploading the actual video file is still best.</p>
+              <p className="text-xs text-muted-foreground">Must be a public video — private, unlisted, or age-restricted videos won't work. For the sharpest analysis, uploading the actual video file is still best.</p>
             </div>
           )}
 
@@ -1486,20 +1486,20 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               {videoFile && (
                 <>
                   <input
-                    className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder="Name this clip (e.g. Playoff game vs Lincoln)"
                     value={clipTitle}
                     onChange={e => setClipTitle(e.target.value)}
                   />
                   {gameFootageToggle}
                   <input
-                    className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder={(needsTeamInfo ? "Your jersey color (required) — " : "") + (profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)")}
                     value={teamColor}
                     onChange={e => setTeamColor(e.target.value)}
                   />
                   <input
-                    className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder="Describe the teams if jerseys are mixed (e.g. 'my team: white + blue pinnies, them: all black')"
                     value={teamsNote}
                     onChange={e => setTeamsNote(e.target.value)}
@@ -1508,7 +1508,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 </>
               )}
               <input
-                className="w-full rounded-xl border border-zinc-800 bg-black px-4 py-3 text-base text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                 placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                 value={sport}
                 onChange={e => setSport(e.target.value)}
@@ -1516,7 +1516,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <button
                 onClick={() => analyzeVideo()}
                 disabled={loading || !videoFile || !canAnalyze}
-                className="w-full rounded-xl bg-white py-4 text-sm font-bold text-black disabled:opacity-30 active:bg-zinc-200 transition-colors"
+                className="w-full rounded-xl bg-primary py-4 text-sm font-bold text-primary-foreground disabled:opacity-30 active:bg-primary/80 transition-colors"
               >
                 {loading ? "Analyzing…" : "Analyze Film"}
               </button>
@@ -1525,9 +1525,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </div>
 
         {/* Results */}
-        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-4 sm:p-5">
+        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-foreground">
               {resultMode === "game" ? "Game Report" : "Player Decisions"}
             </p>
             {resultMode && !loading && !(resultMode === "clip" && decisions.length === 0) && (
@@ -1542,8 +1542,8 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           {!loading && jobStarted && (
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-8 text-center">
               <Clapperboard className="h-8 w-8 text-emerald-400" strokeWidth={1.5} />
-              <p className="text-base font-semibold text-white">Analysis started</p>
-              <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
+              <p className="text-base font-semibold text-foreground">Analysis started</p>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
                 This runs in the background and can take up to 45 minutes for a full game — feel free to close this tab. Check the Library for progress, and it'll show up there as a finished review when it's done.
               </p>
             </div>
@@ -1555,7 +1555,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <p className="text-sm text-red-300">{analyzeError}</p>
               {pendingRetry && (
                 <button onClick={pendingRetry}
-                  className="rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
+                  className="rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
                   Try again
                 </button>
               )}
@@ -1563,34 +1563,34 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && !analyzeError && !resultMode && !jobStarted && (
-            <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/40 to-zinc-950 p-5">
-              <p className="mb-4 text-center text-sm text-zinc-500">
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-muted/40 to-card p-5">
+              <p className="mb-4 text-center text-sm text-muted-foreground">
                 {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]} — here's what a review looks like:` : "Upload a clip and every player gets a card like this:"}
               </p>
               {/* Ghost preview of a graded player card */}
               <div className="pointer-events-none select-none space-y-2 opacity-60">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+                <div className="rounded-xl border border-border bg-card p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-lg font-black text-white">A-</div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-lg font-black text-foreground">A-</div>
                     <div className="flex-1">
-                      <div className="text-sm font-semibold text-white">White #23 Point Guard</div>
-                      <div className="text-xs text-zinc-600">Drive-and-kick read</div>
+                      <div className="text-sm font-semibold text-foreground">White #23 Point Guard</div>
+                      <div className="text-xs text-muted-foreground">Drive-and-kick read</div>
                     </div>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-lg bg-zinc-900 p-2.5">
-                      <div className="text-[9px] uppercase tracking-widest text-zinc-600 mb-1">What Happened</div>
-                      <div className="text-xs text-zinc-400">Drew two defenders on the drive, kicked to the open corner.</div>
+                    <div className="rounded-lg bg-muted p-2.5">
+                      <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">What Happened</div>
+                      <div className="text-xs text-muted-foreground">Drew two defenders on the drive, kicked to the open corner.</div>
                     </div>
-                    <div className="rounded-lg bg-zinc-900 p-2.5">
-                      <div className="text-[9px] uppercase tracking-widest text-zinc-600 mb-1">Next Time</div>
-                      <div className="text-xs text-zinc-400">Same read, half a beat earlier — before help commits.</div>
+                    <div className="rounded-lg bg-muted p-2.5">
+                      <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Next Time</div>
+                      <div className="text-xs text-muted-foreground">Same read, half a beat earlier — before help commits.</div>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-black text-black">C+</div>
-                  <div className="text-sm font-semibold text-zinc-400">Blue #11 Help Defender</div>
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-black text-primary-foreground">C+</div>
+                  <div className="text-sm font-semibold text-muted-foreground">Blue #11 Help Defender</div>
                 </div>
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent" />
@@ -1598,29 +1598,29 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && ((resultMode === "clip" && decisions.length === 0) || (resultMode === "game" && isEmptyGameReport(gameReport))) && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 text-center px-6 py-10">
-              <VideoOff className="h-9 w-9 text-zinc-600" strokeWidth={1.5} />
-              <p className="text-base font-semibold text-white">This clip was a little too unclear to break down</p>
-              <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card text-center px-6 py-10">
+              <VideoOff className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
+              <p className="text-base font-semibold text-foreground">This clip was a little too unclear to break down</p>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
                 Nothing's broken — the analysis ran fine, but the footage was too blurry, too far away, or too fast to read the plays confidently. We'd rather tell you that than make something up.
               </p>
-              <p className="text-xs text-zinc-600 max-w-sm leading-relaxed">
+              <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
                 Try a clearer clip where the players and the ball are clearly visible — closer footage and steady framing work best.
               </p>
               <div className="mt-2 flex flex-wrap justify-center gap-2">
                 <button onClick={() => (videoFile ? analyzeVideo(true) : analyzeYouTube(true))}
-                  className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black hover:bg-zinc-200 transition-colors">
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
                   Analyze anyway
                 </button>
                 <button onClick={() => {
                     setVideoFile(null); setVideoUrl(""); setFileName(""); setClipTitle(""); setTeamColor("");
                     setDecisions([]); setGameReport(null); setResultMode(null);
                   }}
-                  className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors">
+                  className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:text-foreground hover:border-ring transition-colors">
                   Try another clip
                 </button>
               </div>
-              <p className="text-[11px] text-zinc-700">"Analyze anyway" gives a best-effort read — uncertain calls are marked low confidence.</p>
+              <p className="text-[11px] text-muted-foreground">"Analyze anyway" gives a best-effort read — uncertain calls are marked low confidence.</p>
             </div>
           )}
           {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}
@@ -1771,11 +1771,11 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   const jobsPanel = (activeJobs.length > 0 || failedJobs.length > 0) && (
     <div className="mb-4 space-y-2">
       {activeJobs.map(job => (
-        <div key={job.id} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-black/40 px-4 py-3">
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-zinc-500" />
+        <div key={job.id} className="flex items-center gap-3 rounded-xl border border-border bg-muted px-4 py-3">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">{job.file_name || "Untitled game"}</p>
-            <p className="text-xs text-zinc-500">
+            <p className="truncate text-sm font-semibold text-foreground">{job.file_name || "Untitled game"}</p>
+            <p className="text-xs text-muted-foreground">
               {job.progress_label || "Starting…"}
               {job.progress_total > 0 && ` — ${job.progress_current}/${job.progress_total}`}
             </p>
@@ -1784,7 +1784,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       ))}
       {failedJobs.map(job => (
         <div key={job.id} className="rounded-xl border border-red-900 bg-red-950/20 px-4 py-3">
-          <p className="text-sm font-semibold text-white">{job.file_name || "Untitled game"} — analysis failed</p>
+          <p className="text-sm font-semibold text-foreground">{job.file_name || "Untitled game"} — analysis failed</p>
           <p className="mt-0.5 text-xs text-red-300">{job.error || "Something went wrong."}</p>
         </div>
       ))}
@@ -1796,16 +1796,16 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     return (
       <div>
         {jobsPanel}
-        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-10 flex flex-col items-center justify-center text-center gap-4">
-          <Clapperboard className="h-10 w-10 text-zinc-600" strokeWidth={1.5} />
+        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-4">
+          <Clapperboard className="h-10 w-10 text-muted-foreground" strokeWidth={1.5} />
           <div>
-            <p className="text-base font-semibold text-white mb-1">No film yet</p>
-            <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
+            <p className="text-base font-semibold text-foreground mb-1">No film yet</p>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Upload your first clip in DecisionIQ and it'll show up here with your grade, breakdown, and feedback.
             </p>
           </div>
           <a href="#" onClick={e => { e.preventDefault(); document.querySelector<HTMLButtonElement>("[data-module='decision']")?.click(); }}
-            className="rounded-xl bg-white px-6 py-2.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors">
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
             Go to DecisionIQ
           </a>
         </div>
@@ -1856,12 +1856,12 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 p-5">
+    <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-white">Film Library</p>
-          <p className="text-xs text-zinc-600 mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""} · organized by team</p>
+          <p className="text-sm font-semibold text-foreground">Film Library</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""} · organized by team</p>
         </div>
       </div>
 
@@ -1871,19 +1871,19 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by sport or file name…"
-          className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
         />
         <div className="flex flex-wrap gap-2">
           {(["all", "clip", "game"] as const).map(f => (
             <button key={f} onClick={() => setModeFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${modeFilter === f ? "bg-white text-black" : "border border-zinc-800 text-zinc-500 hover:text-white"}`}>
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${modeFilter === f ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
               {f === "all" ? "All" : f === "clip" ? "Clips" : "Games"}
             </button>
           ))}
-          <div className="w-px bg-zinc-800 mx-1 self-stretch" />
+          <div className="w-px bg-accent mx-1 self-stretch" />
           {(["all", "good", "mid", "poor"] as const).map(f => (
             <button key={f} onClick={() => setGradeFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${gradeFilter === f ? "bg-white text-black" : "border border-zinc-800 text-zinc-500 hover:text-white"}`}>
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${gradeFilter === f ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
               {f === "all" ? "Any grade" : f === "good" ? "B+ and up" : f === "mid" ? "C to B" : "Below C"}
             </button>
           ))}
@@ -1891,8 +1891,8 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       </div>
 
       {groups.length === 0 ? (
-        <div className="flex h-24 items-center justify-center rounded-lg border border-zinc-800">
-          <p className="text-sm text-zinc-600">No reviews match your filters.</p>
+        <div className="flex h-24 items-center justify-center rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">No reviews match your filters.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -1908,11 +1908,11 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
             const record = wins + losses > 0 ? `${wins}-${losses}` : null;
             const count = group.reviews.length + group.jobs.length;
             return (
-              <div key={group.key} className="rounded-2xl border border-zinc-800 bg-black/20">
+              <div key={group.key} className="rounded-2xl border border-border bg-muted">
                 <TeamSectionHeader
                   name={group.name}
                   initials={group.teamId ? teamInitials(group.name) : "—"}
-                  colorClass={group.teamId ? teamAvatarColor(group.key) : "bg-zinc-700"}
+                  colorClass={group.teamId ? teamAvatarColor(group.key) : "bg-accent"}
                   subtitle={`${count} ${count === 1 ? "game" : "games"}`}
                   record={record}
                   recordTone={record ? (wins >= losses ? "win" : "loss") : "neutral"}
@@ -1968,18 +1968,18 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       {/* Rename modal */}
       {renamingId && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={() => setRenamingId(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950 p-5" onClick={e => e.stopPropagation()}>
-            <p className="mb-3 text-sm font-bold text-white">Rename</p>
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5" onClick={e => e.stopPropagation()}>
+            <p className="mb-3 text-sm font-bold text-foreground">Rename</p>
             <input
               autoFocus
               value={renameValue}
               onChange={e => setRenameValue(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenamingId(null); }}
-              className="w-full rounded-lg border border-zinc-700 bg-black px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
             />
             <div className="mt-4 flex gap-2">
-              <button onClick={() => setRenamingId(null)} className="flex-1 rounded-lg border border-zinc-800 py-2 text-sm font-semibold text-zinc-300 hover:bg-zinc-900">Cancel</button>
-              <button onClick={commitRename} className="flex-1 rounded-lg bg-white py-2 text-sm font-bold text-black hover:bg-zinc-100">Save</button>
+              <button onClick={() => setRenamingId(null)} className="flex-1 rounded-lg border border-border py-2 text-sm font-semibold text-foreground hover:bg-muted">Cancel</button>
+              <button onClick={commitRename} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">Save</button>
             </div>
           </div>
         </div>
@@ -1990,19 +1990,19 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
         openReview.mode === "game" && openReview.gameReport
           ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back to library" />
           : (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-black">
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
                 <div className="flex items-center justify-between">
                   <button onClick={() => setOpenReview(null)}
-                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors">
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
                     ← Back to library
                   </button>
-                  <p className="truncate px-3 text-sm font-black text-white">{openReview.fileName || openReview.sport}</p>
-                  <button onClick={() => setOpenReview(null)} className="text-zinc-500 hover:text-white"><X className="h-5 w-5" /></button>
+                  <p className="truncate px-3 text-sm font-black text-foreground">{openReview.fileName || openReview.sport}</p>
+                  <button onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
                 </div>
                 {openReview.mode === "clip" && openReview.decisions
                   ? <PlayerCardList decisions={openReview.decisions} />
-                  : <p className="text-sm text-zinc-600">No data saved for this review.</p>}
+                  : <p className="text-sm text-muted-foreground">No data saved for this review.</p>}
               </div>
             </div>
           )
@@ -2032,28 +2032,28 @@ function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkT
   return (
     <div className="relative shrink-0">
       <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className="rounded-md p-1 text-zinc-500 hover:bg-zinc-800 hover:text-white">
+        className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground">
         <MoreVertical className="h-4 w-4" />
       </button>
       {open && (
-        <div className="absolute right-0 bottom-full mb-1 z-30 w-44 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 py-1 shadow-xl"
+        <div className="absolute right-0 bottom-full mb-1 z-30 w-44 overflow-hidden rounded-xl border border-border bg-muted py-1 shadow-xl"
           onClick={e => e.stopPropagation()}>
-          <button onClick={() => { setOpen(false); onOpen(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Open report</button>
-          <button onClick={() => { setOpen(false); onRename(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800">Rename</button>
-          <button onClick={() => { setOpen(false); onShare(); }} disabled={sharing} className="block w-full px-3 py-2 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-800 disabled:opacity-40">{sharing ? "Sharing…" : "Share"}</button>
+          <button onClick={() => { setOpen(false); onOpen(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-accent">Open report</button>
+          <button onClick={() => { setOpen(false); onRename(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-accent">Rename</button>
+          <button onClick={() => { setOpen(false); onShare(); }} disabled={sharing} className="block w-full px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-40">{sharing ? "Sharing…" : "Share"}</button>
           {teams.length > 0 && (
-            <div className="border-t border-zinc-800">
-              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">Move to team</p>
+            <div className="border-t border-border">
+              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Move to team</p>
               <select
                 value={review.teamId || ""}
                 onChange={e => { onLinkTeam(e.target.value); setOpen(false); }}
-                className="mx-2 mb-1 w-[calc(100%-1rem)] rounded-lg border border-zinc-800 bg-black px-2 py-1.5 text-xs text-zinc-300 focus:outline-none">
+                className="mx-2 mb-1 w-[calc(100%-1rem)] rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none">
                 <option value="">Unassigned</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
           )}
-          <div className="border-t border-zinc-800">
+          <div className="border-t border-border">
             <button onClick={() => { setOpen(false); onDelete(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-red-400 hover:bg-red-950/40">Delete</button>
           </div>
         </div>
