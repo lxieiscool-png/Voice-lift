@@ -141,69 +141,13 @@ async function fetchSpecViaEmbedPage(videoId: string): Promise<string | null> {
 
 export async function POST(req: Request) {
   try {
-    const { url, debug } = await req.json();
+    const { url } = await req.json();
 
     const videoId = extractVideoId(url);
     if (!videoId) {
       return NextResponse.json({ error: "Invalid YouTube URL." }, { status: 400 });
     }
 
-    // Temporary diagnostics: report exactly what YouTube serves this deploy's
-    // IPs, per client disguise — read-only, no secrets exposed.
-    if (debug === true) {
-      const results: Record<string, unknown>[] = [];
-      // Exact replica of the legacy duration call that used to work.
-      try {
-        const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ context: { client: { clientName: "WEB", clientVersion: "2.20240401.00.00", hl: "en" } }, videoId }),
-        });
-        const json = await res.json().catch(() => ({}));
-        results.push({
-          tier: "legacy-web-exact", http: res.status,
-          playability: json?.playabilityStatus?.status ?? null,
-          reason: json?.playabilityStatus?.reason ?? null,
-          hasDuration: Boolean(json?.videoDetails?.lengthSeconds),
-          hasStoryboard: Boolean(json?.storyboards?.playerStoryboardSpecRenderer?.spec),
-        });
-      } catch (e: any) { results.push({ tier: "legacy-web-exact", threw: String(e?.message || e) }); }
-      for (const { label, client } of INNERTUBE_CLIENTS) {
-        try {
-          const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ context: { client }, videoId, contentCheckOk: true, racyCheckOk: true }),
-          });
-          const json = await res.json().catch(() => ({}));
-          results.push({
-            tier: `innertube-${label}`, http: res.status,
-            playability: json?.playabilityStatus?.status ?? null,
-            reason: json?.playabilityStatus?.reason ?? null,
-            hasDuration: Boolean(json?.videoDetails?.lengthSeconds),
-            hasStoryboard: Boolean(json?.storyboards?.playerStoryboardSpecRenderer?.spec),
-          });
-        } catch (e: any) { results.push({ tier: `innertube-${label}`, threw: String(e?.message || e) }); }
-      }
-      try {
-        const res = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Cookie": "CONSENT=YES+cb.20210328-17-p0.en+FX+888; SOCS=CAI",
-          },
-        });
-        const html = res.ok ? await res.text() : "";
-        results.push({ tier: "watch-page", http: res.status, htmlLen: html.length, hasSpec: Boolean(extractStoryboardSpec(html)) });
-      } catch (e: any) { results.push({ tier: "watch-page", threw: String(e?.message || e) }); }
-      try {
-        const res = await fetch(`https://www.youtube.com/embed/${videoId}?hl=en`, {
-          headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
-        });
-        const html = res.ok ? await res.text() : "";
-        results.push({ tier: "embed-page", http: res.status, htmlLen: html.length, hasSpec: Boolean(extractStoryboardSpec(html)) });
-      } catch (e: any) { results.push({ tier: "embed-page", threw: String(e?.message || e) }); }
-      return NextResponse.json({ videoId, results });
-    }
 
     // Tier 1: innertube player API under several client disguises — the same
     // channel that reliably answers duration queries from Vercel's IPs.

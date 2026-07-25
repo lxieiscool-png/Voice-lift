@@ -1492,7 +1492,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </Button>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">Must be a public video — private, unlisted, or age-restricted videos won't work. For the sharpest analysis, uploading the actual video file is still best.</p>
+              <p className="text-xs text-muted-foreground">Heads up: YouTube blocks a lot of server requests, so links fail often — especially full games. Uploading the video file is more reliable and gives a much sharper analysis.</p>
             </div>
           )}
 
