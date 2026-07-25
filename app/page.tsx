@@ -15,6 +15,7 @@ const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: fals
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
 const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
 const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
+const DrillCheck  = dynamic(() => import("./components/DrillCheck"), { ssr: false });
 const ParticleField   = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.ParticleField })),   { ssr: false });
 const CursorSpotlight = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.CursorSpotlight })), { ssr: false });
 
@@ -26,6 +27,7 @@ const DEFAULT_PROFILE: Profile = { name: "", sport: "", team: "" };
 const MODULES = [
   { id: "decision", label: "DecisionIQ", sub: "Film analysis"     },
   { id: "coach",    label: "CoachIQ",    sub: "Personal coaching" },
+  { id: "drill",    label: "Drill Check", sub: "Form feedback"    },
   { id: "library",  label: "Library",    sub: "Past reviews"      },
   { id: "teams",    label: "Teams",      sub: "Season & roster"   },
 ] as const;
@@ -1472,6 +1474,18 @@ export default function Reel() {
               <p className="mt-1 text-sm text-zinc-500">Track a season, roster, and record across every game you upload.</p>
             </div>
             <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} />
+          </>
+        ) : activeModule === "drill" ? (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Drill Check
+                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+              </h1>
+              <p className="mt-1 text-sm text-zinc-500">Got a drill from your report? Record yourself doing it and get instant form feedback.</p>
+            </div>
+            <ProfileCard profile={profile} onSave={saveProfile} reviews={reviews} />
+            <DrillCheck profile={profile} userId={user?.id} />
           </>
         ) : (
           <>

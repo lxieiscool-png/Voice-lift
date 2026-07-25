@@ -1,4 +1,18 @@
-import type { PlayerDecision, GameReport, PlayerStat, TeamComparison, PlayerBoxStat } from "../types";
+import type { PlayerDecision, GameReport, PlayerStat, TeamComparison, PlayerBoxStat, DrillFeedback } from "../types";
+
+export function parseDrillFeedback(text: string, drill: string): DrillFeedback {
+  const field = (l: string) => text.match(new RegExp(`^${l}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
+  const v = field("Verdict").toLowerCase();
+  const verdict: DrillFeedback["verdict"] =
+    v.startsWith("yes") ? "yes" : v.startsWith("mostly") ? "mostly" : v.startsWith("no") ? "no" : "unclear";
+  return {
+    drill,
+    verdict,
+    didWell: field("Did Well"),
+    mainFix: field("Main Fix"),
+    focusNext: field("Focus Next"),
+  };
+}
 
 const STAT_EVENTS = new Set([
   "made_2", "made_3", "missed_2", "missed_3", "made_ft", "missed_ft",

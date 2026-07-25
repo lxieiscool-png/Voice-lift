@@ -6,6 +6,18 @@ export type PlayerDecision = {
 
 export type PlayerStat = { label: string; raw: string };
 
+// Feedback on a player's own recording of a solo drill, checked against the
+// drill they were prescribed. Honest form-check depth (gross mechanics, reps,
+// intent) — not frame-perfect biomechanics.
+export type DrillFeedback = {
+  drill: string;
+  verdict: "yes" | "mostly" | "no" | "unclear";
+  didWell: string;
+  mainFix: string;
+  focusNext: string;
+  unclear?: string;
+};
+
 // Auto-generated box score, tallied deterministically from the per-segment
 // "Stat Events" the vision model logs. Best-effort (see the honesty caveats in
 // the stat-extraction prompt) — labeled as an AI estimate in the UI.
