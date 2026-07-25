@@ -96,12 +96,12 @@ async function fetchPlayerDataViaInnertube(videoId: string): Promise<PlayerData>
   let source = "none";
   for (const { label, client } of INNERTUBE_CLIENTS) {
     try {
+      // Minimal headers on purpose: the plain Content-Type-only shape is the
+      // one proven to get through from Vercel's IPs. Adding a browser
+      // User-Agent without matching browser cookies trips bot detection.
       const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           context: { client },
           videoId,
