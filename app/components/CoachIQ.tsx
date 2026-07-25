@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, ClipboardList, Calendar } from "lucide-react";
+import { MessageCircle, ClipboardList, Calendar, Dumbbell } from "lucide-react";
 import type { ChatMessage, DrillDay, PracticePlan, Profile, Review } from "../lib/types";
 import { sportIcon, sportSuggestions } from "../lib/shared";
+import DrillCheck from "./DrillCheck";
 
 // ─── Plan Parser ──────────────────────────────────────────────────────────────
 
@@ -109,8 +110,8 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
 
 // ─── CoachIQ Main ─────────────────────────────────────────────────────────────
 
-export default function CoachIQ({ profile, reviews }: { profile: Profile; reviews: Review[] }) {
-  const [tab, setTab] = useState<"chat" | "plan">("chat");
+export default function CoachIQ({ profile, reviews, userId }: { profile: Profile; reviews: Review[]; userId?: string }) {
+  const [tab, setTab] = useState<"chat" | "plan" | "drill">("chat");
 
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -204,15 +205,15 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
     <div className="space-y-4">
       {/* Tab switcher */}
       <div className="flex rounded-2xl border border-border bg-muted p-1">
-        {(["chat", "plan"] as const).map((t) => (
+        {(["chat", "plan", "drill"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 rounded-xl py-2.5 text-sm font-bold transition-colors ${tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             <span className="inline-flex items-center gap-1.5">
-              {t === "chat" ? <MessageCircle className="h-4 w-4" strokeWidth={2} /> : <ClipboardList className="h-4 w-4" strokeWidth={2} />}
-              {t === "chat" ? "Ask Coach" : "Build My Plan"}
+              {t === "chat" ? <MessageCircle className="h-4 w-4" strokeWidth={2} /> : t === "plan" ? <ClipboardList className="h-4 w-4" strokeWidth={2} /> : <Dumbbell className="h-4 w-4" strokeWidth={2} />}
+              {t === "chat" ? "Ask Coach" : t === "plan" ? "Build My Plan" : "Drill Check"}
             </span>
           </button>
         ))}
@@ -404,6 +405,9 @@ export default function CoachIQ({ profile, reviews }: { profile: Profile; review
           </div>
         </div>
       )}
+
+      {/* Drill Check tab */}
+      {tab === "drill" && <DrillCheck profile={profile} userId={userId} />}
     </div>
   );
 }

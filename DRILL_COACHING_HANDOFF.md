@@ -24,7 +24,7 @@ Reel will **not** chase HoopIQ (a better-funded competitor with a real CV stats 
 - `DrillFeedback` type in `app/lib/types.ts`; `parseDrillFeedback` in `app/lib/analysis/parsers.ts`.
 - `app/api/drill/route.ts` — POST `{ drill, frames, sport, userId }`. Metered as a **clip** (cheap) for signed-in users via `checkAndIncrementUsage`; guests exempt.
 - `app/components/DrillCheck.tsx` — the UI: drill description textarea + clip upload → samples ~18 frames client-side → calls `/api/drill` → renders verdict/didWell/mainFix/focusNext. Accepts an `initialDrill` prop (currently unused — see next steps).
-- Wired as a **"Drill Check" module** in `app/page.tsx` nav (`activeModule === "drill"`).
+- Lives as the third tab **inside CoachIQ** (`app/components/CoachIQ.tsx`, tab id `"drill"`, labeled "Drill Check") — not a top-level module. CoachIQ takes a `userId` prop and passes it through.
 
 **Status: prototype, unvalidated on real footage.** The first real drill clip the user runs IS the accuracy test. Before building more on top, confirm the feedback is specific and correct, not generic. If mediocre, tune the `analyzeDrill` prompt first.
 
