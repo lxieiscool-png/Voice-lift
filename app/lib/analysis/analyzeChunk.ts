@@ -64,6 +64,8 @@ export async function analyzeChunk({
 
 Carefully study every frame before responding. Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
+BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
+
 Return ONLY this format — no extra commentary:
 
 Period/Quarter: [e.g. "2nd Quarter" or "unclear"]
@@ -80,10 +82,10 @@ Stat Events:
 - [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard". The event MUST be one of exactly these tokens: made_2, made_3, missed_2, missed_3, made_ft, missed_ft, rebound, assist, steal, turnover, block, foul. Rules: only log an event when the outcome is genuinely visible across the frames — never guess make vs miss; if you can see a shot went up but not whether it fell, DO NOT log it. Do not infer events between frames you cannot see. One line per event; the same event may involve two lines (e.g. a steal AND the resulting turnover). Write "None" if nothing countable is clearly visible.]
 
 Decision Quality:
-[2–3 sentences directly to the athlete. Be honest and specific about what you saw — not generic. Reference actual events from the frames.]
+[ONE sentence (two max) directly to the athlete. Honest, specific, referencing an actual event from the frames — not generic.]
 
 Tactical Pattern:
-[One concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
+[One sentence naming one concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
 
 --- SEGMENT CONTEXT ---
 Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
@@ -98,6 +100,8 @@ ${honestyBlock}
 Study the frames carefully. Identify EVERY player making a notable decision — offense AND defense, from BOTH teams. Look hard at every player visible across the frames, not just whoever is holding the ball. Do not stop at 2 or 3 — if 6, 8, or more players are doing something worth grading, grade all of them. Only skip a player if they are genuinely not doing anything decision-relevant in this clip.
 
 ONLY grade athletes who are actively playing in the game. Completely ignore and do NOT grade: referees, officials, coaches, spectators, people in the stands, people on the bench who are not in the play, ball boys, or anyone not actively competing on the field/court.
+
+BREVITY: Every field below must be a single sentence — two at the absolute most. Punchy and direct, like a coach who talks in quick hits. No filler, no throat-clearing, no restating the question.
 
 ${jersey || teamColor ? `IMPORTANT: The athlete who uploaded this footage is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing jersey #${jersey}` : ""}. You MUST include this specific player in your analysis — they are the primary subject. Make sure their player block appears first in your output.` : ""}
 
