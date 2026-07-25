@@ -51,6 +51,8 @@ Judge ONLY their execution of THIS drill against how it's supposed to be done. B
 
 Talk directly to the athlete ("you"). Every field is ONE sentence — punchy, like a coach who gives quick, useful hits. No filler.
 
+Avoid "left/right" unless you're certain — video can be mirrored, so prefer terms like "guide hand," "shooting hand," "front foot," "near side" that don't flip.
+
 Return ONLY this format:
 
 Verdict: [Yes / Mostly / No / Unclear — are they doing the drill correctly?]
