@@ -76,24 +76,64 @@ async function fetchAsBase64(url: string): Promise<string | null> {
   }
 }
 
-// YouTube's internal player API no longer serves storyboards to anonymous
-// server-side calls (tested ANDROID/IOS/WEB/MWEB/TV clients — all blocked or
-// stripped), but the WEB client still returns video duration, which we use
-// for clip-vs-game mode detection when the page scrape fails.
-async function fetchDurationViaInnertube(videoId: string): Promise<number | null> {
+// YouTube's internal player API ("innertube") behaves differently per client
+// disguise and per IP reputation, and the rules shift constantly — so instead
+// of betting on one client, run a gauntlet: try several and take the first
+// response that carries a storyboard spec. Duration is collected from whatever
+// answers, even when the storyboard is stripped.
+const INNERTUBE_CLIENTS: Array<{ label: string; client: Record<string, unknown> }> = [
+  { label: "web",      client: { clientName: "WEB", clientVersion: "2.20240401.00.00", hl: "en" } },
+  { label: "android",  client: { clientName: "ANDROID", clientVersion: "19.09.37", androidSdkVersion: 34, hl: "en" } },
+  { label: "ios",      client: { clientName: "IOS", clientVersion: "19.09.3", deviceModel: "iPhone14,3", hl: "en" } },
+  { label: "tv-embed", client: { clientName: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", clientVersion: "2.0", hl: "en" } },
+  { label: "web-embed", client: { clientName: "WEB_EMBEDDED_PLAYER", clientVersion: "1.20240401.00.00", hl: "en" } },
+];
+
+type PlayerData = { spec: string | null; duration: number | null; source: string };
+
+async function fetchPlayerDataViaInnertube(videoId: string): Promise<PlayerData> {
+  let duration: number | null = null;
+  let source = "none";
+  for (const { label, client } of INNERTUBE_CLIENTS) {
+    try {
+      const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+        body: JSON.stringify({
+          context: { client },
+          videoId,
+          contentCheckOk: true,
+          racyCheckOk: true,
+        }),
+      });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const len = parseInt(json?.videoDetails?.lengthSeconds ?? "");
+      if (!duration && Number.isFinite(len)) { duration = len; source = `innertube-${label}`; }
+      const sb = json?.storyboards;
+      const spec = sb?.playerStoryboardSpecRenderer?.spec || sb?.playerLiveStoryboardSpecRenderer?.spec || null;
+      if (spec) return { spec, duration: duration ?? (Number.isFinite(len) ? len : null), source: `innertube-${label}` };
+    } catch { /* next client */ }
+  }
+  return { spec: null, duration, source };
+}
+
+// The embed player page is served with looser bot-checks than /watch on some
+// IP ranges, and its player config carries the same storyboard spec.
+async function fetchSpecViaEmbedPage(videoId: string): Promise<string | null> {
   try {
-    const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        context: { client: { clientName: "WEB", clientVersion: "2.20240401.00.00", hl: "en" } },
-        videoId,
-      }),
+    const res = await fetch(`https://www.youtube.com/embed/${videoId}?hl=en`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cookie": "CONSENT=YES+cb.20210328-17-p0.en+FX+888; SOCS=CAI",
+      },
     });
     if (!res.ok) return null;
-    const json = await res.json();
-    const len = parseInt(json?.videoDetails?.lengthSeconds ?? "");
-    return Number.isFinite(len) ? len : null;
+    return extractStoryboardSpec(await res.text());
   } catch {
     return null;
   }
@@ -108,26 +148,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid YouTube URL." }, { status: 400 });
     }
 
-    // Tier 1: scrape the watch page (consent cookies help avoid the redirect
-    // interstitial that hides video data from datacenter IPs like Vercel's)
-    let rawSpec: string | null = null;
-    let knownDuration: number | null = null;
-    try {
-      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept-Language": "en-US,en;q=0.9",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Cookie": "CONSENT=YES+cb.20210328-17-p0.en+FX+888; SOCS=CAI",
-        },
-      });
-      if (pageRes.ok) rawSpec = extractStoryboardSpec(await pageRes.text());
-    } catch { /* fall through */ }
+    // Tier 1: innertube player API under several client disguises — the same
+    // channel that reliably answers duration queries from Vercel's IPs.
+    let specSource = "none";
+    const player = await fetchPlayerDataViaInnertube(videoId);
+    let rawSpec: string | null = player.spec;
+    let knownDuration: number | null = player.duration;
+    if (rawSpec) specSource = player.source;
 
-    // Tier 2: static thumbnails — always publicly served, never bot-checked.
+    // Tier 2: scrape the watch page (consent cookies help avoid the redirect
+    // interstitial that hides video data from datacenter IPs like Vercel's)
+    if (!rawSpec) {
+      try {
+        const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Cookie": "CONSENT=YES+cb.20210328-17-p0.en+FX+888; SOCS=CAI",
+          },
+        });
+        if (pageRes.ok) rawSpec = extractStoryboardSpec(await pageRes.text());
+        if (rawSpec) specSource = "watch-page";
+      } catch { /* fall through */ }
+    }
+
+    // Tier 3: the embed player page — looser bot-checks on some IP ranges.
+    if (!rawSpec) {
+      rawSpec = await fetchSpecViaEmbedPage(videoId);
+      if (rawSpec) specSource = "embed-page";
+    }
+
+    // Tier 4: static thumbnails — always publicly served, never bot-checked.
     // Only 4 frames (start/25%/50%/75%), so quality is limited but it works.
     if (!rawSpec) {
-      knownDuration = await fetchDurationViaInnertube(videoId);
       // With only 4 thumbnails, analyzing anything but a confirmed-short clip
       // silently produces a garbage 3-player "analysis" — refuse honestly
       // when the video is long OR we can't verify its length.
@@ -215,6 +269,7 @@ export async function POST(req: Request) {
       durationSeconds,
       mode,
       videoId,
+      source: specSource,
     });
   } catch (error: any) {
     console.error("YOUTUBE ERROR:", error);
