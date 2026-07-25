@@ -9,6 +9,7 @@ import { createClient } from "./lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Logo from "./components/Logo";
 import UpgradeModal from "./components/UpgradeModal";
+import ThemeToggle from "./components/ThemeToggle";
 import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, type LucideIcon } from "lucide-react";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
@@ -1372,7 +1373,7 @@ export default function Reel() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-background text-foreground">
 
       {showOnboarding && (
         <OnboardingOverlay name={profile.name} onDone={dismissOnboarding} />
@@ -1406,7 +1407,7 @@ export default function Reel() {
       />
 
       {/* Nav */}
-      <header className="sticky top-0 z-30 border-b border-zinc-900 bg-black/95 backdrop-blur px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur px-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
@@ -1416,12 +1417,12 @@ export default function Reel() {
             )}
           </div>
 
-          <nav className="flex gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
+          <nav className="flex gap-0.5 rounded-lg border border-border bg-card p-0.5">
             {MODULES.map(mod => (
               <button key={mod.id} onClick={() => setActiveModule(mod.id)}
                 data-module={mod.id}
                 className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 ${
-                  activeModule === mod.id ? "bg-white text-black" : "text-zinc-500 hover:text-white"
+                  activeModule === mod.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {mod.label}
@@ -1429,8 +1430,10 @@ export default function Reel() {
             ))}
           </nav>
 
+          <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors h-9 px-2"
+            className="flex items-center gap-2 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-ring transition-colors h-9 px-2"
             aria-label="Settings">
             {user?.user_metadata?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -1445,6 +1448,7 @@ export default function Reel() {
               <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.113a7.047 7.047 0 0 1 0-2.228L1.821 7.773a1 1 0 0 1-.205-1.251l1.18-2.044a1 1 0 0 1 1.186-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
             </svg>
           </button>
+          </div>
         </div>
       </header>
 

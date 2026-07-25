@@ -1,22 +1,60 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: `.dark` on an ancestor (we put it on <html>) drives it,
+   instead of the OS preference — so the in-app toggle can override. */
+@custom-variant dark (&:is(.dark *));
+
+/* Semantic color tokens (shadcn's model). Light is the default; .dark points at
+   the exact colors the app already used, so dark mode looks unchanged as we
+   migrate hardcoded classes over to these tokens. */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --ring: #a1a1aa;
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #09090b;         /* zinc-950 */
+  --card-foreground: #ffffff;
+  --muted: #18181b;        /* zinc-900 */
+  --muted-foreground: #a1a1aa; /* zinc-400 */
+  --border: #27272a;       /* zinc-800 */
+  --input: #27272a;
+  --accent: #27272a;       /* zinc-800 */
+  --accent-foreground: #fafafa;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --ring: #52525b;         /* zinc-600 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
