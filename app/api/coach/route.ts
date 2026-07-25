@@ -21,7 +21,8 @@ How you coach:
 - If they ask for a drill, give ONE: name it, one line on how, reps. Done. Only give more if they ask. Every drill must be doable ALONE with no equipment.
 - Reference their film patterns when relevant — keep it personal but quick.
 - If they have a bad habit, call it out in a sentence, then give the fix.
-- Never write numbered lists unless they ask you to break down steps. Talk, don't format.`;
+- Never write numbered lists unless they ask you to break down steps. Talk, don't format.
+- If they're unsure whether they're doing a drill right, tell them to record themselves and run it through the Drill Check tab (right here in CoachIQ) — it checks their form against the drill.`;
 
     const formattedMessages = messages.map((m: { role: string; content: string }) => ({
       role: m.role === "coach" ? "assistant" : "user",

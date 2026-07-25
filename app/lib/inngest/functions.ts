@@ -6,6 +6,7 @@ import { analyzeChunk, SportsCheckError } from "../analysis/analyzeChunk";
 import { synthesizeGameReport } from "../analysis/synthesize";
 import { parseGameReport, buildBoxScore } from "../analysis/parsers";
 import { formatTime } from "../decisioniq-helpers";
+import { refundUsage } from "../usage";
 
 // Scaffolding check — confirms the Inngest dev server can reach this app and
 // run a step-based function before any real analysis logic is built on top.
@@ -58,6 +59,12 @@ export const analyzeGameJob = inngest.createFunction(
         if (!frameCount) return;
         const paths = Array.from({ length: frameCount }, (_, i) => `${jobId}/${String(i).padStart(5, "0")}.jpg`);
         await supabase.storage.from("game-frames").remove(paths);
+      });
+      // A failed game shouldn't burn one of the user's few monthly game
+      // credits — refund what /api/jobs/start charged.
+      await step.run("refund-game-credit", async () => {
+        const failedUserId = (event.data as any)?.event?.data?.userId;
+        if (failedUserId) await refundUsage(failedUserId, "game");
       });
     },
   },

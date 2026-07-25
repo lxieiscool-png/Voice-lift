@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
-import { checkAndIncrementUsage } from "../../../lib/usage";
+import { checkAndIncrementUsage, refundUsage } from "../../../lib/usage";
 
 // Creates a job row the client can then upload frames against. Frames are
 // uploaded one at a time in separate requests (see [jobId]/frame) rather
@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
     game_date: gameDate ?? null, location: location ?? null, thumbnail_url: thumbnailUrl ?? null,
   }).select("id").single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    // Job never got created — don't charge the game credit.
+    await refundUsage(userId, "game");
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ jobId: data.id });
 }

@@ -83,7 +83,7 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
   return (
     <div className="mb-6 flex items-center justify-between rounded-2xl border border-border bg-gradient-to-r from-muted/70 to-card px-4 py-3.5">
       <div className="flex items-center gap-3.5 min-w-0">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-zinc-400 text-primary-foreground text-sm font-black shadow-lg shadow-white/10">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-muted-foreground text-primary-foreground text-sm font-black shadow-lg shadow-white/10">
           {profile.jersey ? `#${profile.jersey}` : profile.name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
@@ -743,7 +743,7 @@ function StatTrackingPanel() {
     >
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Stat tracking</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Progress tracking</p>
           <p className="text-lg font-black text-foreground">This game</p>
         </div>
         <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">↑ trending up</span>
@@ -766,7 +766,7 @@ function StatTrackingPanel() {
         ))}
       </div>
       <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-        Every clip is tracked over time — watch your shooting, decisions, and ball security improve week over week.
+        Every session is graded and tracked over time — watch your decision-making and ball security improve week over week.
       </p>
     </motion.div>
   );
@@ -1055,7 +1055,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
             </div>
             <div className="grid gap-4">
               {[
-                { stat: "Free to start", desc: "2 free analyses every month, no card required. Upgrade to Reel Pro for unlimited." },
+                { stat: "Free to start", desc: "Try it free every month, no card required. Reel Pro unlocks 8 full games and 100 clips a month." },
                 { stat: "Built for hoops & volleyball", desc: "Best-in-class analysis for basketball and volleyball. Other sports supported in beta." },
                 { stat: "Any level", desc: "Middle school to college. Beginners to advanced." },
               ].map(({ stat, desc }, i) => (
@@ -1086,8 +1086,8 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                 desc: "Upload a clip or full game. Every player graded, every decision broken down.",
                 features: ["Grades every player on screen", "Full game period breakdowns", "Auto-detects sport & jersey numbers", "Grade trend over time"] },
               { tag: "Personal Coaching", title: "CoachIQ", icon: MessageCircle,
-                desc: "Your AI coach, 24/7. Chat or build a full weekly practice plan.",
-                features: ["Tailored to your sport & position", "Personalized weekly drill plans", "Solo drills, zero equipment needed", "Speaks like a real coach"] },
+                desc: "Your AI coach, 24/7. Chat, build a weekly practice plan, then prove you're doing the work.",
+                features: ["Tailored to your sport & position", "Personalized weekly drill plans", "Drill Check: record a drill, get form feedback", "Speaks like a real coach"] },
               { tag: "Progress Tracking", title: "Film Library", icon: TrendingUp,
                 desc: "Every clip saved and graded. See your improvement over weeks.",
                 features: ["Grade trend chart", "Stats: clips, avg grade, streak", "Search & filter film history", "Shareable grade cards for TikTok"] },
@@ -1385,7 +1385,7 @@ export default function Reel() {
       {upgradeSuccess && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-emerald-800 bg-emerald-950 px-5 py-3 shadow-2xl">
           <span className="text-emerald-400 text-lg">✓</span>
-          <p className="text-sm font-semibold text-foreground">Welcome to Reel Pro! Unlimited film, unlimited growth.</p>
+          <p className="text-sm font-semibold text-foreground">Welcome to Reel Pro! More film, more feedback, more growth.</p>
         </div>
       )}
 

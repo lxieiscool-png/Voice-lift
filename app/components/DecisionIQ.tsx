@@ -1593,7 +1593,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   <div className="text-sm font-semibold text-muted-foreground">Blue #11 Help Defender</div>
                 </div>
               </div>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-950 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
             </div>
           )}
 

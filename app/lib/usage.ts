@@ -58,3 +58,22 @@ export async function checkAndIncrementUsage(userId: string, kind: UsageKind): P
   await supabase.from("profiles").update(next).eq("id", userId);
   return { ok: true, count: current + 1, limit, isPro, kind };
 }
+
+// Best-effort refund when the metered work fails after the increment (OpenAI
+// error, rejected footage, job creation failure). Without this, a failed
+// analysis burns one of a free user's few monthly credits for nothing — and a
+// retry burns another. Never throws; a failed refund just costs one credit.
+export async function refundUsage(userId: string, kind: UsageKind): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("profiles").select("monthly_games, monthly_analyses, month_key").eq("id", userId).single();
+    if (!data || data.month_key !== monthKey()) return; // month rolled — nothing meaningful to refund
+    const col = COL[kind];
+    const current = (data as any)[col] ?? 0;
+    if (current <= 0) return;
+    await supabase.from("profiles").update({ [col]: current - 1 }).eq("id", userId);
+  } catch (e) {
+    console.error("Usage refund failed:", e);
+  }
+}

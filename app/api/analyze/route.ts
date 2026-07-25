@@ -1,7 +1,8 @@
 import { analyzeChunk, SportsCheckError } from "../../lib/analysis/analyzeChunk";
-import { checkAndIncrementUsage } from "../../lib/usage";
+import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 
 export async function POST(req: Request) {
+  let metered: string | null = null;
   try {
     const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient, userId } = await req.json();
 
@@ -17,12 +18,15 @@ export async function POST(req: Request) {
           { status: 403 },
         );
       }
+      metered = userId;
     }
 
     const feedback = await analyzeChunk({ sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient });
 
     return Response.json({ feedback });
   } catch (error: any) {
+    // Don't charge for an analysis the user never got.
+    if (metered) await refundUsage(metered, "clip");
     if (error instanceof SportsCheckError) {
       return Response.json({ error: error.message }, { status: 400 });
     }

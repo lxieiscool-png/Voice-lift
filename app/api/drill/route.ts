@@ -1,10 +1,11 @@
 import { analyzeDrill, DrillCheckError } from "../../lib/analysis/analyzeDrill";
-import { checkAndIncrementUsage } from "../../lib/usage";
+import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 
 // POST /api/drill { drill, frames, sport, userId }
 // Checks a player's recording of a prescribed solo drill. Metered as a clip
 // (cheap, ~24 frames) for signed-in users; guests are exempt.
 export async function POST(req: Request) {
+  let metered: string | null = null;
   try {
     const { drill, frames, sport, userId } = await req.json();
     if (!drill || !frames?.length) {
@@ -19,11 +20,14 @@ export async function POST(req: Request) {
           { status: 403 },
         );
       }
+      metered = userId;
     }
 
     const feedback = await analyzeDrill({ drill, frames, sport });
     return Response.json({ feedback });
   } catch (error: any) {
+    // Don't charge for feedback the user never got.
+    if (metered) await refundUsage(metered, "clip");
     if (error instanceof DrillCheckError) {
       return Response.json({ error: error.message }, { status: 400 });
     }

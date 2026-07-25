@@ -38,7 +38,7 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
       <div className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${isCoach ? "bg-primary text-primary-foreground" : "bg-accent text-foreground"}`}>
         {isCoach ? "C" : "Y"}
       </div>
-      <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isCoach ? "bg-accent text-gray-200 rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"}`}>
+      <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isCoach ? "bg-accent text-accent-foreground rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"}`}>
         {msg.content}
       </div>
     </div>
@@ -92,7 +92,7 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
                       <span className="shrink-0 rounded-lg bg-accent px-2 py-0.5 text-xs text-foreground">{drill.reps}</span>
                     )}
                   </div>
-                  {drill.description && <p className="text-sm text-gray-300 leading-relaxed mb-2">{drill.description}</p>}
+                  {drill.description && <p className="text-sm text-muted-foreground leading-relaxed mb-2">{drill.description}</p>}
                   {drill.why && (
                     <p className="text-xs text-muted-foreground">
                       <span className="text-muted-foreground font-semibold">Why: </span>{drill.why}
@@ -231,7 +231,7 @@ export default function CoachIQ({ profile, reviews, userId }: { profile: Profile
                 <div className="rounded-2xl rounded-tl-sm bg-accent px-4 py-3">
                   <div className="flex gap-1 items-center h-5">
                     {[0, 1, 2].map(i => (
-                      <div key={i} className="h-2 w-2 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                      <div key={i} className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                     ))}
                   </div>
                 </div>
