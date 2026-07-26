@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRateLimited } from "../../lib/ratelimit";
 
 function extractVideoId(url: string): string | null {
   const raw = url.trim();
@@ -140,6 +141,9 @@ async function fetchSpecViaEmbedPage(videoId: string): Promise<string | null> {
 }
 
 export async function POST(req: Request) {
+  if (isRateLimited(req, "yt", 30)) {
+    return NextResponse.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
+  }
   try {
     const { url } = await req.json();
 

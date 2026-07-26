@@ -1,10 +1,14 @@
 import { analyzeDrill, DrillCheckError } from "../../lib/analysis/analyzeDrill";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
+import { isRateLimited } from "../../lib/ratelimit";
 
 // POST /api/drill { drill, frames, sport, userId }
 // Checks a player's recording of a prescribed solo drill. Metered as a clip
 // (cheap, ~24 frames) for signed-in users; guests are exempt.
 export async function POST(req: Request) {
+  if (isRateLimited(req, "drill", 20)) {
+    return Response.json({ error: "Too many requests — slow down and try again in a minute." }, { status: 429 });
+  }
   let metered: string | null = null;
   try {
     const { drill, frames, sport, userId } = await req.json();

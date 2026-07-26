@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { isRateLimited } from "../../../lib/ratelimit";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -6,6 +7,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Step-by-step instructions for a prescribed solo drill. Text-only and cheap
 // (fractions of a cent), so unmetered — same policy as /api/coach chat.
 export async function POST(req: Request) {
+  if (isRateLimited(req, "howto", 20)) {
+    return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
+  }
   try {
     const { drill, sport } = await req.json();
     if (!drill?.trim()) return Response.json({ error: "Missing drill." }, { status: 400 });

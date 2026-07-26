@@ -1,8 +1,12 @@
 import OpenAI from "openai";
+import { isRateLimited } from "../../lib/ratelimit";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
+  if (isRateLimited(req, "plan", 15)) {
+    return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
+  }
   try {
     const { sport, position, level, daysPerWeek, weaknesses, profile } = await req.json();
 
