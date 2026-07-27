@@ -1451,7 +1451,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-border" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-muted-foreground truncate">{fileName}</p>}
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video is private and only used for analysis — never shared with anyone else. Frames may be held temporarily during processing and are deleted once your analysis is done.</p>
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video never leaves your device — only still frames are sent to our AI to analyze, then deleted afterward. Your film is never shared with other users.</p>
             </>
           ) : (
             <div className="space-y-3">
