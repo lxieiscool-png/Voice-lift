@@ -6,6 +6,7 @@ import type { DrillFeedback, Profile } from "../lib/types";
 import { parseDrillFeedback } from "../lib/analysis/parsers";
 import { createClient } from "../lib/supabase/client";
 import { formatDate } from "../lib/decisioniq-helpers";
+import { blurFacesInFrames } from "../lib/faceBlur";
 import { Button } from "./ui/button";
 
 type PastCheck = DrillFeedback & { id: string; createdAt: number };
@@ -67,6 +68,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
   const [howtoLoading, setHowtoLoading] = useState(false);
   const [history, setHistory] = useState<PastCheck[]>([]);
   const [openPast, setOpenPast] = useState<string | null>(null);
+  const [blurFaces, setBlurFaces] = useState(false);
 
   // Load this player's recent drill checks so they can see progress over time.
   // RLS scopes the query to their own rows.
@@ -117,7 +119,20 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
     if (!drill.trim() || !file) return;
     setLoading(true); setError(""); setFeedback(null);
     try {
-      const frames = await extractDrillFrames(file);
+      let frames = await extractDrillFrames(file);
+
+      // Face blur runs on-device BEFORE frames are sent. Fail-closed: if it
+      // can't run, abort the whole check rather than send unblurred frames.
+      if (blurFaces) {
+        try {
+          frames = await blurFacesInFrames(frames);
+        } catch {
+          setError("Couldn't blur faces on your device (your browser may not support it). Nothing was sent — turn off face blur to continue, or try Chrome.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const res = await fetch("/api/drill", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ drill: drill.trim(), frames, sport: profile?.sport, userId }),
@@ -171,6 +186,15 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
         </div>
       )}
 
+      <label className="mb-3 flex items-start gap-2.5 rounded-lg border border-border bg-muted/50 px-3 py-2.5 cursor-pointer">
+        <input type="checkbox" checked={blurFaces} onChange={e => setBlurFaces(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-500" />
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-foreground">Blur faces before analyzing <span className="rounded bg-accent px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Beta</span></span>
+          <span className="block text-[11px] leading-relaxed text-muted-foreground">Faces are blurred on your device before anything is sent. Best-effort — works well on close-up clips; verify your first result. If blurring can't run, nothing is sent.</span>
+        </span>
+      </label>
+
       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted px-3 py-4 text-sm text-muted-foreground hover:border-ring">
         <Upload className="h-4 w-4" />
         {file ? file.name : "Upload a clip of yourself doing the drill"}
@@ -178,7 +202,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
       </label>
 
       <Button onClick={run} disabled={loading || !drill.trim() || !file} size="lg" className="mt-3 w-full">
-        {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Checking your form…</> : "Check my drill"}
+        {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> {blurFaces ? "Blurring faces & checking…" : "Checking your form…"}</> : "Check my drill"}
       </Button>
 
       {error && (
