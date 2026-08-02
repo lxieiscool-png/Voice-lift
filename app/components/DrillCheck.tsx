@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Dumbbell, Loader2, CheckCircle2, AlertTriangle, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Dumbbell, Loader2, CheckCircle2, AlertTriangle, Upload, History } from "lucide-react";
 import type { DrillFeedback, Profile } from "../lib/types";
 import { parseDrillFeedback } from "../lib/analysis/parsers";
+import { createClient } from "../lib/supabase/client";
+import { formatDate } from "../lib/decisioniq-helpers";
 import { Button } from "./ui/button";
+
+type PastCheck = DrillFeedback & { id: string; createdAt: number };
 
 // Short single-player clip → sample ~18 frames evenly. A drill is one person
 // close to the camera, so we don't need the game path's density or motion
@@ -61,6 +65,36 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
   const [feedback, setFeedback] = useState<DrillFeedback | null>(null);
   const [howto, setHowto] = useState("");
   const [howtoLoading, setHowtoLoading] = useState(false);
+  const [history, setHistory] = useState<PastCheck[]>([]);
+  const [openPast, setOpenPast] = useState<string | null>(null);
+
+  // Load this player's recent drill checks so they can see progress over time.
+  // RLS scopes the query to their own rows.
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    supabase.from("drill_checks").select("*").eq("user_id", userId)
+      .order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => setHistory((data || []).map(rowToPast)));
+  }, [userId]);
+
+  function rowToPast(r: any): PastCheck {
+    return {
+      id: r.id, drill: r.drill, verdict: r.verdict ?? "unclear",
+      didWell: r.did_well ?? "", mainFix: r.main_fix ?? "", focusNext: r.focus_next ?? "",
+      createdAt: new Date(r.created_at).getTime(),
+    };
+  }
+
+  async function saveCheck(fb: DrillFeedback) {
+    if (!userId) return;
+    const supabase = createClient();
+    const { data } = await supabase.from("drill_checks").insert({
+      user_id: userId, drill: fb.drill, verdict: fb.verdict,
+      did_well: fb.didWell, main_fix: fb.mainFix, focus_next: fb.focusNext,
+    }).select().single();
+    if (data) setHistory(prev => [rowToPast(data), ...prev]);
+  }
 
   async function showHowto() {
     if (!drill.trim() || howtoLoading) return;
@@ -92,7 +126,9 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
       if (res.status === 403 && data.error === "limit_reached") { setError("You've hit your free limit — upgrade to keep checking drills."); return; }
       if (data.error) { setError(data.error); return; }
       if (!res.ok) { setError(`Server error ${res.status}`); return; }
-      setFeedback(parseDrillFeedback(data.feedback ?? "", drill.trim()));
+      const fb = parseDrillFeedback(data.feedback ?? "", drill.trim());
+      setFeedback(fb);
+      saveCheck(fb);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -174,6 +210,37 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
               <p className="text-sm text-foreground leading-relaxed">{feedback.focusNext}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <History className="h-3.5 w-3.5" /> Your recent checks
+          </p>
+          <div className="space-y-2">
+            {history.map(p => {
+              const v = VERDICT_UI[p.verdict];
+              const isOpen = openPast === p.id;
+              return (
+                <div key={p.id} className="rounded-lg border border-border bg-muted/50 overflow-hidden">
+                  <button onClick={() => setOpenPast(isOpen ? null : p.id)}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left">
+                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold border ${v.cls}`}>{v.label}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">{p.drill}</span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">{formatDate(p.createdAt)}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t border-border px-3 py-2.5 space-y-1.5 text-xs">
+                      {p.didWell && <p className="text-foreground"><span className="font-semibold text-emerald-500">Did well: </span>{p.didWell}</p>}
+                      {p.mainFix && <p className="text-foreground"><span className="font-semibold text-amber-500">Fix: </span>{p.mainFix}</p>}
+                      {p.focusNext && <p className="text-foreground"><span className="font-semibold text-emerald-400">Focus: </span>{p.focusNext}</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
