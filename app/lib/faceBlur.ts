@@ -29,7 +29,9 @@ async function getModel(): Promise<any> {
   if (!modelPromise) {
     modelPromise = (async () => {
       await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js");
-      await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.1.0/dist/blazeface.min.js");
+      // NB: the package's own unpkg/jsdelivr field points at a non-existent
+      // dist/blazeface.min.js (404) — the real UMD bundle is min.umd.js.
+      await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.1.0/dist/blazeface.min.umd.js");
       if (!window.blazeface?.load) throw new Error("Face-blur model unavailable.");
       return window.blazeface.load();
     })().catch((e) => { modelPromise = null; throw e; });
