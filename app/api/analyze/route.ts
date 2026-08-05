@@ -10,7 +10,16 @@ export async function POST(req: Request) {
   }
   let metered: string | null = null;
   try {
-    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient, userId } = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) return Response.json({ error: "Invalid request body." }, { status: 400 });
+    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient, userId } = body;
+
+    // Validate before spending anything: frames must be a non-empty array of
+    // image data URLs — otherwise fail fast with 400 instead of erroring deep
+    // in the OpenAI call (and never meter a request we're rejecting).
+    if (!Array.isArray(frames) || frames.length === 0) {
+      return Response.json({ error: "No frames to analyze." }, { status: 400 });
+    }
 
     // Clip analysis is a single call, so this is the right spot to meter it for
     // signed-in users. (Signed-in games run through /api/jobs/start, metered

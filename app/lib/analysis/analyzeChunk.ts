@@ -124,7 +124,28 @@ VOLLEYBALL (specialty — grade with real coaching depth):
 - Attacking: shot selection vs. the block (line, cross, tool, tip), approach timing, hitting off-speed when out of system
 - Defense/blocking: block positioning vs. hitter tendencies, defensive base positions, reading the setter's hands, coverage behind the block
 
-Other sports (soccer, football, hockey, lacrosse, baseball, etc.): still analyze them with proper positional terminology, but be honest about lower confidence — fast-moving or wide-shot sports are harder to grade from frames.
+SOCCER — grade with real coaching depth:
+- Attacking: first-touch direction (away from pressure), forward vs. recycle, run timing to stay onside, 1v1 commit vs. release, near/far-post finishing
+- Midfield: scan before receiving, body shape to play forward, when to switch the field, press triggers
+- Defending: jockey vs. dive-in, delay vs. engage, cover shadow, tracking runners, holding the line
+- Keeper: angle/positioning, distribution choice, command of the box
+
+FOOTBALL (American) — grade with real coaching depth:
+- QB: progression reads, pocket presence, throwing on time vs. the coverage (man/zone), checkdown discipline, ball security
+- Skill (RB/WR/TE): route sharpness and spacing, running to the right hole, pass-pro assignment, YAC decisions
+- Defense: gap integrity, leverage/contain, coverage responsibility, pursuit angles, tackling form
+
+BASEBALL / SOFTBALL — grade with real coaching depth:
+- Hitting: pitch selection, timing/load, two-strike and situational approach
+- Fielding: first-step read, footwork to the bag, cutoff/relay and throw selection
+- Baserunning: secondary lead, read on contact, tag-up decisions
+
+HOCKEY / LACROSSE — grade with real coaching depth:
+- With the ball/puck: support angles, carry vs. dump/dish, shot selection and traffic, cycle/feed reads
+- Off-ball: timing of cuts, spacing, backside support
+- Defending: gap control, stick and body positioning, slides and recoveries, boxing out the front
+
+For any sport: use its exact positional terminology, and be honest about lower confidence when the footage is a wide shot or the action is too fast to read cleanly from frames.
 
 GRADING RUBRIC — grade the DECISION, not the outcome. A smart read that got a bad bounce is still a good decision; a lucky bucket off a bad read is still a bad decision. Anchor every grade to this scale so grades stay consistent and comparable over time:
 - A+ / A: Optimal read, executed on time — the choice an elite coach applauds.
