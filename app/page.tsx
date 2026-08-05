@@ -1177,9 +1177,17 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
 
       {/* Footer */}
       <footer className="border-t border-border px-6 py-8 bg-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Logo size="sm" className="opacity-30" />
-          <p className="text-xs text-muted-foreground">Coaching for every athlete.</p>
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Logo size="sm" className="opacity-30" />
+            <p className="text-xs text-muted-foreground">Coaching for every athlete.</p>
+          </div>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-foreground transition-colors">Terms</a>
+            <a href="/accessibility" className="hover:text-foreground transition-colors">Accessibility</a>
+            <a href="mailto:support@getreel.org" className="hover:text-foreground transition-colors">Contact</a>
+          </nav>
         </div>
       </footer>
     </div>
