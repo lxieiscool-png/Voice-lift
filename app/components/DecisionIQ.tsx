@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video, Upload } from "lucide-react";
+import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video, Upload, Dumbbell, Users } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
@@ -433,12 +433,107 @@ const DECISION_FIELDS = [
   { key: "practiceFocus"    as const, label: "Practice This Week" },
 ];
 
+function parseDrills(text: string): { solo: string[]; team: string[] } {
+  const clean = (block: string) => block.split("\n").map(l => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+  const parts = text.split(/With\s+Teammates?:/i);
+  const soloBlock = (parts[0] || "").replace(/^[\s\S]*?Solo:/i, "");
+  return { solo: clean(soloBlock), team: clean(parts[1] || "") };
+}
+
+// Full-screen drills page for one player's weakness — solo + with-teammates,
+// each a single sentence. Generated on demand from what that specific player
+// needs to improve, so the coaching is tied to the card, not a guess about
+// who the uploader is.
+function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [drills, setDrills] = useState<{ solo: string[]; team: string[] }>({ solo: [], team: [] });
+  const focus = decision.patternToImprove || decision.bestAlternative || decision.whatHappened || decision.role;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/drills", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sport: decision.sport, role: decision.role, focus }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (data.error || !res.ok) { setError(data.error || "Couldn't build drills — try again."); return; }
+        setDrills(parseDrills(data.drills ?? ""));
+      } catch {
+        if (!cancelled) setError("Couldn't build drills — check your connection.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const name = decision.player.replace(/\s*\([^)]*\)/, "").trim() || "This player";
+
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 p-4 sm:p-8" onClick={onClose}>
+      <div className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-5 sm:p-6" onClick={e => e.stopPropagation()}>
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-lg font-black text-foreground">Drills for {name}</p>
+            <p className="text-xs text-muted-foreground">To fix: {focus}</p>
+          </div>
+          <button onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+        </div>
+
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Building drills…
+          </div>
+        )}
+        {error && <p className="py-6 text-sm text-red-400">{error}</p>}
+
+        {!loading && !error && (
+          <div className="mt-4 space-y-5">
+            {drills.solo.length > 0 && (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground"><Dumbbell className="h-3.5 w-3.5" /> On your own</p>
+                <ul className="space-y-2">
+                  {drills.solo.map((d, i) => (
+                    <li key={i} className="flex items-start justify-between gap-3 rounded-lg bg-muted p-3">
+                      <span className="text-sm text-foreground leading-snug">{d}</span>
+                      <button onClick={() => openDrillCheck(d)}
+                        className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:border-ring">Check form</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {drills.team.length > 0 && (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground"><Users className="h-3.5 w-3.5" /> With teammates</p>
+                <ul className="space-y-2">
+                  {drills.team.map((d, i) => (
+                    <li key={i} className="rounded-lg bg-muted p-3 text-sm text-foreground leading-snug">{d}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {drills.solo.length === 0 && drills.team.length === 0 && (
+              <p className="py-4 text-sm text-muted-foreground">No drills came back — try again.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PlayerCard({ decision, defaultOpen = false }: {
   decision: PlayerDecision;
   defaultOpen?: boolean;
 }) {
   const [open,    setOpen]    = useState(defaultOpen);
   const [sharing, setSharing] = useState(false);
+  const [showDrills, setShowDrills] = useState(false);
 
   async function handleShare(e: React.MouseEvent, format: "landscape" | "story" = "landscape") {
     e.stopPropagation();
@@ -544,14 +639,21 @@ function PlayerCard({ decision, defaultOpen = false }: {
             <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-4">
               <SectionLabel>Practice Focus</SectionLabel>
               <p className="text-sm text-foreground leading-relaxed">{decision.practiceFocus}</p>
-              <Button variant="secondary" size="sm" className="mt-3"
-                onClick={e => { e.stopPropagation(); openDrillCheck(decision.practiceFocus); }}>
-                <Video className="h-3.5 w-3.5" /> Check my drill
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm"
+                  onClick={e => { e.stopPropagation(); setShowDrills(true); }}>
+                  <Dumbbell className="h-3.5 w-3.5" /> Drills to improve
+                </Button>
+                <Button variant="secondary" size="sm"
+                  onClick={e => { e.stopPropagation(); openDrillCheck(decision.practiceFocus); }}>
+                  <Video className="h-3.5 w-3.5" /> Check my drill
+                </Button>
+              </div>
             </div>
           )}
         </div>
       )}
+      {showDrills && <DrillsOverlay decision={decision} onClose={() => setShowDrills(false)} />}
     </div>
   );
 }
