@@ -16,6 +16,7 @@ const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: fals
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
 const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
 const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
+const SupportWidget = dynamic(() => import("./components/SupportWidget"), { ssr: false });
 const ParticleField   = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.ParticleField })),   { ssr: false });
 const CursorSpotlight = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.CursorSpotlight })), { ssr: false });
 
@@ -1516,6 +1517,9 @@ export default function Reel() {
           </>
         )}
       </div>
+
+      {/* Help / support assistant — floating, available across the app */}
+      <SupportWidget />
     </main>
   );
 }
