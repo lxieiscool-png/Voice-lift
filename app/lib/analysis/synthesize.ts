@@ -42,9 +42,11 @@ ${summaryText}
 
 Synthesize everything into a complete Game Report in this exact format:
 
-Overall Decision Grade: [A+ to F — based on the full game, not just highlights]
+GRADING RUBRIC — grade DECISIONS across the game, not outcomes. A = consistently optimal reads; B = mostly sound with minor flaws; C = defensible but often left better reads on the table; D = frequently forced/late/poor choices; F = repeated clear mistakes that cost the team. Anchor grades to this so they stay consistent and comparable over time.
 
-Your Grade: [A+ to F — the UPLOADER's individual grade based only on the decisions of ${jersey || teamColor ? "their player (see THE UPLOADER above)" : "the primary athlete"} across the segments. If you could not identify them in the film, write "N/A".]
+Overall Decision Grade: [A+ to F — the whole game's decision-making against the rubric, not just highlights]
+
+Your Grade: [A+ to F — the UPLOADER's individual grade based only on the decisions of ${jersey || teamColor ? "their player (see THE UPLOADER above)" : "the primary athlete"} across the segments, against the rubric. If you could not identify them in the film, write "N/A".]
 
 Game Summary:
 [One sentence (two max) to the athlete — what defined their game, referencing a specific moment.]

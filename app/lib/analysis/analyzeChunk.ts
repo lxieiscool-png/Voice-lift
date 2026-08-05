@@ -67,7 +67,7 @@ Carefully study every frame before responding. Only track athletes actively comp
 BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
 
 DIRECTION: Describe direction with court/field-relative terms (baseline, middle, paint, wing, strong-side, weak-side, near side, far side) rather than "left/right" — video can be mirrored and left/right is unreliable. Only say "left" or "right" when genuinely certain, anchored to the viewer's perspective.
-
+${jersey || teamColor ? `\nTHE UPLOADER: this athlete is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Whenever they are visible in this segment, always include their line in Player Tracking, log their stat events, and let Decision Quality speak directly to THEM about what they specifically did.\n` : ""}
 Return ONLY this format — no extra commentary:
 
 Period/Quarter: [e.g. "2nd Quarter" or "unclear"]
@@ -125,6 +125,13 @@ VOLLEYBALL (specialty — grade with real coaching depth):
 - Defense/blocking: block positioning vs. hitter tendencies, defensive base positions, reading the setter's hands, coverage behind the block
 
 Other sports (soccer, football, hockey, lacrosse, baseball, etc.): still analyze them with proper positional terminology, but be honest about lower confidence — fast-moving or wide-shot sports are harder to grade from frames.
+
+GRADING RUBRIC — grade the DECISION, not the outcome. A smart read that got a bad bounce is still a good decision; a lucky bucket off a bad read is still a bad decision. Anchor every grade to this scale so grades stay consistent and comparable over time:
+- A+ / A: Optimal read, executed on time — the choice an elite coach applauds.
+- A- / B+ / B: Sound decision with a minor flaw in timing, execution, or a slightly better option left on the table.
+- B- / C+ / C: Defensible but clearly suboptimal — a better read was reasonably available and should have been taken.
+- C- / D: Poor decision — forced, late, or ignored an obvious better option, likely costing the possession.
+- F: Clear mistake with an obvious better play — a turnover, bad foul, or breakdown that directly hurt the team.
 
 For EACH player, output this block EXACTLY:
 
