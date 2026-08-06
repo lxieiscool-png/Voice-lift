@@ -882,14 +882,14 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
         {/* Auto box score */}
         {report.boxScore && report.boxScore.length > 0 && <BoxScorePanel rows={report.boxScore} />}
 
-        {/* Coaching sections */}
-        <div className="grid gap-2 sm:grid-cols-2">
+        {/* Coaching sections — full width, one per row, so nothing is squeezed */}
+        <div className="space-y-3">
         {GAME_SECTIONS.map(({ key, label }) => {
           const val = report[key]; if (!val) return null;
           return (
-            <div key={key} className="border border-border rounded-lg p-3">
+            <div key={key} className="border border-border rounded-lg p-4">
               <SectionLabel>{label}</SectionLabel>
-              <p className="text-sm text-foreground leading-relaxed">{val as string}</p>
+              <p className="text-[15px] text-foreground leading-relaxed">{val as string}</p>
               {key === "practiceFocus" && (
                 <Button variant="secondary" size="sm" className="mt-3"
                   onClick={() => openDrillCheck(val as string)}>
