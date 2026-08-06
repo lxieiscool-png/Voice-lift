@@ -585,35 +585,30 @@ function PlayerCard({ decision, defaultOpen = false }: {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {decision.whatHappened && (
-              <div className="rounded-lg bg-muted p-4">
-                <SectionLabel>What Happened</SectionLabel>
-                <p className="text-sm text-foreground leading-relaxed">{decision.whatHappened}</p>
-              </div>
-            )}
-            {decision.decisionRead && (
-              <div className="rounded-lg bg-muted p-4">
-                <SectionLabel>Decision Read</SectionLabel>
-                <p className="text-sm text-foreground leading-relaxed">{decision.decisionRead}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {decision.bestAlternative && (
-              <div className="rounded-lg bg-muted p-4">
-                <SectionLabel>Best Alternative</SectionLabel>
-                <p className="text-sm text-foreground leading-relaxed">{decision.bestAlternative}</p>
-              </div>
-            )}
-            {decision.whyBetter && (
-              <div className="rounded-lg bg-muted p-4">
-                <SectionLabel>Why It Was Better</SectionLabel>
-                <p className="text-sm text-foreground leading-relaxed">{decision.whyBetter}</p>
-              </div>
-            )}
-          </div>
+          {decision.whatHappened && (
+            <div className="rounded-lg bg-muted p-4">
+              <SectionLabel>What Happened</SectionLabel>
+              <p className="text-[15px] text-foreground leading-relaxed">{decision.whatHappened}</p>
+            </div>
+          )}
+          {decision.decisionRead && (
+            <div className="rounded-lg bg-muted p-4">
+              <SectionLabel>Decision Read</SectionLabel>
+              <p className="text-[15px] text-foreground leading-relaxed">{decision.decisionRead}</p>
+            </div>
+          )}
+          {decision.bestAlternative && (
+            <div className="rounded-lg bg-muted p-4">
+              <SectionLabel>Best Alternative</SectionLabel>
+              <p className="text-[15px] text-foreground leading-relaxed">{decision.bestAlternative}</p>
+            </div>
+          )}
+          {decision.whyBetter && (
+            <div className="rounded-lg bg-muted p-4">
+              <SectionLabel>Why It Was Better</SectionLabel>
+              <p className="text-[15px] text-foreground leading-relaxed">{decision.whyBetter}</p>
+            </div>
+          )}
 
           {decision.otherOptions.length > 0 && (
             <div className="rounded-lg bg-muted p-4">
@@ -682,8 +677,10 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
     );
   }
 
+  // Teams stack vertically (each a full-width section) rather than side-by-side
+  // columns — side-by-side made every card half-width and hard to read.
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
+    <div className="space-y-7">
       {sections.map((s, si) => (
         <div key={s.label} className="space-y-3">
           <div className="flex items-center gap-2 px-1 pb-1">
@@ -1045,22 +1042,26 @@ function parseStatLine(raw: string) {
 
 // ─── Find My Player ───────────────────────────────────────────────────────────
 
+// Identify THIS athlete among the graded players. Deliberately strict: a
+// jersey number is required, because team color alone just picks an arbitrary
+// teammate — and mislabeling someone else as "you" corrupts the user's grade
+// history. Returns null when we can't be reasonably sure, and callers must
+// treat null as "not graded" rather than substituting another player.
 function findMyPlayer(decisions: PlayerDecision[], jersey?: string, teamColor?: string): PlayerDecision | null {
   if (!decisions.length) return null;
-  if (!jersey && !teamColor) return null;
-  const j = jersey?.toLowerCase().replace(/^#/, "");
-  const c = teamColor?.toLowerCase();
-  // Score each player by how well they match jersey + color
+  const j = jersey?.toLowerCase().replace(/^#/, "").trim();
+  if (!j) return null;
+  const c = teamColor?.toLowerCase().trim();
   const scored = decisions.map(d => {
     const p = d.player.toLowerCase();
     let score = 0;
-    if (j && p.includes(`#${j}`)) score += 3;
-    if (j && p.includes(j)) score += 2;
-    if (c && p.includes(c)) score += 1;
+    if (p.includes(`#${j}`)) score += 3;          // explicit jersey match
+    else if (new RegExp(`\\b${j}\\b`).test(p)) score += 2; // bare number, word-bounded
+    if (score > 0 && c && p.includes(c)) score += 1;       // same team confirms it
     return { d, score };
   });
   const best = scored.sort((a, b) => b.score - a.score)[0];
-  return best.score > 0 ? best.d : null;
+  return best.score >= 2 ? best.d : null;
 }
 
 // ─── Analysis Loader ──────────────────────────────────────────────────────────
@@ -1292,7 +1293,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       setDecisions(parsed); setResultMode("clip");
       const clipReview: Review = {
         id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip",
-        grade: myPlayer?.grade ?? parsed[0]?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
+        // Only record a grade when we actually matched THIS athlete (jersey +
+        // team color). Falling back to parsed[0] would silently grade the user
+        // on a random player — often an opponent — and poison their average.
+        grade: myPlayer?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
         thumbnailUrl,
@@ -1451,7 +1455,11 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     await doAnalyze();
   }
 
-  const overallGrade = resultMode === "game" ? gameReport?.overallGrade ?? "N/A" : decisions[0]?.grade ?? "N/A";
+  // For clips, the headline grade is YOUR grade — only shown when we actually
+  // identified this athlete by jersey. Otherwise "N/A": showing another
+  // player's grade as if it were yours is worse than showing nothing.
+  const myClipPlayer = resultMode === "clip" ? findMyPlayer(decisions, profile.jersey, teamColor) : null;
+  const overallGrade = resultMode === "game" ? gameReport?.overallGrade ?? "N/A" : myClipPlayer?.grade ?? "N/A";
 
   // Signed-in users need Jersey Color + Team + Opponent set before analyzing
   // real team-game footage — matches HoopIQ's structured intake. This only
@@ -1643,10 +1651,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
         {/* Results */}
         <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-foreground">
-              {resultMode === "game" ? "Game Report" : "Player Decisions"}
-            </p>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {resultMode === "game" ? "Game Report" : "Player Decisions"}
+              </p>
+              {resultMode === "clip" && !loading && decisions.length > 0 && !myClipPlayer && (
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                  Couldn&apos;t match your jersey in this clip, so no grade was saved for you — every player below is still graded.
+                </p>
+              )}
+            </div>
             {resultMode && !loading && !(resultMode === "clip" && decisions.length === 0) && (
               <GradeBadge grade={overallGrade} large />
             )}
