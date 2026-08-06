@@ -802,6 +802,37 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
           </div>
         </div>
 
+        {/* What the player actually did — plain-language pros/cons, drawn from
+            the counted decision evidence rather than a vague narrative. */}
+        {((report.didWell?.length ?? 0) > 0 || (report.workOn?.length ?? 0) > 0) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(report.didWell?.length ?? 0) > 0 && (
+              <div className="rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-4">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-400">Did well</p>
+                <ul className="space-y-1.5">
+                  {report.didWell!.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[15px] leading-snug text-foreground">
+                      <span className="mt-0.5 shrink-0 text-emerald-500">+</span>{s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(report.workOn?.length ?? 0) > 0 && (
+              <div className="rounded-2xl border border-amber-900/60 bg-amber-950/20 p-4">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-amber-400">Work on</p>
+                <ul className="space-y-1.5">
+                  {report.workOn!.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[15px] leading-snug text-foreground">
+                      <span className="mt-0.5 shrink-0 text-amber-500">→</span>{s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Team comparison chart */}
         {tc ? <TeamComparisonPanel tc={tc} /> : (
           <div className="rounded-2xl border border-border bg-card p-4">

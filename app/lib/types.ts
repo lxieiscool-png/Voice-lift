@@ -46,6 +46,8 @@ export type GameReport = {
   improvements: string[]; practiceFocus: string; playerStats: PlayerStat[];
   teamComparison?: TeamComparison | null;
   boxScore?: PlayerBoxStat[];
+  didWell?: string[];
+  workOn?: string[];
 };
 
 export type ChunkSummary = { index: number; start: string; end: string; text: string };

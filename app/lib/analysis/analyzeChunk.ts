@@ -83,8 +83,8 @@ Player Tracking:
 Stat Events:
 - [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard". The event MUST be one of exactly these tokens: made_2, made_3, missed_2, missed_3, made_ft, missed_ft, rebound, assist, steal, turnover, block, foul. Rules: only log an event when the outcome is genuinely visible across the frames — never guess make vs miss; if you can see a shot went up but not whether it fell, DO NOT log it. Do not infer events between frames you cannot see. One line per event; the same event may involve two lines (e.g. a steal AND the resulting turnover). Write "None" if nothing countable is clearly visible.]
 
-Decision Quality:
-[ONE sentence (two max) directly to the athlete. Honest, specific, referencing an actual event from the frames — not generic.]
+Decision Events:
+- [One line per notable DECISION you can clearly see, from either team. Format EXACTLY: "TEAM #NUM | quality | what happened". Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "Blue #12 | good | drove baseline and kicked to the open corner shooter"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky bucket off a forced shot is still "poor". Only log decisions you can actually see; write "None" if nothing notable is clearly visible.]
 
 Tactical Pattern:
 [One sentence naming one concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]

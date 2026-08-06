@@ -33,6 +33,38 @@ function emptyBoxStat(player: string, team: string, jersey: string | null): Play
 // We do the counting in code rather than asking the model to sum across dozens
 // of segments — LLMs are unreliable at arithmetic over long lists. Time chunks
 // don't overlap, so summing per-segment events avoids double counting.
+export type DecisionTally = {
+  good: number; neutral: number; poor: number; total: number;
+  byPlayer: { player: string; good: number; neutral: number; poor: number }[];
+};
+
+// Tally every decision the segments logged, in code. The game grade is derived
+// from this evidence rather than the model eyeballing dozens of text blobs —
+// so the same game always yields the same counts, and the grade is explainable
+// ("B-: 14 good / 9 poor across 31 decisions") instead of a vibe.
+export function buildDecisionTally(chunkTexts: string[]): DecisionTally {
+  const byKey = new Map<string, { player: string; good: number; neutral: number; poor: number }>();
+  let good = 0, neutral = 0, poor = 0;
+
+  for (const text of chunkTexts) {
+    const section = text.match(/Decision Events:\s*([\s\S]*?)(?=\n[A-Z][\w &/]+:|===|$)/i)?.[1] ?? "";
+    for (const rawLine of section.split("\n")) {
+      const line = rawLine.replace(/^[-•*]\s*/, "").trim();
+      const m = line.match(/^(.+?)\s*\|\s*(good|neutral|poor)\b/i);
+      if (!m) continue;
+      const player = m[1].trim();
+      const q = m[2].toLowerCase() as "good" | "neutral" | "poor";
+      if (q === "good") good++; else if (q === "poor") poor++; else neutral++;
+      const key = player.toLowerCase();
+      if (!byKey.has(key)) byKey.set(key, { player, good: 0, neutral: 0, poor: 0 });
+      byKey.get(key)![q]++;
+    }
+  }
+
+  const byPlayer = [...byKey.values()].sort((a, b) => (b.good + b.neutral + b.poor) - (a.good + a.neutral + a.poor));
+  return { good, neutral, poor, total: good + neutral + poor, byPlayer };
+}
+
 export function buildBoxScore(chunkTexts: string[]): PlayerBoxStat[] {
   const byKey = new Map<string, PlayerBoxStat>();
 
@@ -112,6 +144,8 @@ export function parseGameReport(text: string): GameReport {
     gameSummary: extract("Game Summary"), periodBreakdown: extract("Period Breakdown"),
     foulPatterns: extract("Foul & Call Patterns"), decisionTrends: extract("Decision Trends"),
     strengths: extractList("Top 3 Strengths"), improvements: extractList("Top 3 Areas To Improve"),
+    didWell: extractList("Did Well").filter(l => !/^nothing stood out/i.test(l)),
+    workOn: extractList("Work On"),
     practiceFocus: extract("Game-Level Practice Focus"), playerStats,
     teamComparison: parseTeamComparison(text),
   };
