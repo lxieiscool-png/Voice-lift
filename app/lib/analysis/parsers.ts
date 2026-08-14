@@ -133,7 +133,10 @@ export function parsePlayerBlocks(text: string): PlayerDecision[] {
 }
 
 export function parseGameReport(text: string): GameReport {
-  const extract     = (label: string) => text.match(new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\n[A-Z#][\\w &]+:|$)`, "i"))?.[1]?.trim() ?? "";
+  // Lookahead must match every label the synthesis template emits — including
+  // hyphenated ones like "Game-Level Practice Focus" — or the section before a
+  // missed label silently swallows it.
+  const extract     = (label: string) => text.match(new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\n[A-Z#][\\w &-]+:|$)`, "i"))?.[1]?.trim() ?? "";
   const extractList = (label: string) => extract(label).split("\n").map(l => l.replace(/^[-•*\d.]\s*/, "").trim()).filter(Boolean);
   const playerStats: PlayerStat[] = extract("Player Stats")
     .split("\n").map(l => l.replace(/^[-•*]\s*/, "").trim())
