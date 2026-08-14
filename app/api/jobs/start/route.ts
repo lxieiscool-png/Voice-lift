@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
 import { checkAndIncrementUsage, refundUsage } from "../../../lib/usage";
+import { getSessionUserId } from "../../../lib/supabase/server";
 
 // Creates a job row the client can then upload frames against. Frames are
 // uploaded one at a time in separate requests (see [jobId]/frame) rather
 // than all at once here — a full game's worth of frames as base64 in a
 // single request body would blow past Vercel's ~4.5MB request size limit.
 export async function POST(req: NextRequest) {
-  const { userId, fileName, sport, teamId, opponentName, gameType, gameDate, location, thumbnailUrl } = await req.json();
-  if (!userId) return NextResponse.json({ error: "Missing userId." }, { status: 400 });
+  const { fileName, sport, teamId, opponentName, gameType, gameDate, location, thumbnailUrl } = await req.json();
+  // Background game jobs are signed-in only, and the identity must come from
+  // the session cookie — a body userId would let anyone start jobs (and burn
+  // game credits) as any user whose UUID they know.
+  const userId = await getSessionUserId();
+  if (!userId) return NextResponse.json({ error: "Sign in to analyze a full game." }, { status: 401 });
 
   // Authoritative spend gate for the expensive game path — the client's
   // pre-check is only a courtesy; this is what actually protects cost.

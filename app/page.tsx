@@ -1258,7 +1258,7 @@ export default function Reel() {
           loadUserData(u.id);
           if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
           // Load pro status
-          fetch(`/api/usage?userId=${u.id}`)
+          fetch(`/api/usage`)
             .then(r => r.json())
             .then(d => setIsPro(d.is_pro ?? false))
             .catch(() => {});

@@ -1299,7 +1299,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   async function usageBlocked(mode: "clip" | "game"): Promise<boolean> {
     if (!userId) return false;
     try {
-      const check = await fetch(`/api/usage?userId=${userId}&kind=${mode}`).then(r => r.json());
+      const check = await fetch(`/api/usage?kind=${mode}`).then(r => r.json());
       if (check && check.ok === false) { onShowUpgrade?.(); return true; }
     } catch { /* fail open */ }
     return false;
@@ -1310,7 +1310,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     if (mode === "clip") {
       setProgressLabel("Analyzing players…"); setProgressTotal(1);
       const [res, thumbnailUrl] = await Promise.all([
-        fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient, userId }) }),
+        fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sport: sport || profile.sport, frames: frames.map(f => f.dataUrl), mode: "clip", jersey: profile.jersey, teamColor, teamsNote, lenient }) }),
         captureThumbnail(frames),
       ]);
       const data = await res.json().catch(() => ({}));
@@ -1409,7 +1409,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     const startRes = await fetch("/api/jobs/start", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId, fileName: videoTitle, sport: detectedGameSport,
+        fileName: videoTitle, sport: detectedGameSport,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
         thumbnailUrl,
@@ -1446,7 +1446,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     const finalizeRes = await fetch(`/api/jobs/${jobId}/finalize`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId, frameCount: frames.length, timestamps: frames.map(f => f.timestamp),
+        frameCount: frames.length, timestamps: frames.map(f => f.timestamp),
         jersey: profile.jersey, teamColor, teamsNote, lenient,
       }),
     });

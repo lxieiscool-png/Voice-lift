@@ -1,6 +1,7 @@
 import { analyzeChunk, SportsCheckError } from "../../lib/analysis/analyzeChunk";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { isRateLimited } from "../../lib/ratelimit";
+import { getSessionUserId } from "../../lib/supabase/server";
 
 export async function POST(req: Request) {
   // Blunt anti-abuse: a normal analysis fans out many chunk calls, so this is
@@ -12,7 +13,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
     if (!body) return Response.json({ error: "Invalid request body." }, { status: 400 });
-    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient, userId } = body;
+    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient } = body;
+    // Identity comes from the session cookie only — a userId in the body is
+    // client-controlled and would let anyone meter (or dodge metering as)
+    // any user whose UUID they know.
+    const userId = await getSessionUserId();
 
     // Validate before spending anything: frames must be a non-empty array of
     // image data URLs — otherwise fail fast with 400 instead of erroring deep
