@@ -1,19 +1,27 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../lib/supabase/admin";
+import { isRateLimited } from "../../lib/ratelimit";
 
 // Uploads a single already-downscaled frame (see captureThumbnail in
 // DecisionIQ.tsx) to the public game-thumbnails bucket, for Library/Teams
 // card previews. Best-effort by design — callers treat a failure here as
 // non-fatal, since a review is still fully usable without a thumbnail.
+// Rate-limited and size-capped: this writes to a PUBLIC bucket, so without
+// bounds it's free anonymous image hosting on our storage bill.
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req, "thumbnail", 20)) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
   const { dataUrl } = await req.json();
-  if (!dataUrl) return NextResponse.json({ error: "Missing dataUrl." }, { status: 400 });
+  if (typeof dataUrl !== "string") return NextResponse.json({ error: "Missing dataUrl." }, { status: 400 });
 
-  const match = /^data:(image\/\w+);base64,(.+)$/.exec(dataUrl);
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(dataUrl);
   if (!match) return NextResponse.json({ error: "Invalid data URL." }, { status: 400 });
   const [, contentType, base64] = match;
   const buffer = Buffer.from(base64, "base64");
+  // captureThumbnail downscales to a small JPEG — anything near 1MB isn't ours.
+  if (buffer.byteLength > 1_000_000) return NextResponse.json({ error: "Thumbnail too large." }, { status: 413 });
 
   const supabase = createAdminClient();
   const path = `${randomUUID()}.jpg`;

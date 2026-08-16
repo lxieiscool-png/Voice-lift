@@ -1,21 +1,27 @@
 import { analyzeDrill, DrillCheckError } from "../../lib/analysis/analyzeDrill";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { isRateLimited } from "../../lib/ratelimit";
+import { getSessionUserId } from "../../lib/supabase/server";
 
-// POST /api/drill { drill, frames, sport, userId }
+// POST /api/drill { drill, frames, sport }
 // Checks a player's recording of a prescribed solo drill. Metered as a clip
-// (cheap, ~24 frames) for signed-in users; guests are exempt.
+// (cheap, ~24 frames) for signed-in users; guests are exempt. Identity comes
+// from the session cookie, same as every other metered route.
 export async function POST(req: Request) {
   if (isRateLimited(req, "drill", 20)) {
     return Response.json({ error: "Too many requests — slow down and try again in a minute." }, { status: 429 });
   }
   let metered: string | null = null;
   try {
-    const { drill, frames, sport, userId } = await req.json();
+    const { drill, frames, sport } = await req.json();
     if (!drill || !frames?.length) {
       return Response.json({ error: "Missing drill or frames." }, { status: 400 });
     }
+    if (!Array.isArray(frames) || frames.length > 32 || typeof drill !== "string" || drill.length > 1000) {
+      return Response.json({ error: "Invalid drill or frames." }, { status: 400 });
+    }
 
+    const userId = await getSessionUserId();
     if (userId) {
       const usage = await checkAndIncrementUsage(userId, "clip");
       if (!usage.ok) {

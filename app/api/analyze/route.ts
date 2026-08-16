@@ -25,6 +25,11 @@ export async function POST(req: Request) {
     if (!Array.isArray(frames) || frames.length === 0) {
       return Response.json({ error: "No frames to analyze." }, { status: 400 });
     }
+    // Real callers send ≤24 frames (clip) or 6 (game segment); every frame
+    // must be an image data URL, not an arbitrary URL we'd fetch for someone.
+    if (frames.length > 32 || frames.some((f: unknown) => typeof f !== "string" || !f.startsWith("data:image/"))) {
+      return Response.json({ error: "Invalid frames." }, { status: 400 });
+    }
 
     // Clip analysis is a single call, so this is the right spot to meter it for
     // signed-in users. (Signed-in games run through /api/jobs/start, metered

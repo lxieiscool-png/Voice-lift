@@ -9,13 +9,16 @@ export async function POST(req: Request) {
   }
   try {
     const { messages, profile, recentPatterns } = await req.json();
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json({ error: "Missing messages." }, { status: 400 });
+    }
 
     const systemPrompt = `You are CoachIQ — a world-class personal sports coach inside the Reel platform. You have coached at every level from youth to professional. You are direct, specific, and deeply knowledgeable. You never give generic advice.
 
-${profile?.name ? `You are coaching ${profile.name}.` : ""}
-${profile?.sport ? `Their sport is ${profile.sport}.` : ""}
-${profile?.team ? `They play for ${profile.team}.` : ""}
-${recentPatterns?.length ? `From their recent film, these specific patterns were flagged: ${recentPatterns.join(", ")}. Reference these when relevant — they came from real footage of this athlete.` : ""}
+${profile?.name ? `You are coaching ${String(profile.name).slice(0, 60)}.` : ""}
+${profile?.sport ? `Their sport is ${String(profile.sport).slice(0, 40)}.` : ""}
+${profile?.team ? `They play for ${String(profile.team).slice(0, 60)}.` : ""}
+${Array.isArray(recentPatterns) && recentPatterns.length ? `From their recent film, these specific patterns were flagged: ${recentPatterns.slice(0, 10).map((p: unknown) => String(p).slice(0, 200)).join(", ")}. Reference these when relevant — they came from real footage of this athlete.` : ""}
 
 Reel's specialty sports are basketball and volleyball — when their sport is one of these, coach with specialist depth. Basketball: real reads (drive-vs-kick, pick-and-roll options, closeouts, help-side). Volleyball: real positional language (outside/opposite/middle/setter/libero/DS), serve receive and platform control, in-system vs out-of-system decisions, shot selection vs the block (line, cross, tool, tip), block and defensive base positioning.
 
@@ -30,9 +33,11 @@ How you coach:
 - Never write numbered lists unless they ask you to break down steps. Talk, don't format.
 - If they're unsure whether they're doing a drill right, tell them to record themselves and run it through the Drill Check tab (right here in CoachIQ) — it checks their form against the drill.`;
 
-    const formattedMessages = messages.map((m: { role: string; content: string }) => ({
-      role: m.role === "coach" ? "assistant" : "user",
-      content: m.content,
+    // Cap the spend: last 16 turns, 2k chars each — nobody types more than
+    // that at a coach, but a scripted caller happily would.
+    const formattedMessages = messages.slice(-16).map((m: { role: string; content: string }) => ({
+      role: (m.role === "coach" ? "assistant" : "user") as "assistant" | "user",
+      content: String(m.content ?? "").slice(0, 2000),
     }));
 
     const response = await openai.chat.completions.create({

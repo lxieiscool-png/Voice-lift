@@ -8,7 +8,16 @@ export async function POST(req: Request) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   try {
-    const { sport, position, level, daysPerWeek, weaknesses, profile } = await req.json();
+    const body = await req.json();
+    const { profile } = body;
+    // Clamp everything that reaches the prompt: daysPerWeek drives how many
+    // day-blocks get generated (an unclamped value builds a giant prompt and
+    // a giant completion), and the strings are interpolated verbatim.
+    const days = Math.min(7, Math.max(1, Number(body.daysPerWeek) || 3));
+    const sport = typeof body.sport === "string" ? body.sport.slice(0, 40) : "";
+    const position = typeof body.position === "string" ? body.position.slice(0, 60) : "";
+    const level = typeof body.level === "string" ? body.level.slice(0, 40) : "";
+    const weaknesses = typeof body.weaknesses === "string" ? body.weaknesses.slice(0, 1000) : "";
 
     const response = await openai.chat.completions.create({
       model: "gpt-4.1",
@@ -27,10 +36,10 @@ CRITICAL FORMATTING RULE: Output plain text only. Never use markdown — no **bo
         },
         {
           role: "user",
-          content: `Build a ${daysPerWeek || 3}-day weekly practice plan for:
+          content: `Build a ${days}-day weekly practice plan for:
 
-Athlete: ${profile?.name || "Athlete"}
-Sport: ${sport || profile?.sport || "Unknown"}
+Athlete: ${String(profile?.name || "Athlete").slice(0, 60)}
+Sport: ${sport || String(profile?.sport ?? "").slice(0, 40) || "Unknown"}
 Position: ${position || "Not specified"}
 Level: ${level || "Intermediate"}
 Key weaknesses: ${weaknesses || "General improvement"}
@@ -42,7 +51,7 @@ Week Focus: [One specific sentence — what theme or skill this week attacks, ti
 Coach's Note:
 [One short sentence directly to the athlete. Sound like their coach, not a bot. No fluff.]
 
-${Array.from({ length: Number(daysPerWeek) || 3 }, (_, i) => `Day ${i + 1}:
+${Array.from({ length: days }, (_, i) => `Day ${i + 1}:
 Focus: [The specific skill or weakness this day targets — be precise, e.g. "First-step explosiveness and finishing through contact" not just "athleticism"]
 
 Drill 1:

@@ -5,14 +5,17 @@ import { getSessionUserId } from "../../../../lib/supabase/server";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
   const { index, dataUrl } = await req.json();
-  if (typeof index !== "number" || !dataUrl) {
-    return NextResponse.json({ error: "Missing index or dataUrl." }, { status: 400 });
+  // 2400 = far above the 400-frame max a real game upload sends; the decoded
+  // size cap matches Vercel's ~4.5MB request ceiling minus JSON overhead.
+  if (typeof index !== "number" || !Number.isInteger(index) || index < 0 || index > 2400 || typeof dataUrl !== "string") {
+    return NextResponse.json({ error: "Missing or invalid index/dataUrl." }, { status: 400 });
   }
 
-  const match = /^data:(image\/\w+);base64,(.+)$/.exec(dataUrl);
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(dataUrl);
   if (!match) return NextResponse.json({ error: "Invalid data URL." }, { status: 400 });
   const [, contentType, base64] = match;
   const buffer = Buffer.from(base64, "base64");
+  if (buffer.byteLength > 3_500_000) return NextResponse.json({ error: "Frame too large." }, { status: 413 });
 
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ error: "Not signed in." }, { status: 401 });

@@ -11,8 +11,10 @@ export async function POST(req: Request) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   try {
-    const { drill, sport } = await req.json();
-    if (!drill?.trim()) return Response.json({ error: "Missing drill." }, { status: 400 });
+    const body = await req.json();
+    const drill = typeof body.drill === "string" ? body.drill.slice(0, 1000) : "";
+    const sport = typeof body.sport === "string" ? body.sport.slice(0, 40) : "";
+    if (!drill.trim()) return Response.json({ error: "Missing drill." }, { status: 400 });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4.1",

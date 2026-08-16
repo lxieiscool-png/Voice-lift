@@ -135,7 +135,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
 
       const res = await fetch("/api/drill", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drill: drill.trim(), frames, sport: profile?.sport, userId }),
+        body: JSON.stringify({ drill: drill.trim(), frames, sport: profile?.sport }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 403 && data.error === "limit_reached") { setError("You've hit your free limit — upgrade to keep checking drills."); return; }
