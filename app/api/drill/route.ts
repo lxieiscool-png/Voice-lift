@@ -17,7 +17,8 @@ export async function POST(req: Request) {
     if (!drill || !frames?.length) {
       return Response.json({ error: "Missing drill or frames." }, { status: 400 });
     }
-    if (!Array.isArray(frames) || frames.length > 32 || typeof drill !== "string" || drill.length > 1000) {
+    if (!Array.isArray(frames) || frames.length > 32 || typeof drill !== "string" || drill.length > 1000
+      || frames.some((f: unknown) => typeof f !== "string" || !f.startsWith("data:image/"))) {
       return Response.json({ error: "Invalid drill or frames." }, { status: 400 });
     }
 
