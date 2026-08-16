@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video, Upload, Dumbbell, Users } from "lucide-react";
-import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat } from "../lib/types";
+import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat, PlayerVolleyStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
 import { TeamSectionHeader, GameCard, teamAvatarColor } from "./GameCards";
@@ -37,7 +37,7 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
-import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore } from "../lib/analysis/parsers";
+import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore, buildVolleyBoxScore } from "../lib/analysis/parsers";
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
 
@@ -710,6 +710,64 @@ function playerInitials(label: string) {
   return label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
+function VolleyBoxPanel({ rows }: { rows: PlayerVolleyStat[] }) {
+  // Split into two teams by the normalized team key, largest first.
+  const groups = new Map<string, PlayerVolleyStat[]>();
+  for (const r of rows) {
+    const k = r.team || "unknown";
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(r);
+  }
+  const teams = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 2);
+  const cols: { key: keyof PlayerVolleyStat; label: string }[] = [
+    { key: "k", label: "K" }, { key: "e", label: "E" }, { key: "ta", label: "TA" },
+    { key: "sa", label: "SA" }, { key: "se", label: "SE" }, { key: "ast", label: "AST" },
+    { key: "d", label: "DIG" }, { key: "bs", label: "BLK" }, { key: "re", label: "RE" },
+  ];
+  // Standard hitting percentage: (kills - errors) / total attempts, ".385" style.
+  const hitPct = (p: PlayerVolleyStat) =>
+    p.ta > 0 ? ((p.k - p.e) / p.ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-black text-foreground">Box Score</p>
+        <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
+      </div>
+      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
+        Auto-counted from what the AI could clearly see. Fast rallies between sampled frames get missed, so treat these as approximate — especially digs and touches.
+      </p>
+      <div className="space-y-4">
+        {teams.map(([team, players]) => (
+          <div key={team}>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">{team === "unknown" ? "Players" : team}</p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] text-right text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <th className="py-1 pr-2 text-left font-semibold">Player</th>
+                    {cols.map(c => <th key={c.key} className="py-1 px-1.5 font-semibold">{c.label}</th>)}
+                    <th className="py-1 px-1.5 font-semibold">HIT%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {players.sort((a, b) => b.k - a.k || b.ta - a.ta).map((p, i) => (
+                    <tr key={i} className="border-t border-border">
+                      <td className="py-1.5 pr-2 text-left font-semibold text-foreground">{p.player}</td>
+                      {cols.map(c => <td key={c.key} className={`py-1.5 px-1.5 ${c.key === "k" ? "font-bold text-foreground" : "text-foreground"}`}>{p[c.key] as number}</td>)}
+                      <td className="py-1.5 px-1.5 text-muted-foreground">{hitPct(p)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
   // Split into two teams by the normalized team key, largest first.
   const groups = new Map<string, PlayerBoxStat[]>();
@@ -879,8 +937,10 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
           </div>
         )}
 
-        {/* Auto box score */}
-        {report.boxScore && report.boxScore.length > 0 && <BoxScorePanel rows={report.boxScore} />}
+        {/* Auto box score — the builders are sport-exclusive, so at most one renders */}
+        {report.volleyBox && report.volleyBox.length > 0
+          ? <VolleyBoxPanel rows={report.volleyBox} />
+          : report.boxScore && report.boxScore.length > 0 && <BoxScorePanel rows={report.boxScore} />}
 
         {/* Coaching sections — full width, one per row, so nothing is squeezed */}
         <div className="space-y-3">
@@ -1385,7 +1445,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       if (synthData.error) throw new Error(synthData.error);
       setProgressCurrent(chunks.length + 1);
       const report = parseGameReport(synthData.report ?? "");
-      report.boxScore = buildBoxScore(chunkSummaries.map(c => c.text));
+      const chunkTexts = chunkSummaries.map(c => c.text);
+      report.boxScore = buildBoxScore(chunkTexts);
+      report.volleyBox = buildVolleyBoxScore(chunkTexts);
       const detectedGameSport = sport || profile.sport || "Unknown";
       setGameReport(report); setResultMode("game");
       // Library tracks YOUR grade when the report identified you, not the whole game's

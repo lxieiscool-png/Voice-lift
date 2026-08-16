@@ -32,6 +32,26 @@ export type PlayerBoxStat = {
   reb: number; ast: number; stl: number; tov: number; blk: number; pf: number;
 };
 
+// Volleyball counterpart of PlayerBoxStat, tallied from volleyball stat
+// events. Standard scorebook columns: kills/errors/attempts (hitting % is
+// derived as (k - e) / ta), serving, setting, digs, stuff blocks, reception
+// errors, and called faults (net touch, lift, rotation, foot fault).
+export type PlayerVolleyStat = {
+  player: string;
+  team: string;
+  jersey: string | null;
+  k: number;    // kills
+  e: number;    // attack errors
+  ta: number;   // total attack attempts (kills + errors + kept-in-play)
+  sa: number;   // service aces
+  se: number;   // service errors
+  ast: number;  // set assists
+  d: number;    // digs
+  bs: number;   // stuff blocks
+  re: number;   // reception errors
+  faults: number;
+};
+
 export type TeamComparison = {
   teamA: string; teamB: string;
   score: string | null;          // "46–44" or null if no scoreboard was visible
@@ -46,6 +66,7 @@ export type GameReport = {
   improvements: string[]; practiceFocus: string; playerStats: PlayerStat[];
   teamComparison?: TeamComparison | null;
   boxScore?: PlayerBoxStat[];
+  volleyBox?: PlayerVolleyStat[];
   didWell?: string[];
   workOn?: string[];
 };

@@ -1,4 +1,4 @@
-import type { PlayerDecision, GameReport, PlayerStat, TeamComparison, PlayerBoxStat, DrillFeedback } from "../types";
+import type { PlayerDecision, GameReport, PlayerStat, TeamComparison, PlayerBoxStat, PlayerVolleyStat, DrillFeedback } from "../types";
 
 export function parseDrillFeedback(text: string, drill: string): DrillFeedback {
   const field = (l: string) => text.match(new RegExp(`^${l}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
@@ -17,6 +17,14 @@ export function parseDrillFeedback(text: string, drill: string): DrillFeedback {
 const STAT_EVENTS = new Set([
   "made_2", "made_3", "missed_2", "missed_3", "made_ft", "missed_ft",
   "rebound", "assist", "steal", "turnover", "block", "foul",
+]);
+
+// Volleyball stat vocabulary — mirrors what a scorebook tracks and what the
+// vision model can actually confirm from sampled frames. "foul" is shared
+// with basketball (any called violation), so sport detection ignores it.
+const VOLLEY_EVENTS = new Set([
+  "kill", "attack_error", "attack_attempt", "ace", "service_error",
+  "set_assist", "dig", "block_stuff", "reception_error", "foul",
 ]);
 
 const COLOR_WORDS = new Set([
@@ -65,19 +73,23 @@ export function buildDecisionTally(chunkTexts: string[]): DecisionTally {
   return { good, neutral, poor, total: good + neutral + poor, byPlayer };
 }
 
-export function buildBoxScore(chunkTexts: string[]): PlayerBoxStat[] {
-  const byKey = new Map<string, PlayerBoxStat>();
+// One parsed "TEAM #NUM | event" line from a segment's Stat Events section.
+type StatEvent = { event: string; team: string; jersey: string | null; key: string; display: string };
 
+// Pull every stat-event line out of the segments once, with the player label
+// normalized the same way for every tally that consumes them. Only scans
+// lines inside a "Stat Events:" section so we don't misread other lines that
+// happen to contain a pipe.
+function collectStatEvents(chunkTexts: string[]): StatEvent[] {
+  const out: StatEvent[] = [];
   for (const text of chunkTexts) {
-    // Only scan lines inside a "Stat Events:" section so we don't misread other
-    // lines that happen to contain a pipe.
     const section = text.match(/Stat Events:\s*([\s\S]*?)(?=\n[A-Z][\w &/]+:|===|$)/i)?.[1] ?? "";
     for (const rawLine of section.split("\n")) {
       const line = rawLine.replace(/^[-•*]\s*/, "").trim();
       const m = line.match(/^(.+?)\s*\|\s*([a-z_2-3]+)\b/i);
       if (!m) continue;
       const event = m[2].toLowerCase();
-      if (!STAT_EVENTS.has(event)) continue;
+      if (!STAT_EVENTS.has(event) && !VOLLEY_EVENTS.has(event)) continue;
 
       const label = m[1].trim();
       const jersey = label.match(/#\s*(\d{1,2})/)?.[1] ?? null;
@@ -85,24 +97,48 @@ export function buildBoxScore(chunkTexts: string[]): PlayerBoxStat[] {
       const team = COLOR_WORDS.has(firstWord) ? firstWord : "unknown";
       const key = `${team}#${jersey ?? label.toLowerCase()}`;
       const display = jersey ? `${team === "unknown" ? "" : team[0].toUpperCase() + team.slice(1) + " "}#${jersey}`.trim() : label;
+      out.push({ event, team, jersey, key, display });
+    }
+  }
+  return out;
+}
 
-      if (!byKey.has(key)) byKey.set(key, emptyBoxStat(display, team, jersey));
-      const s = byKey.get(key)!;
+// Which sport's box score these events describe. Decided by counting
+// sport-unique tokens — "foul" exists in both vocabularies, so it casts no
+// vote. Ties (including zero events) default to basketball, the common case.
+export function detectStatSport(events: StatEvent[]): "basketball" | "volleyball" {
+  let bball = 0, volley = 0;
+  for (const e of events) {
+    if (e.event === "foul") continue;
+    if (STAT_EVENTS.has(e.event)) bball++;
+    else if (VOLLEY_EVENTS.has(e.event)) volley++;
+  }
+  return volley > bball ? "volleyball" : "basketball";
+}
 
-      switch (event) {
-        case "made_2":   s.fgm++; s.fga++; s.pts += 2; break;
-        case "missed_2": s.fga++; break;
-        case "made_3":   s.fgm++; s.fga++; s.tpm++; s.tpa++; s.pts += 3; break;
-        case "missed_3": s.fga++; s.tpa++; break;
-        case "made_ft":  s.ftm++; s.fta++; s.pts += 1; break;
-        case "missed_ft": s.fta++; break;
-        case "rebound":  s.reb++; break;
-        case "assist":   s.ast++; break;
-        case "steal":    s.stl++; break;
-        case "turnover": s.tov++; break;
-        case "block":    s.blk++; break;
-        case "foul":     s.pf++; break;
-      }
+export function buildBoxScore(chunkTexts: string[]): PlayerBoxStat[] {
+  const events = collectStatEvents(chunkTexts);
+  if (detectStatSport(events) !== "basketball") return [];
+  const byKey = new Map<string, PlayerBoxStat>();
+
+  for (const { event, team, jersey, key, display } of events) {
+    if (!STAT_EVENTS.has(event)) continue;
+    if (!byKey.has(key)) byKey.set(key, emptyBoxStat(display, team, jersey));
+    const s = byKey.get(key)!;
+
+    switch (event) {
+      case "made_2":   s.fgm++; s.fga++; s.pts += 2; break;
+      case "missed_2": s.fga++; break;
+      case "made_3":   s.fgm++; s.fga++; s.tpm++; s.tpa++; s.pts += 3; break;
+      case "missed_3": s.fga++; s.tpa++; break;
+      case "made_ft":  s.ftm++; s.fta++; s.pts += 1; break;
+      case "missed_ft": s.fta++; break;
+      case "rebound":  s.reb++; break;
+      case "assist":   s.ast++; break;
+      case "steal":    s.stl++; break;
+      case "turnover": s.tov++; break;
+      case "block":    s.blk++; break;
+      case "foul":     s.pf++; break;
     }
   }
 
@@ -110,6 +146,42 @@ export function buildBoxScore(chunkTexts: string[]): PlayerBoxStat[] {
   return [...byKey.values()]
     .filter(s => s.pts || s.fga || s.reb || s.ast || s.stl || s.tov || s.blk || s.pf)
     .sort((a, b) => b.pts - a.pts || b.fga - a.fga);
+}
+
+function emptyVolleyStat(player: string, team: string, jersey: string | null): PlayerVolleyStat {
+  return { player, team, jersey, k: 0, e: 0, ta: 0, sa: 0, se: 0, ast: 0, d: 0, bs: 0, re: 0, faults: 0 };
+}
+
+// Volleyball scorebook tallied from the same segment stat events. Attack
+// attempts (ta) count kills + errors + balls kept in play, so hitting
+// percentage — (k - e) / ta — can be derived downstream.
+export function buildVolleyBoxScore(chunkTexts: string[]): PlayerVolleyStat[] {
+  const events = collectStatEvents(chunkTexts);
+  if (detectStatSport(events) !== "volleyball") return [];
+  const byKey = new Map<string, PlayerVolleyStat>();
+
+  for (const { event, team, jersey, key, display } of events) {
+    if (!VOLLEY_EVENTS.has(event)) continue;
+    if (!byKey.has(key)) byKey.set(key, emptyVolleyStat(display, team, jersey));
+    const s = byKey.get(key)!;
+
+    switch (event) {
+      case "kill":            s.k++; s.ta++; break;
+      case "attack_error":    s.e++; s.ta++; break;
+      case "attack_attempt":  s.ta++; break;
+      case "ace":             s.sa++; break;
+      case "service_error":   s.se++; break;
+      case "set_assist":      s.ast++; break;
+      case "dig":             s.d++; break;
+      case "block_stuff":     s.bs++; break;
+      case "reception_error": s.re++; break;
+      case "foul":            s.faults++; break;
+    }
+  }
+
+  return [...byKey.values()]
+    .filter(s => s.k || s.ta || s.sa || s.se || s.ast || s.d || s.bs || s.re || s.faults)
+    .sort((a, b) => b.k - a.k || b.ta - a.ta || b.ast - a.ast);
 }
 
 export function extractGrade(text: string) {

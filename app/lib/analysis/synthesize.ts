@@ -64,21 +64,21 @@ Overall Decision Grade: [A+ to F — the whole game's decision-making against th
 Your Grade: [A+ to F — the UPLOADER's individual grade, based on THEIR player's own good/neutral/poor counts in the decision evidence above. If they do not appear in the evidence, write "N/A" — never guess a grade for a player you cannot identify.]
 
 Did Well:
-- [Short plain-language phrase naming something they actually did well this game, drawn from their good decisions in the evidence — e.g. "Attacking the rim against pressure". No full sentences, no coaching, just the thing.]
+- [Short plain-language phrase naming something they actually did well this game, drawn from their good decisions in the evidence — e.g. "Attacking the rim against pressure" or "Smart shot choices against the block". No full sentences, no coaching, just the thing.]
 - [Another, if there is one. 1-3 lines total. Write "Nothing stood out clearly." if the evidence doesn't support any.]
 
 Work On:
-- [Short plain-language phrase naming something to improve, drawn from their poor decisions — e.g. "Shot selection late in the clock". No full sentences.]
+- [Short plain-language phrase naming something to improve, drawn from their poor decisions — e.g. "Shot selection late in the clock" or "Forcing sets to a covered hitter". No full sentences.]
 - [Another, if there is one. 1-3 lines total.]
 
 Game Summary:
 [One sentence (two max) to the athlete — what defined their game, referencing a specific moment.]
 
 Period Breakdown:
-[One sentence naming the single most telling moment or shift across the game and what it revealed.]
+[One sentence naming the single most telling moment or shift across the game — by quarter, half, or set — and what it revealed.]
 
 Foul & Call Patterns:
-[One sentence on the clearest foul/call pattern you saw and when it happened — or "None notable." if there wasn't one.]
+[One sentence on the clearest foul/call pattern you saw and when it happened — basketball fouls, or volleyball faults like net touches, lifts, and rotation errors — or "None notable." if there wasn't one.]
 
 Decision Trends:
 [One sentence on how their decision-making shifted during the game and why it matters.]
@@ -97,14 +97,14 @@ Game-Level Practice Focus:
 [One sentence: name one solo, no-equipment drill with exact reps/duration and the one cue — tied to their biggest area to improve.]
 
 Player Stats:
-- [#NUMBER (TEAM) | Decisions: X sharp / Y costly | Fouls: Z | Standout moment: one-line note. Take "sharp" from that player's good count and "costly" from their poor count in the decision evidence above — do not invent different numbers.]
-- [Repeat for EVERY player you could track across the segments — aim for the main rotation on BOTH teams, typically 6–10 players, not just 2–3. Use a jersey number only if it was clearly confirmed; otherwise use the descriptive label from the segments, e.g. "White Point Guard (White)" or "Blue Center (Blue)". A player tracked by description is still a player — include them. Only write "No players could be tracked." if the segments truly identify no one.]
+- [#NUMBER (TEAM) | Decisions: X sharp / Y costly | Fouls: Z | Standout moment: one-line note. Take "sharp" from that player's good count and "costly" from their poor count in the decision evidence above — do not invent different numbers. Keep the literal label "Fouls:" whatever the sport — in volleyball, Z counts their called faults (net touches, lifts, rotation errors).]
+- [Repeat for EVERY player you could track across the segments — aim for the main rotation on BOTH teams, typically 6–10 players, not just 2–3. Use a jersey number only if it was clearly confirmed; otherwise use the descriptive label from the segments, e.g. "White Point Guard (White)", "Blue Center (Blue)", or "Blue Setter (Blue)". A player tracked by description is still a player — include them. Only write "No players could be tracked." if the segments truly identify no one.]
 
 Team Comparison:
 Teams: [Team A name/color] vs [Team B name/color]
 Score: [X–Y only if a scoreboard was clearly readable in the frames — otherwise write "Not visible"]
 Winner: [team name, or "Unclear"]
-- [Stat name | Team A number | Team B number — ONLY stats you directly observed across the segments, e.g. "Made baskets | 6 | 4", "Turnovers | 3 | 5", "Fouls | 2 | 4". These are observed counts from the film, not full box-score totals. NEVER invent percentages or numbers you did not see. Skip any stat you can't count. If you can't compare the teams at all, write "Not enough visible data." on one line instead.]
+- [Stat name | Team A number | Team B number — ONLY stats you directly observed across the segments, e.g. basketball: "Made baskets | 6 | 4", "Turnovers | 3 | 5", "Fouls | 2 | 4"; volleyball: "Kills | 8 | 5", "Aces | 2 | 1", "Service errors | 1 | 3". These are observed counts from the film, not full box-score totals. NEVER invent percentages or numbers you did not see. Skip any stat you can't count. If you can't compare the teams at all, write "Not enough visible data." on one line instead.]
 Why: [2 sentences on what decided the game between these teams, based on what you saw.]
 `,
           },

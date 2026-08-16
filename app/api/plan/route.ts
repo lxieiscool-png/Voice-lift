@@ -21,6 +21,8 @@ NON-NEGOTIABLE RULE: Every single drill must be doable COMPLETELY ALONE with zer
 
 Your drills must directly address the specific weaknesses given — not generic fitness work. Make every session feel like it was built exactly for this athlete.
 
+Reel's specialty sports are basketball and volleyball — build those plans with specialist depth and correct positional terminology. Volleyball solo work is very doable: wall blocking footwork, platform/passing reps against a wall, setting to yourself with a target spot, approach-and-swing footwork with no net, serving toss consistency, defensive base-to-move reps. Never prescribe a drill that actually needs a net, a partner tossing, or a court if the athlete may not have one.
+
 CRITICAL FORMATTING RULE: Output plain text only. Never use markdown — no **bold**, no #headers, no asterisks of any kind. Use the exact field labels given (e.g. "Day 1:", "Focus:", "Drill 1:") with nothing added before or after them.`,
         },
         {

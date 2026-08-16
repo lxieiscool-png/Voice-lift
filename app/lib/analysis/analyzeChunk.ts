@@ -54,6 +54,16 @@ export async function analyzeChunk({
 
   const isGameMode = mode === "game";
 
+  // Stat-event vocabulary for game segments, keyed to the sport when it's
+  // known. Sport is constant for a whole game, so this stays byte-identical
+  // across a game's segment calls and doesn't break prompt-prefix caching.
+  const BBALL_TOKENS = `The event MUST be one of exactly these basketball tokens: made_2, made_3, missed_2, missed_3, made_ft, missed_ft, rebound, assist, steal, turnover, block, foul.`;
+  const VOLLEY_TOKENS = `The event MUST be one of exactly these volleyball tokens: kill (attack that ends the rally for a point), attack_error (attack out, into the net, or stuff-blocked to the floor), attack_attempt (attack the defense keeps in play), ace (serve that ends the rally for a point), service_error (serve out or into the net), set_assist (set that directly leads to a kill), dig (defensive save of an attacked ball), block_stuff (block that ends the rally for a point), reception_error (serve receive misplayed, directly giving up the point), foul (any called violation — net touch, lift, double contact, rotation or foot fault).`;
+  const sportKey = (sport ?? "").toLowerCase();
+  const statVocab = sportKey.includes("basket") ? BBALL_TOKENS
+    : sportKey.includes("volley") ? VOLLEY_TOKENS
+    : `${BBALL_TOKENS} ${VOLLEY_TOKENS} Use ONLY the token set for the sport actually being played — never mix the two vocabularies.`;
+
   // Static instructions come first and stay byte-identical across every
   // segment call for a game (called many times per game, run concurrently)
   // — this maximizes the prefix OpenAI's automatic prompt caching can match,
@@ -70,21 +80,21 @@ DIRECTION: Describe direction with court/field-relative terms (baseline, middle,
 ${jersey || teamColor ? `\nTHE UPLOADER: this athlete is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Whenever they are visible in this segment, always include their line in Player Tracking, log their stat events, and let Decision Quality speak directly to THEM about what they specifically did.\n` : ""}
 Return ONLY this format — no extra commentary:
 
-Period/Quarter: [e.g. "2nd Quarter" or "unclear"]
+Period/Quarter: [e.g. "2nd Quarter", "Set 2", or "unclear"]
 Game Clock: [e.g. "4:32" or "unclear"]
-Score: [e.g. "Lakers 54 – Celtics 48" or "unclear"]
+Score: [e.g. "Lakers 54 – Celtics 48", "Blue 18 – White 14", or "unclear"]
 
 Key Events:
 - [Each notable play, foul, or score. Include jersey number and team only if clearly readable. Use "Blue #12" style if partially visible. "None detected" if nothing notable.]
 
 Player Tracking:
-- [One line for EVERY active player visible in this segment, from BOTH teams — in basketball that's usually 8–10 lines, not 2–3. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
+- [One line for EVERY active player visible in this segment, from BOTH teams — basketball: usually 8–10 lines; volleyball: up to 12, six per side — never just 2–3. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
 
 Stat Events:
-- [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard". The event MUST be one of exactly these tokens: made_2, made_3, missed_2, missed_3, made_ft, missed_ft, rebound, assist, steal, turnover, block, foul. Rules: only log an event when the outcome is genuinely visible across the frames — never guess make vs miss; if you can see a shot went up but not whether it fell, DO NOT log it. Do not infer events between frames you cannot see. One line per event; the same event may involve two lines (e.g. a steal AND the resulting turnover). Write "None" if nothing countable is clearly visible.]
+- [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard" or "Blue Setter". ${statVocab} Rules: only log an event when the outcome is genuinely visible across the frames — never guess a make vs a miss or a kill vs a ball kept in play; if you can see the attempt but not how it ended, DO NOT log it. Do not infer events between frames you cannot see. One line per event; one play may produce two lines (e.g. a steal AND the resulting turnover, or a set_assist AND the kill it fed). Write "None" if nothing countable is clearly visible.]
 
 Decision Events:
-- [One line per notable DECISION you can clearly see, from either team. Format EXACTLY: "TEAM #NUM | quality | what happened". Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "Blue #12 | good | drove baseline and kicked to the open corner shooter"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky bucket off a forced shot is still "poor". Only log decisions you can actually see; write "None" if nothing notable is clearly visible.]
+- [One line per notable DECISION you can clearly see, from either team. Format EXACTLY: "TEAM #NUM | quality | what happened". Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "Blue #12 | good | drove baseline and kicked to the open corner shooter", or "White #10 | poor | forced the set to a covered middle with the outside open"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see; write "None" if nothing notable is clearly visible.]
 
 Tactical Pattern:
 [One sentence naming one concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
