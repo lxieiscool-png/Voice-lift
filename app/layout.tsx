@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+// Display face for the marketing site's editorial type — variable weight so
+// the same family covers hairline-to-black pairings at huge sizes.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
 });
 
@@ -26,7 +33,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/icon-192.png", sizes: "192x192" }],
   },
-  title: "Reel — Your AI Sports Coach",
+  title: "Reel: Your AI Sports Coach",
   description: "Upload your game film and get real coaching, not just stats. Reel grades every decision, tells you what to work on, and checks your form as you drill it. Try it free.",
   keywords: [
     "sports coaching app",
@@ -51,13 +58,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://www.getreel.org",
-    title: "Reel — Your AI Sports Coach",
+    title: "Reel: Your AI Sports Coach",
     description: "Upload your game film and get real coaching, not just stats. Reel grades every decision, tells you what to work on, and checks your form as you drill it. Try it free.",
     siteName: "Reel",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Reel — Your AI Sports Coach",
+    title: "Reel: Your AI Sports Coach",
     description: "Upload your game film and get real coaching, not just stats. Try it free.",
   },
   verification: {
@@ -81,7 +88,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased dark`}
       suppressHydrationWarning
     >
       <head>

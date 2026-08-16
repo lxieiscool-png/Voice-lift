@@ -67,10 +67,23 @@
   --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-archivo), var(--font-geist-sans), ui-sans-serif, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Hollow display type for the editorial landing headlines — the "light" half
+   of a heavy/outline pairing (e.g. YOUR GAME. / GRADED.). Landing is always
+   dark, so the stroke is white. */
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.85);
 }

@@ -17,8 +17,6 @@ const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: fals
 const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
 const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
 const SupportWidget = dynamic(() => import("./components/SupportWidget"), { ssr: false });
-const ParticleField   = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.ParticleField })),   { ssr: false });
-const CursorSpotlight = dynamic(() => import("./components/LandingEffects").then(m => ({ default: m.CursorSpotlight })), { ssr: false });
 
 function fireBurst(e: React.MouseEvent) {
   import("./components/LandingEffects").then(m => m.fireBurst(e));
@@ -63,7 +61,7 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
           <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Team / school" value={draft.team ?? ""} onChange={e => setDraft(d => ({ ...d, team: e.target.value }))} />
           <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
-            placeholder="Jersey number (e.g. 23) — tracks your grades over time"
+            placeholder="Jersey number (e.g. 23) tracks your grades over time"
             value={draft.jersey ?? ""} onChange={e => setDraft(d => ({ ...d, jersey: e.target.value }))} />
           <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Position (e.g. Point Guard)"
@@ -214,13 +212,13 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 
 const HOW_STEPS: Record<"decision" | "coach", { icon: LucideIcon; title: string; desc: string }[]> = {
   decision: [
-    { icon: Clapperboard, title: "Upload your footage",      desc: "Short clip or full game — sport, teams, and situation are detected automatically." },
+    { icon: Clapperboard, title: "Upload your footage",      desc: "Short clip or full game. Sport, teams, and situation are detected automatically." },
     { icon: Brain, title: "Every player is reviewed", desc: "Everyone on screen gets a grade, a breakdown, and what they should've done instead." },
     { icon: ClipboardList, title: "See the full picture",     desc: "What happened, the better option, and one thing to work on. Games get full reports." },
-    { icon: TrendingUp, title: "Track your progress",      desc: "Every review is saved — watch your grade trend climb over time." },
+    { icon: TrendingUp, title: "Track your progress",      desc: "Every review is saved. Watch your grade trend climb over time." },
   ],
   coach: [
-    { icon: MessageCircle, title: "Ask your coach anything",  desc: "Technique, strategy, mindset — answers specific to your sport and your film." },
+    { icon: MessageCircle, title: "Ask your coach anything",  desc: "Technique, strategy, mindset. Answers specific to your sport and your film." },
     { icon: Dumbbell, title: "Get a real practice plan", desc: "A full week of sessions with specific solo drills and exact reps." },
     { icon: Target, title: "Connected to your film",   desc: "Weaknesses found in your film feed straight into your plan." },
   ],
@@ -271,7 +269,7 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
           {activeModule === "decision" && (
             <p className="text-xs text-muted-foreground leading-relaxed px-1">
               <span className="font-semibold text-foreground">DecisionIQ</span> is your film room.{" "}
-              <span className="font-semibold text-foreground">CoachIQ</span> is your coach on the sideline — analyze a clip, then build a plan around what you found.
+              <span className="font-semibold text-foreground">CoachIQ</span> is your coach on the sideline. Analyze a clip, then build a plan around what you found.
             </p>
           )}
         </div>
@@ -451,19 +449,19 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
     {
       eyebrow: "Welcome to Reel",
       title: name ? `Hey ${name}.` : "You're in.",
-      body: "This is your personal film room and coaching hub. Everything you need to analyze your game and get better — all in one place.",
+      body: "This is your personal film room and coaching hub. Everything you need to analyze your game and get better, all in one place.",
       cta: "Show me how →",
     },
     {
       eyebrow: "DecisionIQ",
       title: "Upload a clip. Get real feedback.",
-      body: "Drop in any video — a 10-second clip or a full game. DecisionIQ grades every player on screen, breaks down each decision, and tells you exactly what to work on.",
+      body: "Drop in any video, a 10-second clip or a full game. DecisionIQ grades every player on screen, breaks down each decision, and tells you exactly what to work on.",
       cta: "Got it →",
     },
     {
       eyebrow: "You're ready",
       title: "Upload your first clip.",
-      body: "It takes about 30 seconds. Pick something recent — a play you were proud of, or one you want to understand better.",
+      body: "It takes about 30 seconds. Pick something recent: a play you were proud of, or one you want to understand better.",
       cta: "Upload a clip",
     },
   ];
@@ -567,7 +565,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
     },
     {
       title: "Who are you on film?",
-      sub: "Your jersey number and team colors let Reel find YOU in the footage and track your grades — not just the team's.",
+      sub: "Your jersey number and team colors let Reel find YOU in the footage and track your grades, not just the team's.",
       content: (
         <div className="flex flex-col gap-2">
           <input
@@ -680,99 +678,6 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
-function TiltCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  function onMouseMove(e: React.MouseEvent) {
-    const el = ref.current; if (!el) return;
-    const { left, top, width, height } = el.getBoundingClientRect();
-    const x = (e.clientX - left) / width - 0.5;
-    const y = (e.clientY - top) / height - 0.5;
-    el.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 12}deg) scale3d(1.03,1.03,1.03)`;
-  }
-  function onMouseLeave() {
-    if (ref.current) ref.current.style.transform = "perspective(800px) rotateY(0deg) rotateX(0deg) scale3d(1,1,1)";
-  }
-  return (
-    <div ref={ref} className={className} onMouseMove={onMouseMove} onMouseLeave={onMouseLeave}
-      style={{ transition: "transform 0.15s ease", transformStyle: "preserve-3d", willChange: "transform" }}>
-      {children}
-    </div>
-  );
-}
-
-function FloatingGradeCard() {
-  return (
-    <motion.div
-      animate={{ y: [0, -14, 0], rotateZ: [-1, 1, -1] }}
-      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-      style={{ transformStyle: "preserve-3d", perspective: 800 }}
-      className="mx-auto w-72 rounded-2xl border border-border bg-muted/80 backdrop-blur-sm p-6 shadow-2xl"
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-2xl font-black text-foreground">A</div>
-        <div>
-          <p className="font-bold text-foreground text-sm">White Point Guard</p>
-          <p className="text-xs text-muted-foreground">Basketball · Drive read</p>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <div className="rounded-lg bg-accent px-3 py-2">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5">What Happened</p>
-          <p className="text-xs text-foreground">Drove baseline, drew two defenders, kicked to open corner.</p>
-        </div>
-        <div className="rounded-lg bg-accent px-3 py-2">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5">Next Time</p>
-          <p className="text-xs text-foreground">Same read — attack the gap earlier before help arrives.</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function StatTrackingPanel() {
-  const stats = [
-    { label: "Decision grade", value: "A-", pct: 88, sub: "this game" },
-    { label: "Sharp reads", value: "9", pct: 82, sub: "vs 2 costly" },
-    { label: "Fouls", value: "2", pct: 25, sub: "late reaches" },
-    { label: "Grade trend", value: "+2", pct: 70, sub: "last 5 clips" },
-  ];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.7 }}
-      className="rounded-3xl border border-border bg-card p-6 sm:p-8"
-    >
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Progress tracking</p>
-          <p className="text-lg font-black text-foreground">This game</p>
-        </div>
-        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">↑ trending up</span>
-      </div>
-      <div className="space-y-4">
-        {stats.map((s, i) => (
-          <div key={s.label}>
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-foreground">{s.label}</span>
-              <span className="text-sm font-black text-foreground">{s.value} <span className="text-[11px] font-medium text-muted-foreground">{s.sub}</span></span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-accent">
-              <motion.div
-                initial={{ width: 0 }} whileInView={{ width: `${s.pct}%` }}
-                viewport={{ once: true }} transition={{ delay: 0.3 + i * 0.12, duration: 0.8, ease: "easeOut" }}
-                className="h-full rounded-full bg-primary"
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-        Every session is graded and tracked over time — watch your decision-making and ball security improve week over week.
-      </p>
-    </motion.div>
-  );
-}
-
 function AnalysisDemo() {
   return (
     <motion.div
@@ -829,50 +734,10 @@ function AnalysisDemo() {
         </div>
         <div className="rounded-lg bg-accent px-3 py-2">
           <p className="mb-0.5 text-[9px] uppercase tracking-widest text-muted-foreground">The read</p>
-          <p className="text-xs leading-relaxed text-foreground">Rose up through contact and drew the foul — aggressive, correct call against a late closeout.</p>
+          <p className="text-xs leading-relaxed text-foreground">Rose up through contact and drew the foul. Aggressive, correct call against a late closeout.</p>
         </div>
       </motion.div>
     </motion.div>
-  );
-}
-
-function AnimatedGrid() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <svg className="absolute inset-0 h-full w-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="1"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
-      {[...Array(6)].map((_, i) => (
-        <motion.div key={i}
-          className="absolute rounded-full bg-primary/5 blur-3xl"
-          style={{ width: 300 + i * 80, height: 300 + i * 80, left: `${10 + i * 15}%`, top: `${5 + i * 12}%` }}
-          animate={{ x: [0, 30, 0], y: [0, -20, 0], opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 6 + i * 1.5, repeat: Infinity, delay: i * 0.8, ease: "easeInOut" }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── Scroll zoom section ──────────────────────────────────────────────────────
-
-function ZoomSection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const scale   = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.82, 1, 1, 0.95]);
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0,    1, 1, 0.4]);
-  const y       = useTransform(scrollYProgress, [0, 0.3], [60, 0]);
-  return (
-    <div ref={ref} className={className}>
-      <motion.div style={{ scale, opacity, y }}>
-        {children}
-      </motion.div>
-    </div>
   );
 }
 
@@ -882,12 +747,13 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
   const [showSignUp, setShowSignUp] = useState(false);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroScale   = useTransform(scrollYProgress, [0, 1], [1, 1.18]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const heroTextY   = useTransform(scrollYProgress, [0, 1], ["0%", "-20%"]);
+  const heroScale   = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+
+  const microLabel = "text-[10px] font-semibold uppercase tracking-[0.28em]";
 
   return (
-    <div className="bg-background text-foreground overflow-x-hidden">
+    <div className="overflow-x-hidden bg-black font-sans text-white">
       <AnimatePresence>
         {showSignUp && (
           <SignUpModal
@@ -897,297 +763,278 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         )}
       </AnimatePresence>
 
-      {/* Fixed nav */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-md bg-black/60 border-b border-white/5">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Logo size="md" />
-          <div className="flex items-center gap-3">
-            <button onClick={onEnterApp} className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Try free</button>
+      {/* ── Nav: links left, logotype dead-center, actions right ── */}
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md">
+        <div className="relative mx-auto flex h-14 max-w-7xl items-center justify-between px-5">
+          <nav className={`hidden items-center gap-8 md:flex ${microLabel} text-white/50`}>
+            <a href="#film" className="transition-colors hover:text-white">Film</a>
+            <a href="#coach" className="transition-colors hover:text-white">Coach</a>
+            <a href="#pricing" className="transition-colors hover:text-white">Pricing</a>
+          </nav>
+          <span className="pointer-events-none font-display text-lg font-black tracking-[0.4em] md:absolute md:left-1/2 md:-translate-x-1/2 md:pl-[0.4em]">REEL</span>
+          <div className="flex items-center gap-5">
             <button onClick={onSignIn} disabled={signingIn}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:text-foreground hover:border-ring transition-colors disabled:opacity-50">
+              className={`${microLabel} text-white/50 transition-colors hover:text-white disabled:opacity-50`}>
               {signingIn ? "…" : "Log in"}
             </button>
-            <motion.button onClick={() => setShowSignUp(true)} disabled={signingIn}
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
-              Sign up
-            </motion.button>
+            <button onClick={() => setShowSignUp(true)} disabled={signingIn}
+              className={`rounded-full bg-white px-4 py-1.5 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
+              Start
+            </button>
           </div>
         </div>
-      </motion.header>
+      </header>
 
-      {/* ── Hero: image zooms in as you scroll down ── */}
-      <section ref={heroRef} className="relative h-screen min-h-[600px] overflow-hidden">
+      {/* ── Hero: full-bleed film, editorial type bottom-left ── */}
+      <section ref={heroRef} className="relative h-screen min-h-[640px] overflow-hidden">
         <motion.div style={{ scale: heroScale }} className="absolute inset-0 origin-center">
           <video
             autoPlay muted loop playsInline
             poster="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
-            ref={(el) => { if (el) el.playbackRate = 0.65; }}
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{ filter: "blur(0.5px)" }}
+            ref={(el) => { if (el) el.playbackRate = 0.6; }}
+            className="h-full w-full object-cover"
           >
             <source src="/hero-basketball.mov" type="video/mp4" />
           </video>
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/20" />
-        <ParticleField />
-        <CursorSpotlight />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/25" />
 
-        <motion.div style={{ opacity: heroOpacity, y: heroTextY }}
-          className="relative flex h-full flex-col items-center justify-center px-6 text-center pt-20">
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
-            className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Coaching for every athlete
+        {/* Rotated edge caption */}
+        <p className="absolute -right-40 top-1/2 hidden -translate-y-1/2 rotate-90 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.45em] text-white/35 lg:block">
+          Every decision ⊙ graded A+ to F ⊙ basketball &amp; volleyball
+        </p>
+
+        <motion.div style={{ opacity: heroOpacity }}
+          className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-24">
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
+            className={`mb-5 ${microLabel} text-white/50`}>
+            ⊙ The AI film room for athletes
           </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="mb-6 text-5xl font-black leading-[1.05] tracking-tight sm:text-7xl lg:text-[96px]">
-            Every athlete<br />deserves a<br /><span className="text-muted-foreground">great coach.</span>
+          <motion.h1 initial={{ opacity: 0, y: 34 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="font-display uppercase leading-[0.85]">
+            <span className="block text-[15vw] font-black sm:text-[11vw] lg:text-[9.5rem]">Your game.</span>
+            <span className="text-outline block text-[15vw] font-black sm:text-[11vw] lg:text-[9.5rem]">Graded.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7 }}
-            className="mx-auto mb-10 max-w-lg text-base text-muted-foreground leading-relaxed sm:text-lg">
-            Film analysis. AI coaching. Practice plans. Free to start, for every athlete.
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7 }}
+            className="mt-6 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
+            Upload film. Every decision gets graded like a coach would grade it. Then you get the drill that fixes the pattern.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.7 }}
-            className="flex flex-wrap items-center justify-center gap-3">
-            <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }} disabled={signingIn}
-              whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.96 }}
-              className="rounded-xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-white/10 disabled:opacity-50">
-              Get started free
-            </motion.button>
-            <motion.button onClick={onSignIn} disabled={signingIn}
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              className="rounded-xl border border-border px-8 py-4 text-base font-semibold text-foreground hover:border-ring hover:text-foreground transition-colors disabled:opacity-50">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.7 }}
+            className="mt-8 flex flex-wrap items-center gap-6">
+            <button onClick={() => setShowSignUp(true)} disabled={signingIn}
+              className={`rounded-full bg-white px-8 py-3.5 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
+              Start free
+            </button>
+            <button onClick={onSignIn} disabled={signingIn}
+              className={`${microLabel} text-white/60 underline decoration-white/30 underline-offset-8 transition-colors hover:text-white disabled:opacity-50`}>
               {signingIn ? "Redirecting…" : "Log in"}
-            </motion.button>
+            </button>
           </motion.div>
           {authError && <p className="mt-4 text-sm text-red-400">{authError}</p>}
         </motion.div>
 
-        <motion.div animate={{ y: [0, 10, 0], opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 2.2, repeat: Infinity }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-muted-foreground">
-          <span className="text-xs tracking-widest uppercase">Scroll</span>
-          <div className="h-6 w-px bg-accent" />
+        <motion.div animate={{ y: [0, 8, 0], opacity: [0.25, 0.7, 0.25] }} transition={{ duration: 2.4, repeat: Infinity }}
+          className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex">
+          <span className="text-[9px] uppercase tracking-[0.4em] text-white/40">Scroll</span>
+          <div className="h-7 w-px bg-white/25" />
         </motion.div>
       </section>
 
-      {/* ── Grade card: zooms in from small ── */}
-      <ZoomSection className="py-4 px-4 bg-background">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card overflow-hidden">
-          <div className="grid gap-0 lg:grid-cols-2">
-            <div className="p-12 lg:p-16 flex flex-col justify-center">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">What you get</p>
-              <h2 className="mb-5 text-3xl font-black tracking-tight sm:text-5xl leading-tight">
-                Real grades.<br />Real feedback.<br /><span className="text-muted-foreground">Real improvement.</span>
-              </h2>
-              <p className="text-muted-foreground leading-relaxed mb-8 text-sm sm:text-base">
-                Upload any clip and get a full breakdown of every decision — what happened, what the smarter play was, and exactly how to practice it solo.
-              </p>
-              <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }}
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                className="self-start rounded-xl bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground">
-                Analyze your film →
-              </motion.button>
-            </div>
-            <div className="relative flex items-center justify-center overflow-hidden p-12 bg-muted/50" style={{ minHeight: 380 }}>
-              <div className="pointer-events-none absolute inset-0"
-                style={{
-                  backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
-                  backgroundSize: "28px 28px",
-                  maskImage: "radial-gradient(circle at center, black, transparent 75%)",
-                  WebkitMaskImage: "radial-gradient(circle at center, black, transparent 75%)",
-                }} />
-              <div className="relative z-10 w-full max-w-xs">
-                <FloatingGradeCard />
-              </div>
-            </div>
-          </div>
-        </div>
-      </ZoomSection>
+      {/* ── Editorial statement ── */}
+      <section className="border-y border-white/10 px-5 py-24 sm:py-32">
+        <FadeUp>
+          <p className="mx-auto max-w-4xl text-center font-display text-sm font-bold uppercase leading-[2.2] tracking-[0.3em] text-white/75 sm:text-lg sm:leading-[2.2]">
+            ⊙ Reel is an AI film room for athletes ✦ who want to get better, not just watch highlights ⌁ upload a game, get graded, fix the pattern ⊙
+          </p>
+        </FadeUp>
+      </section>
 
-      {/* ── Live analysis demo: real photo with fake overlays ── */}
-      <ZoomSection className="py-4 px-4 bg-background">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6 text-center">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">See it in action</p>
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Every decision, graded.</h2>
-          </div>
-          <div className="grid items-center gap-4 lg:grid-cols-2">
-            <StatTrackingPanel />
+      {/* ── #01 DecisionIQ ── */}
+      <section id="film" className="scroll-mt-14 px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl">
+          <FadeUp className="mb-14 flex items-end justify-between gap-6">
+            <div>
+              <p className={`mb-4 ${microLabel} text-white/40`}>#01 ⊙ Film analysis</p>
+              <h2 className="font-display uppercase leading-[0.9]">
+                <span className="block text-5xl font-black sm:text-7xl">Decision</span>
+                <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
+              </h2>
+            </div>
+            <div className="hidden text-right sm:block">
+              <p className={`${microLabel} text-white/40`}>Grade scale</p>
+              <p className="font-display text-5xl font-black sm:text-6xl">A+ to F</p>
+            </div>
+          </FadeUp>
+
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <FadeUp>
+              <p className="mb-8 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
+                A clip or a full game. Reel watches every player on the floor and grades the decision, not the outcome. A smart read that missed is still a smart read.
+              </p>
+              <div>
+                {[
+                  ["Every player on screen", "graded A+ to F"],
+                  ["Full games", "report + auto box score"],
+                  ["The better read", "explained, every play"],
+                  ["Fix it alone", "one drill per weakness"],
+                ].map(([left, right]) => (
+                  <div key={left} className="flex items-baseline justify-between gap-4 border-t border-white/10 py-4">
+                    <span className={`${microLabel} text-white`}>{left}</span>
+                    <span className={`${microLabel} text-right text-white/40`}>{right}</span>
+                  </div>
+                ))}
+                <div className="border-t border-white/10 pt-8">
+                  <button onClick={() => setShowSignUp(true)}
+                    className={`rounded-full bg-white px-7 py-3 ${microLabel} text-black transition-opacity hover:opacity-85`}>
+                    Analyze your film
+                  </button>
+                </div>
+              </div>
+            </FadeUp>
             <AnalysisDemo />
           </div>
         </div>
-      </ZoomSection>
+      </section>
 
-      {/* ── Photo grid: zooms in ── */}
-      <ZoomSection className="py-4 px-4 bg-background">
-        <div className="mx-auto max-w-6xl grid grid-cols-2 sm:grid-cols-4 rounded-3xl overflow-hidden" style={{ height: 300 }}>
-          {[
-            { src: "/grid-basketball.jpg", alt: "Driving to the rim" },
-            { src: "https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=600&q=80&fit=crop&crop=faces,center", alt: "Volleyball match" },
-            { src: "https://images.unsplash.com/photo-1552984439-3067a809a6d4?w=600&q=80&fit=crop&crop=faces,center", alt: "Basketball game" },
-            { src: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=600&q=80&fit=crop&crop=faces,center", alt: "Volleyball spike" },
-          ].map(({ src, alt }, i) => (
-            <div key={i} className="overflow-hidden relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={alt}
-                className="h-full w-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-90 hover:scale-105 transition-all duration-700" />
-            </div>
-          ))}
-        </div>
-      </ZoomSection>
+      {/* ── Interlude: full-bleed film still ── */}
+      <section className="relative h-[55vh] overflow-hidden sm:h-[65vh]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/grid-basketball.jpg" alt="Driving to the rim"
+          className="h-full w-full object-cover object-[62%_22%] grayscale" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+        <p className={`absolute bottom-6 left-5 ${microLabel} text-white/60 sm:left-10`}>
+          #01 ⊙ Shot selection ⊙ timing ⊙ reads
+        </p>
+      </section>
 
-      {/* ── Mission: zooms in ── */}
-      <ZoomSection className="py-4 px-4 bg-background">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-10 sm:p-16">
-          <div className="grid gap-14 lg:grid-cols-2 items-center">
+      {/* ── #02 CoachIQ ── */}
+      <section id="coach" className="scroll-mt-14 px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl">
+          <FadeUp className="mb-14 flex items-end justify-between gap-6">
             <div>
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Our Mission</p>
-              <h2 className="mb-6 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl leading-tight">
-                Talent is everywhere.<br /><span className="text-muted-foreground">Opportunity isn't.</span>
+              <p className={`mb-4 ${microLabel} text-white/40`}>#02 ⊙ Personal coaching</p>
+              <h2 className="font-display uppercase leading-[0.9]">
+                <span className="block text-5xl font-black sm:text-7xl">Coach</span>
+                <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
               </h2>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                A private coach can cost $100–$300 an hour. Most young athletes never get access to that level of feedback.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                Reel was built to change that. Upload any clip and get elite-level tactical analysis — free to start, for everyone.
-              </p>
             </div>
-            <div className="grid gap-4">
-              {[
-                { stat: "Free to start", desc: "Try it free every month, no card required. Reel Pro unlocks 8 full games and 100 clips a month." },
-                { stat: "Built for hoops & volleyball", desc: "Best-in-class analysis for basketball and volleyball. Other sports supported in beta." },
-                { stat: "Any level", desc: "Middle school to college. Beginners to advanced." },
-              ].map(({ stat, desc }, i) => (
-                <TiltCard key={stat}>
-                  <motion.div className="border border-border rounded-2xl p-5 bg-background cursor-default"
-                    initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.6 }} viewport={{ once: true }}>
-                    <p className="text-2xl font-black text-foreground mb-1">{stat}</p>
-                    <p className="text-sm text-muted-foreground">{desc}</p>
-                  </motion.div>
-                </TiltCard>
-              ))}
+            <div className="hidden text-right sm:block">
+              <p className={`${microLabel} text-white/40`}>In your corner</p>
+              <p className="font-display text-5xl font-black sm:text-6xl">24/7</p>
             </div>
+          </FadeUp>
+
+          <div>
+            {[
+              ["Ask Coach", "A coach who has seen your film. Blunt answers, real terminology, no essays."],
+              ["Build My Plan", "A weekly practice plan built around your weaknesses. Every drill doable alone, zero equipment."],
+              ["Drill Check", "Record yourself doing the drill. Get a verdict on your form and the one fix that matters."],
+            ].map(([name, desc], i) => (
+              <FadeUp key={name} delay={i * 0.08}>
+                <div className="grid gap-3 border-t border-white/10 py-8 sm:grid-cols-2 sm:items-baseline">
+                  <p className="font-display text-2xl font-black uppercase sm:text-3xl">
+                    <span className="mr-4 text-sm font-bold text-white/30">0{i + 1}</span>{name}
+                  </p>
+                  <p className="max-w-md text-sm leading-relaxed text-white/55 sm:justify-self-end sm:text-right">{desc}</p>
+                </div>
+              </FadeUp>
+            ))}
+            <div className="border-t border-white/10" />
           </div>
         </div>
-      </ZoomSection>
+      </section>
 
-      {/* ── Features: each card zooms in staggered ── */}
-      <ZoomSection className="py-4 px-4 bg-background">
-        <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-10">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">The Platform</p>
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Three tools. One mission.</h2>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-3">
+      {/* ── Interlude: volleyball ── */}
+      <section className="relative h-[55vh] overflow-hidden sm:h-[65vh]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=1600&q=85&fit=crop&crop=center" alt="Volleyball spike at the net"
+          className="h-full w-full object-cover grayscale" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+        <p className={`absolute bottom-6 left-5 ${microLabel} text-white/60 sm:left-10`}>
+          #02 ⊙ Built for basketball ⊙ and volleyball
+        </p>
+      </section>
+
+      {/* ── Mission ── */}
+      <section className="border-b border-white/10 px-5 py-28 text-center sm:py-36">
+        <FadeUp>
+          <h2 className="mx-auto font-display uppercase leading-[0.95]">
+            <span className="block text-4xl font-black sm:text-6xl lg:text-7xl">Talent is everywhere.</span>
+            <span className="text-outline block text-4xl font-black sm:text-6xl lg:text-7xl">Opportunity isn&apos;t.</span>
+          </h2>
+          <p className="mx-auto mt-8 max-w-lg text-sm leading-relaxed text-white/60 sm:text-base">
+            A private coach runs $100 to $300 an hour. Most athletes never get that level of feedback. Reel gives every athlete a film room, free to start.
+          </p>
+        </FadeUp>
+      </section>
+
+      {/* ── #03 Pricing ── */}
+      <section id="pricing" className="scroll-mt-14 px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl">
+          <FadeUp className="mb-14">
+            <p className={`mb-4 ${microLabel} text-white/40`}>#03 ⊙ Pricing</p>
+            <h2 className="font-display text-5xl font-black uppercase leading-[0.9] sm:text-7xl">Two plans.</h2>
+          </FadeUp>
+          <div className="grid gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-2">
             {[
-              { tag: "Film Analysis", title: "DecisionIQ", icon: Clapperboard,
-                desc: "Upload a clip or full game. Every player graded, every decision broken down.",
-                features: ["Grades every player on screen", "Full game period breakdowns", "Auto-detects sport & jersey numbers", "Grade trend over time"] },
-              { tag: "Personal Coaching", title: "CoachIQ", icon: MessageCircle,
-                desc: "Your AI coach, 24/7. Chat, build a weekly practice plan, then prove you're doing the work.",
-                features: ["Tailored to your sport & position", "Personalized weekly drill plans", "Drill Check: record a drill, get form feedback", "Speaks like a real coach"] },
-              { tag: "Progress Tracking", title: "Film Library", icon: TrendingUp,
-                desc: "Every clip saved and graded. See your improvement over weeks.",
-                features: ["Grade trend chart", "Stats: clips, avg grade, streak", "Search & filter film history", "Shareable grade cards for TikTok"] },
-            ].map(({ tag, title, icon: Icon, desc, features }, i) => (
-              <motion.div key={title}
-                initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: i * 0.12, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-                viewport={{ once: true }}>
-                <TiltCard className="h-full">
-                  <div className="border border-border rounded-2xl p-8 bg-card h-full cursor-default">
-                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent/80"><Icon className="h-5 w-5 text-foreground" strokeWidth={1.75} /></div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{tag}</p>
-                    <h3 className="mb-3 text-2xl font-black">{title}</h3>
-                    <p className="mb-6 text-muted-foreground leading-relaxed text-sm">{desc}</p>
-                    <div className="space-y-2.5">
-                      {features.map((f) => (
-                        <div key={f} className="flex items-start gap-2.5">
-                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-                          <p className="text-sm text-muted-foreground">{f}</p>
-                        </div>
-                      ))}
+              { name: "Free", price: "$0", note: "No card required", rows: [["Full games", "1 / month"], ["Clips", "2 / month"], ["CoachIQ", "chat · plans · drill check"]], cta: "Start free", solid: false },
+              { name: "Reel Pro", price: "$8", note: "per month", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Everything in Free", "included"]], cta: "Go Pro", solid: true },
+            ].map((plan) => (
+              <div key={plan.name} className="bg-black p-8 sm:p-12">
+                <div className="flex items-baseline justify-between">
+                  <p className={`${microLabel} text-white/40`}>{plan.name}</p>
+                  <p className={`${microLabel} text-white/30`}>{plan.note}</p>
+                </div>
+                <p className="mb-8 mt-4 font-display text-7xl font-black sm:text-8xl">{plan.price}</p>
+                <div className="mb-8">
+                  {plan.rows.map(([left, right]) => (
+                    <div key={left} className="flex items-baseline justify-between gap-4 border-t border-white/10 py-3.5">
+                      <span className={`${microLabel} text-white`}>{left}</span>
+                      <span className={`${microLabel} text-right text-white/40`}>{right}</span>
                     </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
+                  ))}
+                </div>
+                <button onClick={() => setShowSignUp(true)}
+                  className={`w-full rounded-full py-3.5 ${microLabel} transition-opacity hover:opacity-85 ${plan.solid ? "bg-white text-black" : "border border-white/25 text-white"}`}>
+                  {plan.cta}
+                </button>
+              </div>
             ))}
           </div>
         </div>
-      </ZoomSection>
+      </section>
 
-      {/* ── How it works: steps zoom in one by one ── */}
-      <ZoomSection className="py-4 px-4 bg-background">
-        <div className="mx-auto max-w-6xl rounded-3xl border border-border bg-card p-10 sm:p-16">
-          <div className="text-center mb-12">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Simple by design</p>
-            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Start in 30 seconds.</h2>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              { num: "01", title: "Upload your clip", desc: "Drop in any video from your phone. A 10-second clip or a full game — Reel handles both." },
-              { num: "02", title: "Get your grade", desc: "Every player graded. Every decision broken down. You see exactly what happened and what to do differently." },
-              { num: "03", title: "Train smarter", desc: "Take your feedback to CoachIQ. Build a plan targeting the exact weaknesses your film revealed." },
-            ].map((s, i) => (
-              <motion.div key={s.num}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.15, duration: 0.6 }}
-                viewport={{ once: true }}>
-                <TiltCard>
-                  <div className="rounded-2xl border border-border bg-background p-7 cursor-default">
-                    <p className="mb-4 text-5xl font-black text-foreground">{s.num}</p>
-                    <p className="mb-2 text-base font-bold text-foreground">{s.title}</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
-                  </div>
-                </TiltCard>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </ZoomSection>
-
-      {/* ── CTA: big zoom in ── */}
-      <ZoomSection className="py-4 px-4 pb-8 bg-background">
-        <div className="relative mx-auto max-w-6xl rounded-3xl overflow-hidden bg-primary text-primary-foreground">
-          <div className="absolute inset-0 opacity-5">
-            <AnimatedGrid />
-          </div>
-          <div className="relative px-10 py-20 text-center">
-            <h2 className="mb-5 text-4xl font-black tracking-tight sm:text-6xl">
-              Your film room.<br />Your coach.<br />Your edge.
-            </h2>
-            <p className="mb-10 text-muted-foreground text-lg max-w-md mx-auto">
-              No experience required. No equipment. No cost. Ever.
-            </p>
-            <motion.button onClick={(e) => { setShowSignUp(true); fireBurst(e); }}
-              whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }}
-              className="rounded-xl bg-background text-foreground px-10 py-4 text-base font-bold shadow-2xl">
-              Create free account →
-            </motion.button>
-            <p className="mt-4 text-sm text-muted-foreground">
-              <button onClick={onEnterApp} className="underline underline-offset-2 hover:text-foreground transition-colors">Try without an account</button>
-            </p>
-          </div>
-        </div>
-      </ZoomSection>
+      {/* ── CTA ── */}
+      <section className="relative flex h-[70vh] items-center justify-center overflow-hidden border-t border-white/10">
+        <span aria-hidden className="text-outline pointer-events-none absolute select-none font-display text-[36vw] font-black leading-none opacity-20">
+          REEL
+        </span>
+        <FadeUp className="relative z-10 text-center">
+          <p className={`mb-8 ${microLabel} text-white/50`}>No card ⊙ no equipment ⊙ free to start</p>
+          <button onClick={() => setShowSignUp(true)} disabled={signingIn}
+            className={`rounded-full bg-white px-10 py-4 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
+            Start free
+          </button>
+          <p className="mt-6">
+            <button onClick={onEnterApp} className={`${microLabel} text-white/40 underline decoration-white/25 underline-offset-8 transition-colors hover:text-white`}>
+              Try without an account
+            </button>
+          </p>
+        </FadeUp>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-8 bg-background">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Logo size="sm" className="opacity-30" />
-            <p className="text-xs text-muted-foreground">Coaching for every athlete.</p>
+      <footer className="border-t border-white/10 bg-black px-6 py-10">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 sm:flex-row sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="font-display text-sm font-black tracking-[0.4em]">REEL</span>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-white/35">The AI film room</p>
           </div>
-          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="/terms" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="/accessibility" className="hover:text-foreground transition-colors">Accessibility</a>
-            <a href="mailto:support@getreel.org" className="hover:text-foreground transition-colors">Contact</a>
+          <nav className={`flex flex-wrap items-center justify-center gap-x-7 gap-y-2 ${microLabel} text-white/40`}>
+            <a href="/privacy" className="transition-colors hover:text-white">Privacy</a>
+            <a href="/terms" className="transition-colors hover:text-white">Terms</a>
+            <a href="/accessibility" className="transition-colors hover:text-white">Accessibility</a>
+            <a href="mailto:support@getreel.org" className="transition-colors hover:text-white">Contact</a>
           </nav>
         </div>
       </footer>
@@ -1477,7 +1324,7 @@ export default function Reel() {
                 Library
                 <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">All your past film sessions — search, filter, and replay any review.</p>
+              <p className="mt-1 text-sm text-muted-foreground">All your past film sessions. Search, filter, and replay any review.</p>
             </div>
             <StatsBar reviews={reviews} />
             {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
