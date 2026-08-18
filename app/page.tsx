@@ -896,19 +896,8 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         </div>
       </section>
 
-      {/* ── Interlude: full-bleed film still ── */}
-      <section className="relative h-[55vh] overflow-hidden sm:h-[65vh]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/grid-basketball.jpg" alt="Driving to the rim"
-          className="h-full w-full object-cover object-[62%_22%] grayscale" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
-        <p className={`absolute bottom-6 left-5 ${microLabel} text-white/60 sm:left-10`}>
-          #01 ⊙ Shot selection ⊙ timing ⊙ reads
-        </p>
-      </section>
-
       {/* ── #02 CoachIQ ── */}
-      <section id="coach" className="scroll-mt-14 px-5 py-24 sm:py-32">
+      <section id="coach" className="scroll-mt-14 border-t border-white/10 px-5 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl">
           <FadeUp className="mb-14 flex items-end justify-between gap-6">
             <div>
@@ -944,19 +933,8 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         </div>
       </section>
 
-      {/* ── Interlude: volleyball ── */}
-      <section className="relative h-[55vh] overflow-hidden sm:h-[65vh]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=1600&q=85&fit=crop&crop=center" alt="Volleyball spike at the net"
-          className="h-full w-full object-cover grayscale" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
-        <p className={`absolute bottom-6 left-5 ${microLabel} text-white/60 sm:left-10`}>
-          #02 ⊙ Built for basketball ⊙ and volleyball
-        </p>
-      </section>
-
       {/* ── Mission ── */}
-      <section className="border-b border-white/10 px-5 py-28 text-center sm:py-36">
+      <section className="border-y border-white/10 px-5 py-28 text-center sm:py-36">
         <FadeUp>
           <h2 className="mx-auto font-display uppercase leading-[0.95]">
             <span className="block text-4xl font-black sm:text-6xl lg:text-7xl">Talent is everywhere.</span>
