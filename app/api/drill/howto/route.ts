@@ -1,7 +1,5 @@
-import OpenAI from "openai";
+import { chatComplete } from "../../../lib/ai/chat";
 import { isRateLimited } from "../../../lib/ratelimit";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // POST /api/drill/howto { drill, sport }
 // Step-by-step instructions for a prescribed solo drill. Text-only and cheap
@@ -16,9 +14,8 @@ export async function POST(req: Request) {
     const sport = typeof body.sport === "string" ? body.sport.slice(0, 40) : "";
     if (!drill.trim()) return Response.json({ error: "Missing drill." }, { status: 400 });
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
-      max_tokens: 400,
+    const text = await chatComplete({
+      maxTokens: 400,
       temperature: 0.3,
       messages: [
         {
@@ -45,7 +42,7 @@ Cue: [the ONE thing to hold in your mind every rep]`,
       ],
     });
 
-    return Response.json({ howto: response.choices[0]?.message?.content ?? "" });
+    return Response.json({ howto: text || "" });
   } catch (error: any) {
     console.error("DRILL HOWTO ERROR:", error);
     return Response.json({ error: error?.message || "Couldn't build instructions." }, { status: 500 });

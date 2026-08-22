@@ -1,9 +1,7 @@
-import OpenAI from "openai";
+import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   if (isRateLimited(req, "coach", 40)) {
@@ -56,17 +54,16 @@ How you coach:
       content: String(m.content ?? "").slice(0, 2000),
     }));
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
+    const text = await chatComplete({
       messages: [
         { role: "system", content: systemPrompt },
         ...formattedMessages,
       ],
-      max_tokens: 350,
+      maxTokens: 350,
       temperature: 0.7,
     });
 
-    return Response.json({ reply: response.choices[0]?.message?.content ?? "No response." });
+    return Response.json({ reply: text || "No response." });
   } catch (error: any) {
     // Don't charge for a reply the user never got.
     if (metered) await refundUsage(metered, "coach");

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { geminiGenerate, useGemini } from "../ai/gemini";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -205,34 +206,47 @@ Practice Focus:
   // redundant OpenAI call per segment.
   const needsPrecheck = !isGameMode || chunkIndex === 0;
   if (needsPrecheck) {
-    const checkResponse = await openai.responses.create({
-      model: "gpt-4.1",
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: `Look at these frames. Is this real sports footage showing actual athletes competing in an organized sport (basketball, soccer, football, hockey, baseball, volleyball, lacrosse, tennis, wrestling, etc.)?
+    const precheckPrompt = `Look at these frames. Is this real sports footage showing actual athletes competing in an organized sport (basketball, soccer, football, hockey, baseball, volleyball, lacrosse, tennis, wrestling, etc.)?
 
 Answer ONLY with one of:
 VALID: [sport name]
 INVALID: [brief reason — e.g. "video game footage", "not a sport", "animated content", "unclear/no athletes visible"]
 
-Do not add any other text.`,
-            },
-            ...imageInputs.slice(0, 3),
-          ],
-        },
-      ],
-      temperature: 0,
-    });
+Do not add any other text.`;
 
-    const checkResult = checkResponse.output_text?.trim() ?? "";
+    let checkResult: string;
+    if (useGemini()) {
+      checkResult = (await geminiGenerate({
+        prompt: precheckPrompt, images: frames.slice(0, 3), thinking: "low", temperature: 0,
+      })).trim();
+    } else {
+      const checkResponse = await openai.responses.create({
+        model: "gpt-4.1",
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: precheckPrompt },
+              ...imageInputs.slice(0, 3),
+            ],
+          },
+        ],
+        temperature: 0,
+      });
+      checkResult = checkResponse.output_text?.trim() ?? "";
+    }
     if (!checkResult.startsWith("VALID")) {
       const reason = checkResult.replace(/^INVALID:\s*/i, "") || "This doesn't look like sports footage.";
       throw new SportsCheckError(`Can't analyze this video — ${reason}. Please upload a real sports clip.`);
     }
+  }
+
+  // Gemini path: thinking "low" for mechanical game-segment extraction,
+  // "high" for the deep single-clip coaching pass (the reasoning-heavy task).
+  if (useGemini()) {
+    return await geminiGenerate({
+      prompt, images: frames, thinking: isGameMode ? "low" : "high",
+    });
   }
 
   const response = await createVisionResponse([

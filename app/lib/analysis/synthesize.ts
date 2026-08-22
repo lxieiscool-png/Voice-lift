@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { geminiGenerate, useGemini } from "../ai/gemini";
 import { buildDecisionTally } from "./parsers";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -36,15 +37,7 @@ GRADE FROM THIS EVIDENCE: base Overall Decision Grade on these counts, not on im
     .map((s) => `--- Segment ${s.index + 1} (${s.start}–${s.end}) ---\n${s.text}`)
     .join("\n\n");
 
-  const response = await openai.responses.create({
-    model: "gpt-4.1",
-    input: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: `You are an elite sports coach delivering a full post-game film review to your athlete. You've just watched their entire game together. Speak directly to them — use "you" and "your." Reference actual events you observed. Never be generic.
+  const promptText = `You are an elite sports coach delivering a full post-game film review to your athlete. You've just watched their entire game together. Speak directly to them — use "you" and "your." Reference actual events you observed. Never be generic.
 
 TONE — BE DIRECT, DO NOT SUGARCOAT: say the real thing plainly, the way a good coach does in the film room. No praise sandwiches, no softening qualifiers ("just", "maybe", "a little"), no cheerleading, no motivational filler. If they played badly, say so and say why. Respectful and never insulting — but honest first. Do not invent positives that the evidence does not support.
 
@@ -106,11 +99,15 @@ Score: [X–Y only if a scoreboard was clearly readable in the frames — otherw
 Winner: [team name, or "Unclear"]
 - [Stat name | Team A number | Team B number — ONLY stats you directly observed across the segments, e.g. basketball: "Made baskets | 6 | 4", "Turnovers | 3 | 5", "Fouls | 2 | 4"; volleyball: "Kills | 8 | 5", "Aces | 2 | 1", "Service errors | 1 | 3". These are observed counts from the film, not full box-score totals. NEVER invent percentages or numbers you did not see. Skip any stat you can't count. If you can't compare the teams at all, write "Not enough visible data." on one line instead.]
 Why: [2 sentences on what decided the game between these teams, based on what you saw.]
-`,
-          },
-        ],
-      },
-    ],
+`;
+
+  if (useGemini()) {
+    return await geminiGenerate({ prompt: promptText, thinking: "medium", temperature: 0.3 });
+  }
+
+  const response = await openai.responses.create({
+    model: "gpt-4.1",
+    input: [{ role: "user", content: [{ type: "input_text", text: promptText }] }],
     temperature: 0.3,
   });
 

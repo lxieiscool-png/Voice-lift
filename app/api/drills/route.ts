@@ -1,7 +1,5 @@
-import OpenAI from "openai";
+import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // POST /api/drills { sport, role, focus }
 // Generates short drills to fix a specific player weakness, split into solo and
@@ -14,9 +12,8 @@ export async function POST(req: Request) {
     const { sport, role, focus } = await req.json();
     if (!focus?.trim()) return Response.json({ error: "Missing focus." }, { status: 400 });
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
-      max_tokens: 350,
+    const text = await chatComplete({
+      maxTokens: 350,
       temperature: 0.4,
       messages: [
         {
@@ -44,7 +41,7 @@ With Teammates:
       ],
     });
 
-    return Response.json({ drills: response.choices[0]?.message?.content ?? "" });
+    return Response.json({ drills: text || "" });
   } catch (error: any) {
     console.error("DRILLS ERROR:", error);
     return Response.json({ error: error?.message || "Couldn't build drills." }, { status: 500 });

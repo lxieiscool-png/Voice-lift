@@ -1,7 +1,5 @@
-import OpenAI from "openai";
+import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Reel's help knowledge base — kept in sync with the actual app so the support
 // bot never invents features. Update this when features change.
@@ -34,14 +32,13 @@ export async function POST(req: Request) {
       content: String(m.content ?? "").slice(0, 1000),
     }));
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
-      max_tokens: 250,
+    const text = await chatComplete({
+      maxTokens: 250,
       temperature: 0.4,
       messages: [{ role: "system", content: KNOWLEDGE }, ...formatted],
     });
 
-    return Response.json({ reply: response.choices[0]?.message?.content ?? "" });
+    return Response.json({ reply: text || "" });
   } catch (error: any) {
     console.error("SUPPORT ERROR:", error);
     return Response.json({ error: error?.message || "Support is unavailable right now." }, { status: 500 });

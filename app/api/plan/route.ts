@@ -1,9 +1,7 @@
-import OpenAI from "openai";
+import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
   if (isRateLimited(req, "plan", 15)) {
@@ -35,8 +33,7 @@ export async function POST(req: Request) {
     const level = typeof body.level === "string" ? body.level.slice(0, 40) : "";
     const weaknesses = typeof body.weaknesses === "string" ? body.weaknesses.slice(0, 1000) : "";
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4.1",
+    const text = await chatComplete({
       messages: [
         {
           role: "system",
@@ -92,11 +89,11 @@ Drill 3:
 Keep every line short and punchy — write like a coach handing an athlete a workout card, not an essay. Each day builds on the last. Every drill must be sport-specific, solo, and target their listed weaknesses.`,
         },
       ],
-      max_tokens: 4000,
+      maxTokens: 4000,
       temperature: 0.6,
     });
 
-    return Response.json({ plan: response.choices[0]?.message?.content ?? "" });
+    return Response.json({ plan: text || "" });
   } catch (error: any) {
     // Don't charge for a plan the user never got.
     if (metered) await refundUsage(metered, "plan");

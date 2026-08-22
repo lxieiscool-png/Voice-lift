@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { geminiGenerate, useGemini } from "../ai/gemini";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -23,18 +24,24 @@ export async function analyzeDrill({ drill, frames, sport }: AnalyzeDrillInput):
 
   // Quick sanity check that the clip actually shows a person doing a drill, so
   // we don't hand back confident "feedback" on an empty gym or a random video.
-  const check = await openai.responses.create({
-    model: "gpt-4.1",
-    input: [{
-      role: "user",
-      content: [
-        { type: "input_text", text: `Do these frames show a single person actively doing a sports drill or working on a skill (shooting, dribbling, footwork, passing against a wall, etc.)? Answer ONLY "VALID" or "INVALID: [brief reason]".` },
-        ...imageInputs.slice(0, 3),
-      ],
-    }],
-    temperature: 0,
-  });
-  const checkResult = check.output_text?.trim() ?? "";
+  const checkPrompt = `Do these frames show a single person actively doing a sports drill or working on a skill (shooting, dribbling, footwork, passing against a wall, etc.)? Answer ONLY "VALID" or "INVALID: [brief reason]".`;
+  let checkResult: string;
+  if (useGemini()) {
+    checkResult = (await geminiGenerate({ prompt: checkPrompt, images: frames.slice(0, 3), thinking: "low", temperature: 0 })).trim();
+  } else {
+    const check = await openai.responses.create({
+      model: "gpt-4.1",
+      input: [{
+        role: "user",
+        content: [
+          { type: "input_text", text: checkPrompt },
+          ...imageInputs.slice(0, 3),
+        ],
+      }],
+      temperature: 0,
+    });
+    checkResult = check.output_text?.trim() ?? "";
+  }
   if (!checkResult.startsWith("VALID")) {
     const reason = checkResult.replace(/^INVALID:\s*/i, "") || "This doesn't look like someone doing a drill.";
     throw new DrillCheckError(`Can't check this drill — ${reason}. Record yourself doing the drill and try again.`);
@@ -59,6 +66,10 @@ Verdict: [Yes / Mostly / No / Unclear — are they doing the drill correctly?]
 Did Well: [one specific thing they did right]
 Main Fix: [the single most important correction, specific and visible]
 Focus Next: [one concrete cue to hold in their mind on the next rep]`;
+
+  if (useGemini()) {
+    return await geminiGenerate({ prompt, images: frames, thinking: "low", temperature: 0.2 });
+  }
 
   const response = await openai.responses.create({
     model: "gpt-4.1",
