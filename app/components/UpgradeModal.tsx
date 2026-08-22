@@ -41,7 +41,7 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
           {[
             { icon: Clapperboard, text: "8 full game analyses + 100 clips a month"   },
             { icon: BarChart3,    text: "Full player breakdowns and grade history"  },
-            { icon: Dumbbell,     text: "Personalized practice plans from CoachIQ" },
+            { icon: Dumbbell,     text: "Unlimited coach chat, practice plans & teams" },
             { icon: Share2,       text: "Share grade cards and Stories"             },
             { icon: TrendingUp,   text: "Grade trend tracking across all sessions"  },
           ].map(f => (

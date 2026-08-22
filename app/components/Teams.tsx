@@ -44,8 +44,9 @@ function computeSeasonRecord(team: Team, reviews: Review[]) {
   return { wins, losses, unclear, total: games.length };
 }
 
-export default function Teams({ userId, sport, reviews, onReviewsChange }: {
+export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, onShowUpgrade }: {
   userId?: string; sport?: string; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
+  isPro?: boolean; onShowUpgrade?: () => void;
 }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,13 @@ export default function Teams({ userId, sport, reviews, onReviewsChange }: {
 
   async function createTeam(input: { name: string; city: string; state: string; season: string; gender: string; ageGroup: string; level: string }) {
     if (!userId) return;
+    // Free plan: one team. The database enforces this too (restrictive RLS
+    // policy) — this check just gives the upgrade popup instead of a raw error.
+    if (!isPro && teams.length >= 1) {
+      setShowCreate(false);
+      onShowUpgrade?.();
+      return;
+    }
     const supabase = createClient();
     const { data, error } = await supabase.from("teams").insert({
       name: input.name.trim(), city: input.city.trim() || null, state: input.state.trim() || null,

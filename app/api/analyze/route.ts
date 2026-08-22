@@ -2,6 +2,7 @@ import { analyzeChunk, SportsCheckError } from "../../lib/analysis/analyzeChunk"
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { isRateLimited } from "../../lib/ratelimit";
 import { getSessionUserId } from "../../lib/supabase/server";
+import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
 
 export async function POST(req: Request) {
   // Blunt anti-abuse: a normal analysis fans out many chunk calls, so this is
@@ -44,6 +45,20 @@ export async function POST(req: Request) {
         );
       }
       metered = userId;
+    }
+
+    // Guests get a durable per-IP monthly allowance so the signed-out path
+    // can't be farmed for unlimited free analyses. Games count once, on the
+    // first segment of the batch.
+    if (!userId) {
+      const guestKind = mode === "clip" ? "clip" : "game";
+      const countsNow = mode === "clip" || (chunkIndex ?? 0) === 0;
+      if (countsNow && !(await checkAndIncrementGuestUsage(req, guestKind))) {
+        return Response.json(
+          { error: "guest_limit_reached", message: "You've used this month's free guest analyses. Create a free account to keep going." },
+          { status: 403 },
+        );
+      }
     }
 
     const feedback = await analyzeChunk({ sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient });

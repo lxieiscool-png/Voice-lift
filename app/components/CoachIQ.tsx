@@ -175,6 +175,12 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
         body: JSON.stringify({ messages: newMessages, profile, recentPatterns }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 403 && data.error === "limit_reached") {
+        setMessages(prev => [...prev, { role: "coach", content: "You've used this month's free coach messages. Upgrade to Reel Pro for unlimited coaching." }]);
+        onShowUpgrade?.();
+        setChatLoading(false);
+        return;
+      }
       if (data.error) throw new Error(data.error);
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       setMessages(prev => [...prev, { role: "coach", content: data.reply ?? "No response." }]);
@@ -204,6 +210,12 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
         }),
       });
       const data = await res.json();
+      if (res.status === 403 && data.error === "limit_reached") {
+        setPlanError("You've used this month's free plan. Upgrade to Reel Pro for unlimited practice plans.");
+        onShowUpgrade?.();
+        setPlanLoading(false);
+        return;
+      }
       if (data.error) throw new Error(data.error);
       if (!data.plan) throw new Error("No plan returned.");
       const parsed = parsePlan(data.plan);

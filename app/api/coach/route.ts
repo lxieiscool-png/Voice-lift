@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 import { isRateLimited } from "../../lib/ratelimit";
+import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
+import { getSessionUserId } from "../../lib/supabase/server";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -7,10 +9,24 @@ export async function POST(req: Request) {
   if (isRateLimited(req, "coach", 40)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
+  let metered: string | null = null;
   try {
     const { messages, profile, recentPatterns } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return Response.json({ error: "Missing messages." }, { status: 400 });
+    }
+
+    // Free plan gets a monthly chat allowance; Pro is effectively unlimited.
+    const userId = await getSessionUserId();
+    if (userId) {
+      const usage = await checkAndIncrementUsage(userId, "coach");
+      if (!usage.ok) {
+        return Response.json(
+          { error: "limit_reached", limit: usage.limit, count: usage.count, isPro: usage.isPro },
+          { status: 403 },
+        );
+      }
+      metered = userId;
     }
 
     const systemPrompt = `You are CoachIQ — a world-class personal sports coach inside the Reel platform. You have coached at every level from youth to professional. You are direct, specific, and deeply knowledgeable. You never give generic advice.
@@ -52,6 +68,8 @@ How you coach:
 
     return Response.json({ reply: response.choices[0]?.message?.content ?? "No response." });
   } catch (error: any) {
+    // Don't charge for a reply the user never got.
+    if (metered) await refundUsage(metered, "coach");
     console.error("COACH ERROR:", error);
     return Response.json({ error: error?.message || "Coach failed to respond." }, { status: 500 });
   }

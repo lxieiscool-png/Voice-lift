@@ -981,8 +981,8 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           </FadeUp>
           <div className="grid gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-2">
             {[
-              { name: "Free", price: "$0", note: "No card required", rows: [["Full games", "1 / month"], ["Clips", "2 / month"], ["CoachIQ", "chat · plans · drill check"]], cta: "Start free", solid: false },
-              { name: "Reel Pro", price: "$8", note: "per month", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Everything in Free", "included"]], cta: "Go Pro", solid: true },
+              { name: "Free", price: "$0", note: "No card required", rows: [["Full games", "1 / month"], ["Clips", "2 / month"], ["Coach chat", "15 msgs / month"], ["Practice plans", "1 / month"], ["Teams", "1 team"]], cta: "Start free", solid: false },
+              { name: "Reel Pro", price: "$8", note: "per month", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Coach chat", "unlimited"], ["Practice plans", "unlimited"], ["Teams", "unlimited"]], cta: "Go Pro", solid: true },
             ].map((plan) => (
               <div key={plan.name} className="bg-black p-8 sm:p-12">
                 <div className="flex items-baseline justify-between">
@@ -1349,7 +1349,7 @@ export default function Reel() {
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">Track a season, roster, and record across every game you upload.</p>
             </div>
-            <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} />
+            <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />
           </>
         ) : (
           <>

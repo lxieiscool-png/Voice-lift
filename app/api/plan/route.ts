@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 import { isRateLimited } from "../../lib/ratelimit";
+import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
+import { getSessionUserId } from "../../lib/supabase/server";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -7,7 +9,21 @@ export async function POST(req: Request) {
   if (isRateLimited(req, "plan", 15)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
+  let metered: string | null = null;
   try {
+    // Free plan gets one generated practice plan a month; Pro is unlimited.
+    const userId = await getSessionUserId();
+    if (userId) {
+      const usage = await checkAndIncrementUsage(userId, "plan");
+      if (!usage.ok) {
+        return Response.json(
+          { error: "limit_reached", limit: usage.limit, count: usage.count, isPro: usage.isPro },
+          { status: 403 },
+        );
+      }
+      metered = userId;
+    }
+
     const body = await req.json();
     const { profile } = body;
     // Clamp everything that reaches the prompt: daysPerWeek drives how many
@@ -82,6 +98,8 @@ Keep every line short and punchy — write like a coach handing an athlete a wor
 
     return Response.json({ plan: response.choices[0]?.message?.content ?? "" });
   } catch (error: any) {
+    // Don't charge for a plan the user never got.
+    if (metered) await refundUsage(metered, "plan");
     console.error("PLAN ERROR:", error);
     return Response.json({ error: error?.message || "Plan generation failed." }, { status: 500 });
   }

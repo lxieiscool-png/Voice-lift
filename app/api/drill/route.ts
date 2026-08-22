@@ -2,6 +2,7 @@ import { analyzeDrill, DrillCheckError } from "../../lib/analysis/analyzeDrill";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { isRateLimited } from "../../lib/ratelimit";
 import { getSessionUserId } from "../../lib/supabase/server";
+import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
 
 // POST /api/drill { drill, frames, sport }
 // Checks a player's recording of a prescribed solo drill. Metered as a clip
@@ -23,6 +24,13 @@ export async function POST(req: Request) {
     }
 
     const userId = await getSessionUserId();
+    // Guest drill checks draw from the same per-IP guest clip allowance.
+    if (!userId && !(await checkAndIncrementGuestUsage(req, "clip"))) {
+      return Response.json(
+        { error: "guest_limit_reached", message: "You've used this month's free guest analyses. Create a free account to keep going." },
+        { status: 403 },
+      );
+    }
     if (userId) {
       const usage = await checkAndIncrementUsage(userId, "clip");
       if (!usage.ok) {
