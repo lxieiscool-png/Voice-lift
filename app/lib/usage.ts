@@ -25,9 +25,22 @@ const SELECT_COLS = `is_pro, month_key, ${ALL_COLS.join(", ")}`;
 
 export type UsageStatus = { ok: boolean; count: number; limit: number; isPro: boolean; kind: UsageKind };
 
+// Owner allowlist: comma-separated Supabase user IDs in OWNER_USER_IDS get
+// unlimited everything and read as Pro across the app (no metering, no upgrade
+// prompts). Kept in env, not code, so no email or ID lives in the repo and
+// adding an owner is a dashboard change, not a deploy.
+function isOwner(userId: string): boolean {
+  return (process.env.OWNER_USER_IDS ?? "")
+    .split(",").map(s => s.trim()).filter(Boolean).includes(userId);
+}
+
+const OWNER_STATUS = (kind: UsageKind): UsageStatus =>
+  ({ ok: true, count: 0, limit: Infinity, isPro: true, kind });
+
 // Reads the user's current count for this kind, resetting to 0 if we've rolled
 // into a new month since it was last written.
 export async function getUsage(userId: string, kind: UsageKind): Promise<UsageStatus> {
+  if (isOwner(userId)) return OWNER_STATUS(kind);
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("profiles").select(SELECT_COLS).eq("id", userId).single();
@@ -43,6 +56,8 @@ export async function getUsage(userId: string, kind: UsageKind): Promise<UsageSt
 // metered work is about to start. Rolling into a new month resets every
 // counter, so the whole row stays coherent no matter which kind rolls first.
 export async function checkAndIncrementUsage(userId: string, kind: UsageKind): Promise<UsageStatus> {
+  // Owners never consume credits — return allowed without touching the counter.
+  if (isOwner(userId)) return OWNER_STATUS(kind);
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("profiles").select(SELECT_COLS).eq("id", userId).single();
