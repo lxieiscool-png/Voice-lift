@@ -406,6 +406,32 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                     <p className="text-xs text-muted-foreground mb-0.5">Signed in as</p>
                     <p className="text-sm font-semibold text-foreground truncate">{user.email}</p>
                   </div>
+                  <div className="rounded-lg border border-border p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Plan</p>
+                      <p className="text-sm font-semibold text-foreground">{isPro ? "Reel Pro" : "Free"}</p>
+                    </div>
+                    {isPro ? (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/stripe/portal", { method: "POST" });
+                            const data = await res.json();
+                            if (data.url) window.location.href = data.url;
+                          } catch { /* portal unavailable; support email remains the fallback */ }
+                        }}
+                        className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:border-ring transition-colors">
+                        Manage subscription
+                      </button>
+                    ) : (
+                      onUpgrade && (
+                        <button onClick={onUpgrade}
+                          className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                          Upgrade
+                        </button>
+                      )
+                    )}
+                  </div>
                   <button onClick={onSignOut}
                     className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 transition-colors">
                     Sign Out

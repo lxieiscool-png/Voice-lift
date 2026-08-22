@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("Stripe not configured");
-  return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-05-27.dahlia" });
+  return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-07-29.dahlia" });
 }
 
 const supabase = createClient(

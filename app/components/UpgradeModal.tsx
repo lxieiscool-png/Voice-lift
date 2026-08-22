@@ -12,11 +12,8 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
     if (!user) { setError("Sign in first to upgrade."); return; }
     setLoading(true); setError("");
     try {
-      const res  = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, email: user.email }),
-      });
+      // Identity comes from the session cookie server-side; no body needed.
+      const res  = await fetch("/api/stripe/checkout", { method: "POST" });
       const data = await res.json();
       if (data.url) { window.location.href = data.url; }
       else { setError("Something went wrong. Try again."); setLoading(false); }
