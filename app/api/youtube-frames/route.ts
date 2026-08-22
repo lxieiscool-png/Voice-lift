@@ -261,7 +261,7 @@ export async function POST(req: Request) {
     }
 
     const durationSeconds = knownDuration ?? Math.round((frameCount * interval) / 1000);
-    const mode: "clip" | "game" = durationSeconds > 60 ? "game" : "clip";
+    const mode: "clip" | "game" = durationSeconds > 180 ? "game" : "clip";
 
     return NextResponse.json({
       sheets: validSheets,

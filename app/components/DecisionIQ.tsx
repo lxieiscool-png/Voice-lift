@@ -92,13 +92,17 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
     video.src = url; video.muted = true; video.playsInline = true;
     video.onloadedmetadata = async () => {
       const duration = video.duration;
-      const mode: "clip" | "game" = duration > 60 ? "game" : "clip";
+      // Clip vs game cutoff: under 3 minutes is a clip (one deep pass, per-
+      // player cards, burns a clip credit); longer is a game (segmented
+      // background analysis, burns a game credit).
+      const mode: "clip" | "game" = duration > 180 ? "game" : "clip";
       let timestamps: number[];
       if (mode === "clip") {
-        // Sample densely so fast plays actually get captured — a decision happens
-        // in ~2s, so 5s gaps miss the read entirely. Aim ~1 frame / 1.2s, cap 24.
-        const cap = Math.min(duration, 30);
-        const MAX_FRAMES = 24;
+        // Short clips sample densely so fast plays actually get captured — a
+        // decision happens in ~2s. Longer clips spread the same budget evenly
+        // across the whole video (the /api/analyze cap is 32 frames/call).
+        const cap = Math.min(duration, 180);
+        const MAX_FRAMES = duration <= 30 ? 24 : 30;
         const step = Math.max(cap / MAX_FRAMES, 0.6);
         timestamps = [];
         for (let t = 0.3; t < cap; t += step) timestamps.push(Number(t.toFixed(2)));
