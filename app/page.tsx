@@ -1110,15 +1110,18 @@ export default function Reel() {
           // Landing "Go Pro" sets this flag before sign-up: carry the intent
           // through the OAuth round-trip straight into the upgrade modal.
           const wantsUpgrade = localStorage.getItem("reel-upgrade-intent");
-          if (wantsUpgrade) {
-            localStorage.removeItem("reel-upgrade-intent");
-            setShowUpgrade(true);
-          } else if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
-          // Load pro status
+          if (wantsUpgrade) localStorage.removeItem("reel-upgrade-intent");
+          else if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
+          // Load pro status first — someone who is already Pro (or an owner)
+          // should never see the upgrade pitch, even if they clicked Go Pro.
           fetch(`/api/usage`)
             .then(r => r.json())
-            .then(d => setIsPro(d.is_pro ?? false))
-            .catch(() => {});
+            .then(d => {
+              const pro = d.is_pro ?? false;
+              setIsPro(pro);
+              if (wantsUpgrade && !pro) setShowUpgrade(true);
+            })
+            .catch(() => { if (wantsUpgrade) setShowUpgrade(true); });
         }
       }
       if (event === "SIGNED_OUT") {
