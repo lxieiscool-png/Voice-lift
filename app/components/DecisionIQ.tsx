@@ -92,16 +92,16 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
     video.src = url; video.muted = true; video.playsInline = true;
     video.onloadedmetadata = async () => {
       const duration = video.duration;
-      // Clip vs game cutoff: under 3 minutes is a clip (one deep pass, per-
+      // Clip vs game cutoff: under 2 minutes is a clip (one deep pass, per-
       // player cards, burns a clip credit); longer is a game (segmented
       // background analysis, burns a game credit).
-      const mode: "clip" | "game" = duration > 180 ? "game" : "clip";
+      const mode: "clip" | "game" = duration > 120 ? "game" : "clip";
       let timestamps: number[];
       if (mode === "clip") {
         // Short clips sample densely so fast plays actually get captured — a
         // decision happens in ~2s. Longer clips spread the same budget evenly
         // across the whole video (the /api/analyze cap is 32 frames/call).
-        const cap = Math.min(duration, 180);
+        const cap = Math.min(duration, 120);
         const MAX_FRAMES = duration <= 30 ? 24 : 30;
         const step = Math.max(cap / MAX_FRAMES, 0.6);
         timestamps = [];
