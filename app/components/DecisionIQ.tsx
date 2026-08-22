@@ -271,7 +271,7 @@ async function shareGradeCard(opts: {
     ctx.fillText("REEL", W/2, H - 80);
     ctx.font = "26px system-ui, -apple-system, sans-serif";
     ctx.fillStyle = "#3f3f46";
-    ctx.fillText("getreelapp.vercel.app", W/2, H - 40);
+    ctx.fillText("www.getreel.org", W/2, H - 40);
 
   } else {
     // ── Landscape layout ──
@@ -316,7 +316,7 @@ async function shareGradeCard(opts: {
     ctx.fillText("REEL", W - pad, H - Math.round(28 * F));
     ctx.font = `${Math.round(13 * F)}px system-ui, -apple-system, sans-serif`;
     ctx.fillStyle = "#3f3f46";
-    ctx.fillText("getreelapp.vercel.app", W - pad, H - Math.round(8 * F));
+    ctx.fillText("www.getreel.org", W - pad, H - Math.round(8 * F));
   }
 
   // Border

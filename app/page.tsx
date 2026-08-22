@@ -998,7 +998,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => setShowSignUp(true)}
+                <button onClick={() => { if (plan.solid) localStorage.setItem("reel-upgrade-intent", "1"); setShowSignUp(true); }}
                   className={`w-full rounded-full py-3.5 ${microLabel} transition-opacity hover:opacity-85 ${plan.solid ? "bg-white text-black" : "border border-white/25 text-white"}`}>
                   {plan.cta}
                 </button>
@@ -1107,7 +1107,13 @@ export default function Reel() {
         if (u) {
           setShowApp(true);
           loadUserData(u.id);
-          if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
+          // Landing "Go Pro" sets this flag before sign-up: carry the intent
+          // through the OAuth round-trip straight into the upgrade modal.
+          const wantsUpgrade = localStorage.getItem("reel-upgrade-intent");
+          if (wantsUpgrade) {
+            localStorage.removeItem("reel-upgrade-intent");
+            setShowUpgrade(true);
+          } else if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
           // Load pro status
           fetch(`/api/usage`)
             .then(r => r.json())

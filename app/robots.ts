@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://getreelapp.vercel.app/sitemap.xml",
+    sitemap: "https://www.getreel.org/sitemap.xml",
   };
 }
