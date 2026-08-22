@@ -1370,7 +1370,7 @@ export default function Reel() {
             <ProfileCard profile={profile} onSave={saveProfile} reviews={reviews} />
 
             {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} userId={user?.id} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />}
-            {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} userId={user?.id} />}
+            {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} userId={user?.id} onShowUpgrade={() => setShowUpgrade(true)} />}
           </>
         )}
       </div>

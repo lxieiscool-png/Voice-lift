@@ -111,7 +111,7 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
 
 // ─── CoachIQ Main ─────────────────────────────────────────────────────────────
 
-export default function CoachIQ({ profile, reviews, userId }: { profile: Profile; reviews: Review[]; userId?: string }) {
+export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { profile: Profile; reviews: Review[]; userId?: string; onShowUpgrade?: () => void }) {
   const [tab, setTab] = useState<"chat" | "plan" | "drill">("chat");
   const [drillPrefill, setDrillPrefill] = useState("");
 
@@ -422,7 +422,7 @@ export default function CoachIQ({ profile, reviews, userId }: { profile: Profile
       )}
 
       {/* Drill Check tab */}
-      {tab === "drill" && <DrillCheck key={drillPrefill || "blank"} profile={profile} userId={userId} initialDrill={drillPrefill} />}
+      {tab === "drill" && <DrillCheck key={drillPrefill || "blank"} profile={profile} userId={userId} initialDrill={drillPrefill} onShowUpgrade={onShowUpgrade} />}
     </div>
   );
 }

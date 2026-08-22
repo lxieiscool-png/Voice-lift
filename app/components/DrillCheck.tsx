@@ -56,8 +56,8 @@ const VERDICT_UI: Record<DrillFeedback["verdict"], { label: string; cls: string 
   unclear: { label: "Couldn't tell",  cls: "text-muted-foreground border-border bg-muted" },
 };
 
-export default function DrillCheck({ profile, userId, initialDrill = "" }: {
-  profile?: Profile; userId?: string; initialDrill?: string;
+export default function DrillCheck({ profile, userId, initialDrill = "", onShowUpgrade }: {
+  profile?: Profile; userId?: string; initialDrill?: string; onShowUpgrade?: () => void;
 }) {
   const [drill, setDrill] = useState(initialDrill);
   const [file, setFile] = useState<File | null>(null);
@@ -138,7 +138,11 @@ export default function DrillCheck({ profile, userId, initialDrill = "" }: {
         body: JSON.stringify({ drill: drill.trim(), frames, sport: profile?.sport }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 403 && data.error === "limit_reached") { setError("You've hit your free limit — upgrade to keep checking drills."); return; }
+      if (res.status === 403 && data.error === "limit_reached") {
+        if (onShowUpgrade) onShowUpgrade();
+        else setError("You've hit your free limit. Upgrade to keep checking drills.");
+        return;
+      }
       if (data.error) { setError(data.error); return; }
       if (!res.ok) { setError(`Server error ${res.status}`); return; }
       const fb = parseDrillFeedback(data.feedback ?? "", drill.trim());
