@@ -40,7 +40,6 @@ const OWNER_STATUS = (kind: UsageKind): UsageStatus =>
 // Reads the user's current count for this kind, resetting to 0 if we've rolled
 // into a new month since it was last written.
 export async function getUsage(userId: string, kind: UsageKind): Promise<UsageStatus> {
-  return OWNER_STATUS(kind); // DEMO KILL SWITCH — revert after filming
   if (isOwner(userId)) return OWNER_STATUS(kind);
   const supabase = createAdminClient();
   const { data } = await supabase
@@ -57,7 +56,6 @@ export async function getUsage(userId: string, kind: UsageKind): Promise<UsageSt
 // metered work is about to start. Rolling into a new month resets every
 // counter, so the whole row stays coherent no matter which kind rolls first.
 export async function checkAndIncrementUsage(userId: string, kind: UsageKind): Promise<UsageStatus> {
-  return OWNER_STATUS(kind); // DEMO KILL SWITCH — revert after filming
   // Owners never consume credits — return allowed without touching the counter.
   if (isOwner(userId)) return OWNER_STATUS(kind);
   const supabase = createAdminClient();
@@ -82,7 +80,7 @@ export async function checkAndIncrementUsage(userId: string, kind: UsageKind): P
     // Most likely the coach/plan columns haven't been migrated yet — retry
     // with only the legacy columns so game/clip gating never breaks, and
     // fail open for the new kinds rather than erroring the request.
-    console.error("Usage update failed (missing columns?):", error?.message);
+    console.error("Usage update failed (missing columns?):", error.message);
     await supabase.from("profiles").update({
       month_key: mk,
       monthly_games: counts.monthly_games,

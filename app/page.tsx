@@ -1254,8 +1254,7 @@ export default function Reel() {
         <OnboardingOverlay name={profile.name} onDone={dismissOnboarding} />
       )}
 
-      {/* DEMO KILL SWITCH: popup disabled for filming — revert after */}
-      {false && showUpgrade && (
+      {showUpgrade && (
         <UpgradeModal user={user} onClose={() => setShowUpgrade(false)} />
       )}
 
