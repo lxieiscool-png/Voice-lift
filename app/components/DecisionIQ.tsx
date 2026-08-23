@@ -134,7 +134,12 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
           timestamps = timestamps.filter((_, i) => i % step === 0).slice(0, GAME_MAX_FRAMES);
         }
       }
-      canvas.width = 1280; canvas.height = 720;
+      // Clip mode ships every frame in ONE request and Vercel rejects bodies
+      // over ~4.5MB, so clip frames trade a little resolution for headroom.
+      // Game frames upload one per request, so they keep full 720p.
+      if (mode === "clip") { canvas.width = 1152; canvas.height = 648; }
+      else { canvas.width = 1280; canvas.height = 720; }
+      const jpegQuality = mode === "clip" ? 0.7 : 0.85;
 
       // Cheap motion signature (tiny grayscale thumbnail) used only on the deep
       // path to skip frames that barely changed from the last kept one.
@@ -170,7 +175,7 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
               lastSig = sig; lastKeptTime = time;
             }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            frames.push({ dataUrl: canvas.toDataURL("image/jpeg", 0.85), timestamp: time });
+            frames.push({ dataUrl: canvas.toDataURL("image/jpeg", jpegQuality), timestamp: time });
             done();
           };
         });
@@ -181,6 +186,18 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
       if (out.length > GAME_MAX_FRAMES) {
         const step = out.length / GAME_MAX_FRAMES;
         out = Array.from({ length: GAME_MAX_FRAMES }, (_, i) => frames[Math.floor(i * step)]);
+      }
+      // Clip payload budget: everything goes in one request and Vercel hard-
+      // rejects bodies over ~4.5MB with a generic error the user can't act on.
+      // Detail-heavy footage compresses worse, so if the total is still over
+      // budget, thin frames evenly — a sparser clip analysis beats a failure.
+      if (mode === "clip") {
+        const BUDGET = 3_800_000;
+        let total = out.reduce((s, f) => s + f.dataUrl.length, 0);
+        while (total > BUDGET && out.length > 8) {
+          out = out.filter((_, i) => i % 2 === 0);
+          total = out.reduce((s, f) => s + f.dataUrl.length, 0);
+        }
       }
       resolve({ frames: out, mode });
     };
