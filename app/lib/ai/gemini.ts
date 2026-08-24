@@ -1,11 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Provider switch for every AI call in the app. Flipping AI_PROVIDER=gemini
-// in the environment routes analysis through Gemini 3.7 Flash; anything else
-// (or a missing GEMINI_API_KEY) stays on OpenAI. One env var, instant
-// rollback, no code changes.
-export function useGemini(): boolean {
-  return process.env.AI_PROVIDER === "gemini" && !!process.env.GEMINI_API_KEY;
+// Provider switch for every AI call in the app, per feature class:
+//   AI_PROVIDER_GAMES — game segments, prechecks, synthesis (bulk vision)
+//   AI_PROVIDER_CLIPS — the deep clip coaching pass and drill checks
+//   AI_PROVIDER_CHAT  — coach chat, plans, drills, how-tos, support
+// Each falls back to the global AI_PROVIDER, and everything stays on OpenAI
+// when unset or when GEMINI_API_KEY is missing. Rollback is one env var.
+export type AiFeature = "games" | "clips" | "chat";
+
+export function useGemini(feature: AiFeature = "games"): boolean {
+  if (!process.env.GEMINI_API_KEY) return false;
+  const specific = process.env[`AI_PROVIDER_${feature.toUpperCase()}`];
+  if (specific) return specific === "gemini";
+  return process.env.AI_PROVIDER === "gemini";
 }
 
 let client: GoogleGenAI | null = null;

@@ -78,7 +78,7 @@ Carefully study every frame before responding. Only track athletes actively comp
 BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
 
 DIRECTION: Describe direction with court/field-relative terms (baseline, middle, paint, wing, strong-side, weak-side, near side, far side) rather than "left/right" — video can be mirrored and left/right is unreliable. Only say "left" or "right" when genuinely certain, anchored to the viewer's perspective.
-${jersey || teamColor ? `\nTHE UPLOADER: this athlete is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Whenever they are visible in this segment, always include their line in Player Tracking, log their stat events, and let Decision Quality speak directly to THEM about what they specifically did.\n` : ""}
+${jersey || teamColor ? `\nTHE UPLOADER: this athlete is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Whenever they are visible in this segment, always include their line in Player Tracking, log their stat events, and let Decision Quality speak directly to THEM about what they specifically did. If no player matching this description is visible in this segment, simply omit them — never relabel another player as the uploader.\n` : ""}
 Return ONLY this format — no extra commentary:
 
 Period/Quarter: [e.g. "2nd Quarter", "Set 2", or "unclear"]
@@ -120,7 +120,7 @@ TONE — BE DIRECT, DO NOT SUGARCOAT: name the mistake plainly. No praise sandwi
 
 DIRECTION: Describe direction with court/field-relative terms (baseline, middle, paint, wing, strong-side, weak-side, near side, far side) rather than "left/right" — video can be mirrored and left/right is unreliable, while these are both more accurate and more useful to a coach. Only say "left" or "right" when you are genuinely certain, and anchor it to the viewer's perspective.
 
-${jersey || teamColor ? `IMPORTANT: The athlete who uploaded this footage is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing jersey #${jersey}` : ""}. You MUST include this specific player in your analysis — they are the primary subject. Make sure their player block appears first in your output.` : ""}
+${jersey || teamColor ? `IMPORTANT: The athlete who uploaded this footage is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing jersey #${jersey}` : ""}. IF a player genuinely matching this description is visible in the frames, they are the primary subject: include them and put their player block first. IF NO player matching this description is actually visible, DO NOT invent one and DO NOT relabel a different player as them — instead start your output with a single line "UNCLEAR: [why the uploader could not be identified]" and then grade only the players you can actually see. Fabricating the uploader is the worst possible failure.` : ""}
 
 Sport: ${sport || "auto-detect from frames"}${teamContext}
 
@@ -215,7 +215,7 @@ INVALID: [brief reason — e.g. "video game footage", "not a sport", "animated c
 Do not add any other text.`;
 
     let checkResult: string;
-    if (useGemini()) {
+    if (useGemini(isGameMode ? "games" : "clips")) {
       checkResult = (await geminiGenerate({
         prompt: precheckPrompt, images: frames.slice(0, 3), thinking: "low", temperature: 0,
       })).trim();
@@ -243,7 +243,7 @@ Do not add any other text.`;
 
   // Gemini path: thinking "low" for mechanical game-segment extraction,
   // "high" for the deep single-clip coaching pass (the reasoning-heavy task).
-  if (useGemini()) {
+  if (useGemini(isGameMode ? "games" : "clips")) {
     return await geminiGenerate({
       prompt, images: frames, thinking: isGameMode ? "low" : "high",
     });

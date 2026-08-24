@@ -26,7 +26,7 @@ export async function analyzeDrill({ drill, frames, sport }: AnalyzeDrillInput):
   // we don't hand back confident "feedback" on an empty gym or a random video.
   const checkPrompt = `Do these frames show a single person actively doing a sports drill or working on a skill (shooting, dribbling, footwork, passing against a wall, etc.)? Answer ONLY "VALID" or "INVALID: [brief reason]".`;
   let checkResult: string;
-  if (useGemini()) {
+  if (useGemini("clips")) {
     checkResult = (await geminiGenerate({ prompt: checkPrompt, images: frames.slice(0, 3), thinking: "low", temperature: 0 })).trim();
   } else {
     const check = await openai.responses.create({
@@ -67,7 +67,7 @@ Did Well: [one specific thing they did right]
 Main Fix: [the single most important correction, specific and visible]
 Focus Next: [one concrete cue to hold in their mind on the next rep]`;
 
-  if (useGemini()) {
+  if (useGemini("clips")) {
     return await geminiGenerate({ prompt, images: frames, thinking: "low", temperature: 0.2 });
   }
 

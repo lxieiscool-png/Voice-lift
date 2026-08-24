@@ -14,7 +14,7 @@ export async function chatComplete({ messages, maxTokens, temperature }: {
   maxTokens: number;
   temperature: number;
 }): Promise<string> {
-  if (useGemini()) {
+  if (useGemini("chat")) {
     const system = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
     const rest = messages.filter(m => m.role !== "system");
     const prompt = rest.length === 1 && rest[0].role === "user"

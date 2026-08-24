@@ -101,7 +101,7 @@ Winner: [team name, or "Unclear"]
 Why: [2 sentences on what decided the game between these teams, based on what you saw.]
 `;
 
-  if (useGemini()) {
+  if (useGemini("games")) {
     return await geminiGenerate({ prompt: promptText, thinking: "medium", temperature: 0.3 });
   }
 
