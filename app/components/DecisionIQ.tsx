@@ -205,6 +205,92 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
   });
 }
 
+// Screen capture: pull real frames straight from whatever the athlete is
+// watching (a YouTube tab, HUDL, anything that plays). YouTube blocks servers
+// from fetching video, and the storyboard fallback is 320x180 — far too small
+// to read a jersey. The browser's own screen-share stream is full resolution,
+// needs no download, and costs nothing to run.
+//
+// Density is kept even for any length: sample every SAMPLE_MS, and whenever
+// the budget fills, drop every other frame and double the interval. A 30
+// second clip and a 40 minute game both come back evenly covered.
+export function screenCaptureSupported(): boolean {
+  return typeof navigator !== "undefined"
+    && !!navigator.mediaDevices
+    && typeof navigator.mediaDevices.getDisplayMedia === "function";
+}
+
+async function captureFramesFromScreen(
+  onProgress: (frames: number, elapsedSec: number) => void,
+  shouldStop: () => boolean,
+): Promise<{ frames: FrameWithTime[]; durationSec: number }> {
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { frameRate: { ideal: 15 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+    audio: false,
+  });
+
+  const video = document.createElement("video");
+  video.srcObject = stream;
+  video.muted = true;
+  video.playsInline = true;
+
+  const stopStream = () => stream.getTracks().forEach(t => t.stop());
+
+  try {
+    await video.play();
+    // Wait for real dimensions before sizing the canvas.
+    if (!video.videoWidth) {
+      await new Promise<void>((done) => {
+        const t = setTimeout(done, 3000);
+        video.onloadedmetadata = () => { clearTimeout(t); done(); };
+      });
+    }
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas unavailable.");
+
+    // Fit inside 1152x648 preserving aspect — same budget the clip path uses,
+    // since a capture may be analyzed as either a clip or a game.
+    const srcW = video.videoWidth || 1280, srcH = video.videoHeight || 720;
+    const scale = Math.min(1152 / srcW, 648 / srcH, 1);
+    canvas.width = Math.max(2, Math.round(srcW * scale));
+    canvas.height = Math.max(2, Math.round(srcH * scale));
+
+    // The user can also end sharing from the browser's own bar.
+    let sharingEnded = false;
+    stream.getVideoTracks()[0].addEventListener("ended", () => { sharingEnded = true; });
+
+    const MAX_FRAMES = 240;
+    const MAX_MS = 45 * 60 * 1000;
+    let intervalMs = 2000;
+    let frames: FrameWithTime[] = [];
+    const startedAt = Date.now();
+
+    while (!sharingEnded && !shouldStop() && Date.now() - startedAt < MAX_MS) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const elapsed = (Date.now() - startedAt) / 1000;
+      frames.push({ dataUrl: canvas.toDataURL("image/jpeg", 0.7), timestamp: elapsed });
+
+      // Budget full: halve the density and keep going, so coverage stays even
+      // no matter how long they capture.
+      if (frames.length >= MAX_FRAMES) {
+        frames = frames.filter((_, i) => i % 2 === 0);
+        intervalMs *= 2;
+      }
+
+      onProgress(frames.length, elapsed);
+      await new Promise(r => setTimeout(r, intervalMs));
+    }
+
+    const durationSec = (Date.now() - startedAt) / 1000;
+    return { frames, durationSec };
+  } finally {
+    stopStream();
+    video.srcObject = null;
+  }
+}
+
 // ─── Share Card ───────────────────────────────────────────────────────────────
 
 const GRADE_COLOR: Record<string, string> = {
@@ -1252,6 +1338,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
   const [ytUrl,      setYtUrl]      = useState("");
   const [ytError,    setYtError]    = useState("");
+  const [capturing,     setCapturing]     = useState(false);
+  const [captureCount,  setCaptureCount]  = useState(0);
+  const [captureSecs,   setCaptureSecs]   = useState(0);
+  const stopCaptureRef = useRef(false);
   const [sport,      setSport]      = useState("");
   const [loading,    setLoading]    = useState(false);
   const [myTeams,       setMyTeams]       = useState<Team[]>([]);
@@ -1332,6 +1422,53 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       if (frames.length >= targetFrames) break;
     }
     return frames;
+  }
+
+  // Capture whatever is playing on screen (a YouTube tab, HUDL, film app) and
+  // analyze those frames. This is the reliable path for film that lives online:
+  // full resolution, no download, nothing for YouTube to block.
+  async function startScreenCapture(lenient = false) {
+    if (!canAnalyze) return;
+    setYtError("");
+    stopCaptureRef.current = false;
+    setCaptureCount(0); setCaptureSecs(0);
+
+    let result: { frames: FrameWithTime[]; durationSec: number };
+    try {
+      setCapturing(true);
+      result = await captureFramesFromScreen(
+        (n, secs) => { setCaptureCount(n); setCaptureSecs(secs); },
+        () => stopCaptureRef.current,
+      );
+    } catch (err) {
+      setCapturing(false);
+      const msg = err instanceof Error ? err.message : "";
+      // The user dismissing the browser's picker is a cancel, not an error.
+      if (!/permission|denied|abort|cancel/i.test(msg)) {
+        setYtError("Couldn't capture your screen. Make sure you're on a computer and allow screen sharing when your browser asks.");
+      }
+      return;
+    }
+    setCapturing(false);
+
+    if (result.frames.length < 3) {
+      setYtError("Capture was too short to analyze. Start the capture, play the video, then stop it once the play is over.");
+      return;
+    }
+
+    // Same clip/game threshold the upload path uses, measured on how much
+    // footage they actually captured.
+    const mode: "clip" | "game" = result.durationSec > 120 ? "game" : "clip";
+    const title = ytUrl.trim() ? `YouTube: ${ytUrl.trim()}` : `Screen capture: ${new Date().toLocaleDateString()}`;
+
+    setLoading(true);
+    try {
+      await runAnalysis(result.frames, mode, title, lenient);
+    } catch (err) {
+      console.error(err);
+      setYtError(err instanceof Error ? err.message : "Analysis failed. Try again.");
+    }
+    setLoading(false); setProgressLabel("");
   }
 
   async function analyzeYouTube(lenient = false) {
@@ -1655,7 +1792,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             {(["file", "youtube"] as const).map(tab => (
               <button key={tab} onClick={() => { setInputTab(tab); setYtError(""); }}
                 className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                {tab === "file" ? "Video File" : "YouTube Link"}
+                {tab === "file" ? "Upload Video" : "YouTube / Screen"}
               </button>
             ))}
           </div>
@@ -1679,34 +1816,93 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             </>
           ) : (
             <div className="space-y-3">
-              <input
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
-                placeholder="Paste a YouTube link (video or Short)"
-                value={ytUrl}
-                onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
-              />
-              <input
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
-                placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
-                value={sport}
-                onChange={e => setSport(e.target.value)}
-              />
-              {gameFootageToggle}
-              {needsTeamInfo && (
-                <input
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
-                  placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
-                  value={teamColor}
-                  onChange={e => setTeamColor(e.target.value)}
-                />
+              {capturing ? (
+                <div className="rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-5 text-center">
+                  <div className="mb-2 flex items-center justify-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    </span>
+                    <p className="text-sm font-bold text-foreground">Capturing your film</p>
+                  </div>
+                  <p className="text-3xl font-black text-foreground">
+                    {captureCount} <span className="text-base font-semibold text-muted-foreground">frames</span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatTime(captureSecs)} captured · play at 2x speed to finish sooner
+                  </p>
+                  <button
+                    onClick={() => { stopCaptureRef.current = true; }}
+                    className="mt-4 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                    Stop &amp; analyze
+                  </button>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    Switch to your film tab and let it play. Come back here and hit stop when the play is over.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {screenCaptureSupported() ? (
+                    <div className="rounded-2xl border border-border bg-muted/30 p-5">
+                      <p className="text-sm font-bold text-foreground">Capture from your screen</p>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                        Works with YouTube, HUDL, or any film that plays in your browser. Open your film in another tab, start the capture, pick that tab, and press play. Nothing to download, nothing to record, no giant file to upload.
+                      </p>
+                      <button
+                        onClick={() => startScreenCapture()}
+                        disabled={loading || !canAnalyze}
+                        className="mt-3 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
+                        Start screen capture
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-border bg-muted/30 p-4">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        Screen capture needs a laptop or desktop. On a phone, use the Upload tab to send the video file instead.
+                      </p>
+                    </div>
+                  )}
+
+                  <input
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    placeholder="YouTube link (optional — labels your review)"
+                    value={ytUrl}
+                    onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
+                  />
+                  <input
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
+                    value={sport}
+                    onChange={e => setSport(e.target.value)}
+                  />
+                  {gameFootageToggle}
+                  {needsTeamInfo && (
+                    <input
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                      placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
+                      value={teamColor}
+                      onChange={e => setTeamColor(e.target.value)}
+                    />
+                  )}
+                  {teamLinkingFields}
+
+                  <details className="rounded-xl border border-border bg-background px-4 py-3">
+                    <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+                      Try fetching the link directly instead
+                    </summary>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      YouTube blocks most server requests and only shares tiny preview images, so this usually fails or returns footage too small to read jersey numbers. Screen capture is the reliable path.
+                    </p>
+                    <button
+                      onClick={() => analyzeYouTube()}
+                      disabled={loading || !ytUrl.trim() || !canAnalyze}
+                      className="mt-2.5 w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-foreground hover:border-ring transition-colors disabled:opacity-40">
+                      {loading ? "Analyzing…" : "Try direct link"}
+                    </button>
+                  </details>
+                </>
               )}
-              {teamLinkingFields}
-              <button
-                onClick={() => analyzeYouTube()}
-                disabled={loading || !ytUrl.trim() || !canAnalyze}
-                className="w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
-                {loading ? "Analyzing…" : "Analyze YouTube Video"}
-              </button>
+
               {ytError && (
                 <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3">
                   <p className="text-sm text-red-400">{ytError}</p>
@@ -1716,7 +1912,6 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </Button>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">Heads up: YouTube blocks a lot of server requests, so links fail often — especially full games. Uploading the video file is more reliable and gives a much sharper analysis.</p>
             </div>
           )}
 
