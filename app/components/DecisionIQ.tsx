@@ -38,6 +38,7 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
 import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore, buildVolleyBoxScore } from "../lib/analysis/parsers";
+import FilmRoom, { youtubeIdFrom } from "./FilmRoom";
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
 
@@ -938,8 +939,13 @@ function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
   );
 }
 
-export function GameResultsView({ report, onClose, backLabel = "New analysis" }: { report: GameReport; onClose: () => void; backLabel?: string }) {
+export function GameResultsView({ report, onClose, backLabel = "New analysis", sourceName }: { report: GameReport; onClose: () => void; backLabel?: string; sourceName?: string }) {
   const [focus, setFocus] = useState<PlayerStat | null>(null);
+  const [filmRoom, setFilmRoom] = useState(false);
+  // Film room only works when we know which video this came from and we have
+  // moments to jump to.
+  const videoId = youtubeIdFrom(sourceName);
+  const canWatch = !!videoId && (report.playerCards?.length ?? 0) > 0;
   const tc = report.teamComparison ?? null;
 
   // Group tracked players into teams by their "(TEAM)" tag
@@ -956,6 +962,10 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
   if (teams.length > 0 && extras.length) teams[teams.length - 1].players.push(...extras);
 
   const focusStat = focus ? parseStatLine(focus.raw) : null;
+
+  if (filmRoom && videoId) {
+    return <FilmRoom videoId={videoId} decisions={report.playerCards ?? []} onClose={() => setFilmRoom(false)} />;
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
@@ -1053,9 +1063,17 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
             across the game, so a report is more than aggregate numbers. */}
         {(report.playerCards?.length ?? 0) > 0 && (
           <div>
-            <div className="mb-3 flex items-baseline justify-between">
-              <p className="text-sm font-black text-foreground">Coachable moments</p>
-              <span className="text-xs text-muted-foreground">{report.playerCards!.length} plays from this game</span>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-black text-foreground">Coachable moments</p>
+                <span className="text-xs text-muted-foreground">{report.playerCards!.length} plays from this game</span>
+              </div>
+              {canWatch && (
+                <button onClick={() => setFilmRoom(true)}
+                  className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                  ▶ Watch with analysis
+                </button>
+              )}
             </div>
             <PlayerCardList decisions={report.playerCards!} />
           </div>
@@ -1355,6 +1373,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [videoFile,  setVideoFile]  = useState<File | null>(null);
   const [ytUrl,      setYtUrl]      = useState("");
   const [ytError,    setYtError]    = useState("");
+  const [clipFilmRoom,  setClipFilmRoom]  = useState(false);
   const [capturing,     setCapturing]     = useState(false);
   const [captureCount,  setCaptureCount]  = useState(0);
   const [captureSecs,   setCaptureSecs]   = useState(0);
@@ -2134,9 +2153,23 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <p className="text-[11px] text-muted-foreground">"Analyze anyway" gives a best-effort read — uncertain calls are marked low confidence.</p>
             </div>
           )}
-          {!loading && resultMode === "clip" && decisions.length > 0 && <PlayerCardList decisions={decisions} />}
+          {!loading && resultMode === "clip" && decisions.length > 0 && (
+            <>
+              {youtubeIdFrom(ytUrl) && decisions.some(d => d.timestamp) && (
+                <button onClick={() => setClipFilmRoom(true)}
+                  className="mb-3 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                  ▶ Watch with analysis
+                </button>
+              )}
+              <PlayerCardList decisions={decisions} />
+            </>
+          )}
+          {clipFilmRoom && youtubeIdFrom(ytUrl) && (
+            <FilmRoom videoId={youtubeIdFrom(ytUrl)!} decisions={decisions} onClose={() => setClipFilmRoom(false)} />
+          )}
           {!loading && resultMode === "game" && gameReport && !isEmptyGameReport(gameReport) && (
             <GameResultsView report={gameReport}
+              sourceName={ytUrl.trim() ? `YouTube: ${ytUrl.trim()}` : undefined}
               onClose={() => { setDecisions([]); setGameReport(null); setResultMode(null); }} />
           )}
         </div>
@@ -2499,7 +2532,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       {/* Review detail overlay */}
       {openReview && (
         openReview.mode === "game" && openReview.gameReport
-          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back to library" />
+          ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back to library" sourceName={openReview.fileName} />
           : (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
