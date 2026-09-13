@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Clapperboard, Lock, AlertTriangle, VideoOff, Loader2, MoreVertical, X, Video, Upload, Dumbbell, Users } from "lucide-react";
+import { AlertTriangle, ChevronDown, Clapperboard, Dumbbell, Loader2, Lock, MoreVertical, Upload, Users, Video, VideoOff, X } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat, PlayerVolleyStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
@@ -660,107 +660,120 @@ function PlayerCard({ decision, defaultOpen = false }: {
   const grade = decision.grade || "N/A";
   const team  = extractTeamTag(decision.player);
 
+  // One block of the expanded card. Dividers instead of a stack of grey
+  // boxes — eight identical panels read as a debug dump, not a coaching note.
+  const Block = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="border-t border-border/60 pt-3.5">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      {children}
+    </div>
+  );
+
   return (
-    <div className="border border-border bg-card rounded-xl overflow-hidden"
-      style={{ borderLeftColor: team.hex, borderLeftWidth: 4 }}>
-      <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
-        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
-        className="flex w-full cursor-pointer items-center gap-3 px-4 py-4 text-left">
-        <GradeBadge grade={grade} large />
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-foreground">{decision.player || "Unknown Player"}</span>
-          <span className="ml-2 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-accent text-foreground align-middle">
-            <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: team.hex }} />
-            {capitalize(team.label)}
+    <div className="group relative">
+      {/* Timeline rail: the connecting line and the moment itself. */}
+      <div className="absolute bottom-0 left-[46px] top-11 w-px bg-border" aria-hidden />
+
+      <div className="flex gap-3">
+        <div className="w-[46px] shrink-0 pt-3.5 text-right">
+          <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+            {decision.timestamp || "—"}
           </span>
-          <p className="text-xs text-muted-foreground truncate mt-1">
-            {decision.timestamp && (
-              <span className="mr-1.5 font-mono font-semibold text-foreground">{decision.timestamp}</span>
-            )}
-            {decision.role || decision.sport}
-          </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={e => handleShare(e, "landscape")} disabled={sharing}
-            className="rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors disabled:opacity-40">
-            {sharing ? "…" : "Share"}
-          </button>
-          <span className="text-[10px] text-muted-foreground">{open ? "▲" : "▼"}</span>
+
+        <div className="relative min-w-0 flex-1 pb-3">
+          {/* Node on the rail */}
+          <span className="absolute -left-[10px] top-[18px] h-2 w-2 rounded-full ring-4 ring-background"
+            style={{ backgroundColor: team.hex }} aria-hidden />
+
+          <div className={`overflow-hidden rounded-xl border bg-card transition-colors ${open ? "border-ring" : "border-border group-hover:border-ring/60"}`}>
+            <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
+              onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
+              className="flex cursor-pointer items-start gap-3 px-4 py-3.5">
+              <span className={`mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-black tabular-nums ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
+                {grade}
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <p className="truncate text-sm font-semibold text-foreground">{decision.player || "Unknown player"}</p>
+                  {decision.role && (
+                    <p className="hidden truncate text-xs text-muted-foreground sm:block">{decision.role}</p>
+                  )}
+                </div>
+                {(decision.action || decision.whatHappened) && (
+                  <p className={`mt-1 text-[13px] leading-snug text-muted-foreground ${open ? "" : "line-clamp-2"}`}>
+                    {decision.action || decision.whatHappened}
+                  </p>
+                )}
+              </div>
+
+              <ChevronDown className={`mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} strokeWidth={2} />
+            </div>
+
+            {open && (
+              <div className="space-y-3.5 px-4 pb-4">
+                {decision.whatHappened && decision.action && (
+                  <Block label="What happened">
+                    <p className="text-sm leading-relaxed text-foreground">{decision.whatHappened}</p>
+                  </Block>
+                )}
+                {decision.decisionRead && (
+                  <Block label="The read">
+                    <p className="text-sm leading-relaxed text-foreground">{decision.decisionRead}</p>
+                  </Block>
+                )}
+                {decision.bestAlternative && (
+                  <Block label="Better option">
+                    <p className="text-sm leading-relaxed text-foreground">{decision.bestAlternative}</p>
+                    {decision.whyBetter && (
+                      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{decision.whyBetter}</p>
+                    )}
+                  </Block>
+                )}
+                {decision.otherOptions.length > 0 && (
+                  <Block label="Other options">
+                    <ul className="space-y-1">
+                      {decision.otherOptions.map((opt, i) => (
+                        <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+                          <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />{opt}
+                        </li>
+                      ))}
+                    </ul>
+                  </Block>
+                )}
+                {decision.patternToImprove && (
+                  <Block label="The pattern">
+                    <p className="text-sm leading-relaxed text-foreground">{decision.patternToImprove}</p>
+                  </Block>
+                )}
+
+                {decision.practiceFocus && (
+                  <div className="rounded-lg bg-muted p-3.5">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Drill it</p>
+                    <p className="text-sm leading-relaxed text-foreground">{decision.practiceFocus}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="secondary" size="sm"
+                        onClick={e => { e.stopPropagation(); setShowDrills(true); }}>
+                        <Dumbbell className="h-3.5 w-3.5" /> More drills
+                      </Button>
+                      <Button variant="secondary" size="sm"
+                        onClick={e => { e.stopPropagation(); openDrillCheck(decision.practiceFocus); }}>
+                        <Video className="h-3.5 w-3.5" /> Check my form
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={e => handleShare(e, "landscape")} disabled={sharing}
+                  className="text-xs font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground disabled:opacity-40">
+                  {sharing ? "Preparing…" : "Share this card"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {open && (
-        <div className="border-t border-border px-5 py-5 space-y-4">
-          {decision.action && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>Action</SectionLabel>
-              <p className="text-sm text-foreground leading-relaxed">{decision.action}</p>
-            </div>
-          )}
-
-          {decision.whatHappened && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>What Happened</SectionLabel>
-              <p className="text-[15px] text-foreground leading-relaxed">{decision.whatHappened}</p>
-            </div>
-          )}
-          {decision.decisionRead && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>Decision Read</SectionLabel>
-              <p className="text-[15px] text-foreground leading-relaxed">{decision.decisionRead}</p>
-            </div>
-          )}
-          {decision.bestAlternative && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>Best Alternative</SectionLabel>
-              <p className="text-[15px] text-foreground leading-relaxed">{decision.bestAlternative}</p>
-            </div>
-          )}
-          {decision.whyBetter && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>Why It Was Better</SectionLabel>
-              <p className="text-[15px] text-foreground leading-relaxed">{decision.whyBetter}</p>
-            </div>
-          )}
-
-          {decision.otherOptions.length > 0 && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>Other Options</SectionLabel>
-              <ul className="space-y-1.5">
-                {decision.otherOptions.map((opt, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-foreground leading-relaxed">
-                    <span className="text-muted-foreground shrink-0">•</span>{opt}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {decision.patternToImprove && (
-            <div className="rounded-lg bg-muted p-4">
-              <SectionLabel>Pattern To Improve</SectionLabel>
-              <p className="text-sm text-foreground leading-relaxed">{decision.patternToImprove}</p>
-            </div>
-          )}
-
-          {decision.practiceFocus && (
-            <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-4">
-              <SectionLabel>Practice Focus</SectionLabel>
-              <p className="text-sm text-foreground leading-relaxed">{decision.practiceFocus}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button variant="secondary" size="sm"
-                  onClick={e => { e.stopPropagation(); setShowDrills(true); }}>
-                  <Dumbbell className="h-3.5 w-3.5" /> Drills to improve
-                </Button>
-                <Button variant="secondary" size="sm"
-                  onClick={e => { e.stopPropagation(); openDrillCheck(decision.practiceFocus); }}>
-                  <Video className="h-3.5 w-3.5" /> Check my drill
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
       {showDrills && <DrillsOverlay decision={decision} onClose={() => setShowDrills(false)} />}
     </div>
   );
@@ -774,7 +787,7 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
   const timed = decisions.some(d => d.timestamp);
   if (timed) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-0">
         {decisions.map((d, i) => (
           <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
         ))}
