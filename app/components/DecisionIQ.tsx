@@ -672,7 +672,12 @@ function PlayerCard({ decision, defaultOpen = false }: {
             <span className="h-1.5 w-1.5 rounded-full border border-black/20" style={{ backgroundColor: team.hex }} />
             {capitalize(team.label)}
           </span>
-          <p className="text-xs text-muted-foreground truncate mt-1">{decision.role || decision.sport}</p>
+          <p className="text-xs text-muted-foreground truncate mt-1">
+            {decision.timestamp && (
+              <span className="mr-1.5 font-mono font-semibold text-foreground">{decision.timestamp}</span>
+            )}
+            {decision.role || decision.sport}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={e => handleShare(e, "landscape")} disabled={sharing}

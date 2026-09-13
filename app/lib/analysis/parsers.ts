@@ -58,7 +58,9 @@ export function buildDecisionTally(chunkTexts: string[]): DecisionTally {
     const section = text.match(/Decision Events:\s*([\s\S]*?)(?=\n[A-Z][\w &/]+:|===|$)/i)?.[1] ?? "";
     for (const rawLine of section.split("\n")) {
       const line = rawLine.replace(/^[-•*]\s*/, "").trim();
-      const m = line.match(/^(.+?)\s*\|\s*(good|neutral|poor)\b/i);
+      // Optional leading "M:SS | " — strip it so the player key stays stable.
+      const withoutTime = line.replace(/^\d{1,2}:\d{2}(?::\d{2})?\s*\|\s*/, "");
+      const m = withoutTime.match(/^(.+?)\s*\|\s*(good|neutral|poor)\b/i);
       if (!m) continue;
       const player = m[1].trim();
       const q = m[2].toLowerCase() as "good" | "neutral" | "poor";
@@ -85,7 +87,8 @@ function collectStatEvents(chunkTexts: string[]): StatEvent[] {
   for (const text of chunkTexts) {
     const section = text.match(/Stat Events:\s*([\s\S]*?)(?=\n[A-Z][\w &/]+:|===|$)/i)?.[1] ?? "";
     for (const rawLine of section.split("\n")) {
-      const line = rawLine.replace(/^[-•*]\s*/, "").trim();
+      const line = rawLine.replace(/^[-•*]\s*/, "").trim()
+        .replace(/^\d{1,2}:\d{2}(?::\d{2})?\s*\|\s*/, "");
       const m = line.match(/^(.+?)\s*\|\s*([a-z_2-3]+)\b/i);
       if (!m) continue;
       const event = m[2].toLowerCase();
@@ -196,12 +199,24 @@ export function parsePlayerBlocks(text: string): PlayerDecision[] {
     return {
       player: field("Player"), role: field("Role"), action: field("Action"),
       sport: field("Sport"), grade: field("Decision Grade"),
+      timestamp: field("Timestamp"),
       whatHappened: section("What Happened"), decisionRead: section("Decision Read"),
       bestAlternative: section("Best Alternative"), whyBetter: section("Why It Was Better"),
       otherOptions: section("Other Options").split("\n").map(l => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean),
       patternToImprove: section("Pattern To Improve"), practiceFocus: section("Practice Focus"),
     };
-  }).filter(d => d.player || d.whatHappened);
+  }).filter(d => d.player || d.whatHappened)
+    // Chronological, so the report reads as a walk through the game. Cards
+    // with no readable timestamp sink to the end rather than jumbling the order.
+    .sort((a, b) => timestampSeconds(a.timestamp) - timestampSeconds(b.timestamp));
+}
+
+// "8:42" -> 522, "1:03:10" -> 3790. Unparseable/missing sorts last.
+export function timestampSeconds(ts?: string): number {
+  const m = (ts ?? "").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return Number.MAX_SAFE_INTEGER;
+  const [, a, b, c] = m;
+  return c ? +a * 3600 + +b * 60 + +c : +a * 60 + +b;
 }
 
 export function parseGameReport(text: string): GameReport {

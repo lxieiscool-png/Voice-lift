@@ -106,13 +106,14 @@ Stat Events:
 - [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard" or "Blue Setter". ${statVocab} Rules: only log an event when the outcome is genuinely visible across the frames — never guess a make vs a miss or a kill vs a ball kept in play; if you can see the attempt but not how it ended, DO NOT log it. Do not infer events between frames you cannot see. One line per event; one play may produce two lines (e.g. a steal AND the resulting turnover, or a set_assist AND the kill it fed). Write "None" if nothing countable is clearly visible.]
 
 Decision Events:
-- [One line per DECISION you can clearly see, from either team — aim for at least one per possession, not a highlight reel. Format EXACTLY: "TEAM #NUM | quality | what happened". Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "Blue #12 | good | drove baseline and kicked to the open corner shooter", or "White #10 | poor | forced the set to a covered middle with the outside open"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see, but a four-minute stretch of play should yield roughly 8-16 lines here — if you have fewer than 6, go back through the footage for possessions you skipped. Write "None" only if the footage truly shows no play.]
+- [One line per DECISION you can clearly see, from either team — aim for at least one per possession, not a highlight reel. Format EXACTLY: "M:SS | TEAM #NUM | quality | what happened", where M:SS is where in the video it happens. Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "3:14 | Blue #12 | good | drove baseline and kicked to the open corner shooter"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see, but a four-minute stretch of play should yield roughly 8-16 lines here — if you have fewer than 6, go back through the footage for possessions you skipped. Write "None" only if the footage truly shows no play.]
 
 Tactical Pattern:
 [One sentence naming one concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
 
 --- SEGMENT CONTEXT ---
 Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
+${isVideo ? `TIMESTAMPS: the footage you were given starts at ${chunkStart} of the full video. Every timestamp you report must be the ABSOLUTE position in the full video, so add ${chunkStart} to whatever time you observe. All of yours must fall between ${chunkStart} and ${chunkEnd}.` : ""}
 Sport: ${sport || "auto-detect from frames"}${teamContext}
 `
     : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
@@ -185,6 +186,7 @@ GRADING RUBRIC — grade the DECISION, not the outcome. A smart read that got a 
 For EACH player, output this block EXACTLY:
 
 === PLAYER ===
+Timestamp: [WHERE in the video this play happens, as M:SS. Read it off the footage, not the game clock on the scoreboard — this is the position in the video file. Every block needs one, and blocks must be listed in chronological order, earliest first.]
 Player: [Look HARD for jersey numbers — zoom your attention onto each player's chest and back in every frame; a number readable in even ONE clear frame counts. Format: "White #23 Point Guard". Only fall back to a descriptive label like "White Point Guard" if the number is genuinely unreadable in every frame. Never guess or partially read a number — a wrong number is worse than none — but do not omit a number you can actually read.]
 Role: [Specific role in this play — not just "defender", but "Help-side defender", "Ball-screen navigator", "Free safety", etc.]
 Action: [Exactly what they did — "Drove baseline left, drew contact, missed the finish", "Dropped into zone coverage late, gave up the crossing route"]

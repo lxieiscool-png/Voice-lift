@@ -100,9 +100,10 @@ Winner: [team name, or "Unclear"]
 - [Stat name | Team A number | Team B number — ONLY stats you directly observed across the segments, e.g. basketball: "Made baskets | 6 | 4", "Turnovers | 3 | 5", "Fouls | 2 | 4"; volleyball: "Kills | 8 | 5", "Aces | 2 | 1", "Service errors | 1 | 3". These are observed counts from the film, not full box-score totals. NEVER invent percentages or numbers you did not see. Skip any stat you can't count. If you can't compare the teams at all, write "Not enough visible data." on one line instead.]
 Why: [2 sentences on what decided the game between these teams, based on what you saw.]
 
-Then, AFTER the Team Comparison, output COACHABLE MOMENTS: the individual plays worth reviewing, drawn from the Decision Events logged in the segments above. Give SIX to TEN of them, spread across the whole game rather than clustered in one stretch, and covering BOTH teams. Prioritise the uploader's own moments when they appear in the evidence. Each one is a real logged decision — never invent a play. Use this exact format for each:
+Then, AFTER the Team Comparison, output COACHABLE MOMENTS: the individual plays worth reviewing, drawn from the Decision Events logged in the segments above. Give SIX to TWELVE of them in CHRONOLOGICAL ORDER by timestamp, spread across the whole game rather than clustered in one stretch, and covering BOTH teams. Walk through the game start to finish: your first card should come from early footage and your last from near the end. Prioritise the uploader's own moments when they appear in the evidence. Each one is a real logged decision — never invent a play. Use this exact format for each:
 
 === PLAYER ===
+Timestamp: [the M:SS from the Decision Event this card is based on — copy it exactly, never invent one]
 Player: [TEAM #NUM and role, exactly as labelled in the segment evidence, e.g. "Blue #12 Point Guard"]
 Role: [their role on this specific play]
 Action: [what they did, one sentence]

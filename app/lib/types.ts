@@ -1,5 +1,9 @@
 export type PlayerDecision = {
   player: string; role: string; action: string; sport: string; grade: string;
+  // Where in the video this play happened, e.g. "8:42". Cards are ordered by
+  // it so a report reads as a timeline of the game rather than a list of
+  // players. Empty when the model couldn't place the moment.
+  timestamp?: string;
   whatHappened: string; decisionRead: string; bestAlternative: string;
   whyBetter: string; otherOptions: string[]; patternToImprove: string; practiceFocus: string;
 };
