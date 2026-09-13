@@ -239,9 +239,9 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
   const steps = HOW_STEPS[activeModule];
 
   return (
-    <div className="mb-6 rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card overflow-hidden">
+    <div className="mb-8 border-b border-border">
       <button onClick={toggle}
-        className="flex w-full items-center justify-between px-5 py-4 text-left">
+        className="flex w-full items-center justify-between py-4 text-left">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">How it works</p>
           <p className="text-sm font-semibold text-foreground">
@@ -252,16 +252,16 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
       </button>
 
       {open && (
-        <div className="border-t border-border/60 p-5 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-5 pb-6">
+          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
-              <div key={s.title} className="group relative rounded-xl border border-border bg-muted p-4 transition-colors hover:border-ring">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/80"><s.icon className="h-4.5 w-4.5 text-foreground" strokeWidth={1.75} /></span>
-                  <span className="text-[10px] font-black tracking-widest text-muted-foreground">0{i + 1}</span>
+              <div key={s.title}>
+                <div className="mb-2.5 flex items-center gap-2">
+                  <s.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+                  <span className="text-[10px] font-semibold tracking-widest text-muted-foreground">0{i + 1}</span>
                 </div>
-                <p className="text-sm font-semibold text-foreground mb-1">{s.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                <p className="mb-1 text-sm font-semibold text-foreground">{s.title}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
               </div>
             ))}
           </div>

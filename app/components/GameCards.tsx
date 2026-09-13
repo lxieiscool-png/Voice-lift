@@ -92,7 +92,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     // No overflow-hidden on the root: the card's ⋮ menu is an absolutely
     // positioned dropdown that must be free to extend past the card edge.
     // Rounded-corner clipping lives on the thumbnail button instead.
-    <div className="rounded-2xl border border-border bg-card">
+    <div className="rounded-xl border border-border bg-card">
       {/* Thumbnail */}
       <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-muted to-card disabled:cursor-default">
         {thumbnailUrl ? (

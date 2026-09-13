@@ -160,7 +160,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
           <ChevronLeft className="h-4 w-4" /> All teams
         </button>
 
-        <div className="rounded-2xl border border-border bg-card p-6 mb-4">
+        <div className="rounded-xl border border-border bg-card p-6 mb-4">
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-black text-foreground">{openTeam.name}</h2>
@@ -187,20 +187,20 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-border bg-muted px-4 py-3">
+            <div className="rounded-lg border border-border bg-muted px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Record</p>
               <p className="text-lg font-bold text-foreground">{record.total > 0 ? `${record.wins}-${record.losses}` : "-"}</p>
               {record.unclear > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">{record.unclear} unclear</p>}
             </div>
-            <div className="rounded-xl border border-border bg-muted px-4 py-3">
+            <div className="rounded-lg border border-border bg-muted px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Games Tracked</p>
               <p className="text-lg font-bold text-foreground">{games.length || "-"}</p>
             </div>
-            <div className="rounded-xl border border-border bg-muted px-4 py-3">
+            <div className="rounded-lg border border-border bg-muted px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Roster</p>
               <p className="text-lg font-bold text-foreground">{members.length || "-"}</p>
             </div>
-            <div className="rounded-xl border border-border bg-muted px-4 py-3">
+            <div className="rounded-lg border border-border bg-muted px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">PPG / Opp PPG</p>
               <p className="text-lg font-bold text-muted-foreground">Not tracked yet</p>
             </div>
@@ -208,12 +208,12 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <h3 className="mb-3 text-sm font-bold text-foreground">Roster</h3>
             <RosterEditor members={members} onAdd={(m) => addMember(openTeam.id, m)} onRemove={removeMember} />
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <h3 className="mb-3 text-sm font-bold text-foreground">Games</h3>
             {games.length === 0 ? (
               <p className="text-sm text-muted-foreground">No games linked to this team yet. When uploading in DecisionIQ, attach the game to this team to see it here.</p>
@@ -259,7 +259,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
       </div>
 
       {teams.length === 0 && !showCreate && (
-        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-3">
+        <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-3">
           <Users className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
           <p className="text-base font-semibold text-foreground">No teams yet</p>
           <p className="text-sm text-muted-foreground max-w-xs">Create a team to track a season — roster, record, and every game you upload in one place.</p>
@@ -277,7 +277,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
             const subtitle = [[t.ageGroup, t.gender].filter(Boolean).join(" "), t.season, `${games.length} ${games.length === 1 ? "game" : "games"}`]
               .filter(Boolean).join(" · ");
             return (
-              <div key={t.id} className="rounded-2xl border border-border bg-muted">
+              <div key={t.id} className="rounded-xl border border-border bg-muted">
                 <TeamSectionHeader
                   name={t.name}
                   initials={teamInitials(t.name)}
@@ -401,7 +401,7 @@ function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
         <h3 className="mb-4 text-lg font-bold text-foreground">{title || "Create Team"}</h3>
         <div className="space-y-3">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Team name — e.g. Titanium 14U"

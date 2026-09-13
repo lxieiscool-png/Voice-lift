@@ -583,7 +583,7 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 p-4 sm:p-8" onClick={onClose}>
-      <div className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-5 sm:p-6" onClick={e => e.stopPropagation()}>
+      <div className="mx-auto max-w-lg rounded-xl border border-border bg-card p-5 sm:p-6" onClick={e => e.stopPropagation()}>
         <div className="mb-1 flex items-start justify-between gap-3">
           <div>
             <p className="text-lg font-black text-foreground">Drills for {name}</p>
@@ -686,7 +686,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
           <span className="absolute -left-[10px] top-[18px] h-2 w-2 rounded-full ring-4 ring-background"
             style={{ backgroundColor: team.hex }} aria-hidden />
 
-          <div className={`overflow-hidden rounded-xl border bg-card transition-colors ${open ? "border-ring" : "border-border group-hover:border-ring/60"}`}>
+          <div className={`overflow-hidden rounded-lg border bg-card transition-colors ${open ? "border-ring" : "border-border group-hover:border-ring/60"}`}>
             <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
               onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
               className="flex cursor-pointer items-start gap-3 px-4 py-3.5">
@@ -870,7 +870,7 @@ function VolleyBoxPanel({ rows }: { rows: PlayerVolleyStat[] }) {
     p.ta > 0 ? ((p.k - p.e) / p.ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-black text-foreground">Box Score</p>
         <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
@@ -924,7 +924,7 @@ function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-black text-foreground">Box Score</p>
         <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
@@ -1015,7 +1015,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
         {((report.didWell?.length ?? 0) > 0 || (report.workOn?.length ?? 0) > 0) && (
           <div className="grid gap-3 sm:grid-cols-2">
             {(report.didWell?.length ?? 0) > 0 && (
-              <div className="rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-4">
+              <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-4">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-400">Did well</p>
                 <ul className="space-y-1.5">
                   {report.didWell!.map((s, i) => (
@@ -1027,7 +1027,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
               </div>
             )}
             {(report.workOn?.length ?? 0) > 0 && (
-              <div className="rounded-2xl border border-amber-900/60 bg-amber-950/20 p-4">
+              <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-4">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-amber-400">Work on</p>
                 <ul className="space-y-1.5">
                   {report.workOn!.map((s, i) => (
@@ -1043,7 +1043,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
 
         {/* Team comparison chart */}
         {tc ? <TeamComparisonPanel tc={tc} /> : (
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Team comparison wasn't possible for this footage — not enough clearly visible team-level data (score, both teams on screen, etc.).</p>
           </div>
         )}
@@ -1052,7 +1052,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
         {teams.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2">
             {teams.map((t, ti) => (
-              <div key={ti} className="rounded-2xl border border-border bg-card p-4">
+              <div key={ti} className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-sm font-black capitalize text-foreground">{t.name}</p>
                   <span className="text-xs text-muted-foreground">{t.players.length} tracked</span>
@@ -1062,7 +1062,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
                     const s = parseStatLine(p.raw);
                     return (
                       <button key={i} onClick={() => setFocus(p)}
-                        className="flex w-full items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-ring">
+                        className="flex w-full items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-ring">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-foreground">
                           {s.jersey ? `#${s.jersey}` : playerInitials(p.label)}
                         </span>
@@ -1098,7 +1098,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
               </div>
               {canWatch && (
                 <button onClick={() => setFilmRoom(true)}
-                  className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                  className="shrink-0 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90">
                   ▶ Watch with analysis
                 </button>
               )}
@@ -1161,9 +1161,9 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
       {/* Player detail modal */}
       {focus && focusStat && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={() => setFocus(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
             <div className="mb-4 flex items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-black text-foreground">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-accent text-lg font-black text-foreground">
                 {focusStat.jersey ? `#${focusStat.jersey}` : playerInitials(focus.label)}
               </span>
               <div className="min-w-0">
@@ -1172,26 +1172,26 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
               </div>
             </div>
             <div className="mb-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-muted py-3">
+              <div className="rounded-lg bg-muted py-3">
                 <p className="text-xl font-black text-emerald-500">{focusStat.sharp}</p>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Sharp</p>
               </div>
-              <div className="rounded-xl bg-muted py-3">
+              <div className="rounded-lg bg-muted py-3">
                 <p className="text-xl font-black text-red-500">{focusStat.costly}</p>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Costly</p>
               </div>
-              <div className="rounded-xl bg-muted py-3">
+              <div className="rounded-lg bg-muted py-3">
                 <p className="text-xl font-black text-amber-500">{focusStat.fouls}</p>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Fouls</p>
               </div>
             </div>
             {focusStat.standout && (
-              <div className="mb-4 rounded-xl bg-muted p-3">
+              <div className="mb-4 rounded-lg bg-muted p-3">
                 <p className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Standout moment</p>
                 <p className="text-sm leading-relaxed text-foreground">{focusStat.standout}</p>
               </div>
             )}
-            <button onClick={() => setFocus(null)} className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground">Close</button>
+            <button onClick={() => setFocus(null)} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Close</button>
           </div>
         </div>
       )}
@@ -1211,7 +1211,7 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
   const [scoreA, scoreB] = tc.score?.match(/(\d+)\s*[–\-:]\s*(\d+)/)?.slice(1) ?? [null, null];
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
       {/* Header: teams + score */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -1278,7 +1278,7 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
 
       {/* Why */}
       {tc.why && (
-        <div className="mt-5 rounded-xl bg-muted p-4">
+        <div className="mt-5 rounded-lg bg-muted p-4">
           <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
             ✓ {tc.winner ? `Why ${tc.winner} won` : "What decided it"}
           </p>
@@ -1851,7 +1851,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
   const teamLinkingFields = needsTeamInfo && (
     myTeams.length === 0 ? (
-      <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3 text-center">
+      <div className="rounded-lg border border-amber-900/60 bg-amber-950/20 p-3 text-center">
         <p className="text-sm text-foreground">You need a team before you can analyze film.</p>
         <button onClick={() => document.querySelector<HTMLButtonElement>("[data-module='teams']")?.click()}
           className="mt-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90">
@@ -1859,7 +1859,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </button>
       </div>
     ) : (
-      <div className="rounded-xl border border-border bg-muted p-3 space-y-2">
+      <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Team &amp; opponent (required)</p>
         <select
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
@@ -1900,8 +1900,8 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       <div className="grid gap-5 lg:grid-cols-2">
 
         {/* Upload */}
-        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
-          <p className="mb-4 text-sm font-semibold text-foreground">Upload</p>
+        <div className="rounded-lg border border-border bg-card p-5">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Upload</p>
 
           {/* Tab switcher */}
           <div className="mb-4 flex gap-1 rounded-lg border border-border bg-background p-0.5">
@@ -1915,25 +1915,28 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
           {inputTab === "file" ? (
             <>
-              <label className="group block cursor-pointer rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/30 to-transparent p-8 text-center transition-all hover:border-ring hover:from-muted/60 active:scale-[0.99]">
+              <label className="group block cursor-pointer rounded-lg border border-dashed border-border p-8 text-center transition-colors hover:border-ring hover:bg-muted/40">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor(profile.teamColor || "");
                   setVideoUrl(URL.createObjectURL(file));
                   setDecisions([]); setGameReport(null); setResultMode(null);
                 }} />
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/80 transition-transform group-hover:scale-110"><Clapperboard className="h-6 w-6 text-foreground" strokeWidth={1.75} /></div>
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-accent/80 transition-transform group-hover:scale-110"><Clapperboard className="h-6 w-6 text-foreground" strokeWidth={1.75} /></div>
                 <p className="text-sm font-bold text-foreground">Tap to choose video</p>
                 <p className="mt-1 text-xs text-muted-foreground">Clip or full game — adapts automatically</p>
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-border" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-muted-foreground truncate">{fileName}</p>}
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground text-center"><Lock className="h-3 w-3" strokeWidth={2} /> Your video never leaves your device — only still frames are sent to our AI to analyze, then deleted afterward. Your film is never shared with other users.</p>
+              <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                <Lock className="mt-0.5 h-3 w-3 shrink-0" strokeWidth={2} />
+                Your video never leaves your device. Only still frames are sent for analysis, then deleted.
+              </p>
             </>
           ) : (
             <div className="space-y-3">
               {capturing ? (
-                <div className="rounded-2xl border border-emerald-900/60 bg-emerald-950/20 p-5 text-center">
+                <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-5 text-center">
                   <div className="mb-2 flex items-center justify-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -1949,7 +1952,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </p>
                   <button
                     onClick={() => { stopCaptureRef.current = true; }}
-                    className="mt-4 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                    className="mt-4 w-full rounded-lg bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
                     Stop &amp; analyze
                   </button>
                   <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -1960,13 +1963,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 <>
                   {/* Primary: paste a link. Gemini reads public YouTube
                       natively, so this is now the fastest path to a report. */}
-                  <div className="rounded-2xl border border-border bg-muted/30 p-5">
+                  <div className="rounded-xl border border-border bg-muted/30 p-5">
                     <p className="text-sm font-bold text-foreground">Paste your film link</p>
                     <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                       We watch the video and grade it. Nothing to download, record, or upload. Works on <span className="font-semibold text-foreground">public</span> YouTube videos.
                     </p>
                     <input
-                      className="mt-3 w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                      className="mt-3 w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                       placeholder="https://youtube.com/watch?v=..."
                       value={ytUrl}
                       onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
@@ -1974,7 +1977,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </div>
 
                   <input
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                     value={sport}
                     onChange={e => setSport(e.target.value)}
@@ -1982,7 +1985,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   {gameFootageToggle}
                   {needsTeamInfo && (
                     <input
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                       placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
                       value={teamColor}
                       onChange={e => setTeamColor(e.target.value)}
@@ -1993,14 +1996,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   <button
                     onClick={() => analyzeYouTube()}
                     disabled={loading || !ytUrl.trim() || !canAnalyze}
-                    className="w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
+                    className="w-full rounded-lg bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
                     {loading ? "Watching your film…" : "Analyze this link"}
                   </button>
 
                   {/* Fallback for film the link path can't reach: unlisted
                       YouTube, HUDL, anything behind a login. */}
                   {screenCaptureSupported() ? (
-                    <details className="rounded-xl border border-border bg-background px-4 py-3">
+                    <details className="rounded-lg border border-border bg-background px-4 py-3">
                       <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
                         Film not on public YouTube? Capture your screen instead
                       </summary>
@@ -2039,20 +2042,20 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               {videoFile && (
                 <>
                   <input
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder="Name this clip (e.g. Playoff game vs Lincoln)"
                     value={clipTitle}
                     onChange={e => setClipTitle(e.target.value)}
                   />
                   {gameFootageToggle}
                   <input
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder={(needsTeamInfo ? "Your jersey color (required) — " : "") + (profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)")}
                     value={teamColor}
                     onChange={e => setTeamColor(e.target.value)}
                   />
                   <input
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder="Describe the teams if jerseys are mixed (e.g. 'my team: white + blue pinnies, them: all black')"
                     value={teamsNote}
                     onChange={e => setTeamsNote(e.target.value)}
@@ -2061,7 +2064,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 </>
               )}
               <input
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                 placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                 value={sport}
                 onChange={e => setSport(e.target.value)}
@@ -2069,7 +2072,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <button
                 onClick={() => analyzeVideo()}
                 disabled={loading || !videoFile || !canAnalyze}
-                className="w-full rounded-xl bg-primary py-4 text-sm font-bold text-primary-foreground disabled:opacity-30 active:bg-primary/80 transition-colors"
+                className="w-full rounded-lg bg-primary py-4 text-sm font-bold text-primary-foreground disabled:opacity-30 active:bg-primary/80 transition-colors"
               >
                 {loading ? "Analyzing…" : "Analyze Film"}
               </button>
@@ -2078,7 +2081,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </div>
 
         {/* Results */}
-        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
+        <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">
@@ -2100,7 +2103,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && jobStarted && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-8 text-center">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-8 text-center">
               <Clapperboard className="h-8 w-8 text-emerald-400" strokeWidth={1.5} />
               <p className="text-base font-semibold text-foreground">Analysis started</p>
               <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -2115,7 +2118,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <p className="text-sm text-red-300">{analyzeError}</p>
               {pendingRetry && (
                 <button onClick={pendingRetry}
-                  className="rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
                   Try again
                 </button>
               )}
@@ -2123,13 +2126,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && !analyzeError && !resultMode && !jobStarted && (
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-muted/40 to-card p-5">
-              <p className="mb-4 text-center text-sm text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-border p-5">
+              <p className="mb-4 text-xs text-muted-foreground">
                 {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]} — here's what a review looks like:` : "Upload a clip and every player gets a card like this:"}
               </p>
               {/* Ghost preview of a graded player card */}
               <div className="pointer-events-none select-none space-y-2 opacity-60">
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-lg border border-border bg-card p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-lg font-black text-foreground">A-</div>
                     <div className="flex-1">
@@ -2148,7 +2151,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-black text-primary-foreground">C+</div>
                   <div className="text-sm font-semibold text-muted-foreground">Blue #11 Help Defender</div>
                 </div>
@@ -2158,7 +2161,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && ((resultMode === "clip" && decisions.length === 0) || (resultMode === "game" && isEmptyGameReport(gameReport))) && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card text-center px-6 py-10">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card text-center px-6 py-10">
               <VideoOff className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
               <p className="text-base font-semibold text-foreground">This clip was a little too unclear to break down</p>
               <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -2187,7 +2190,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             <>
               {youtubeIdFrom(ytUrl) && decisions.some(d => d.timestamp) && (
                 <button onClick={() => setClipFilmRoom(true)}
-                  className="mb-3 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                  className="mb-3 w-full rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
                   ▶ Watch with analysis
                 </button>
               )}
@@ -2345,7 +2348,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   const jobsPanel = (activeJobs.length > 0 || failedJobs.length > 0) && (
     <div className="mb-4 space-y-2">
       {activeJobs.map(job => (
-        <div key={job.id} className="flex items-center gap-3 rounded-xl border border-border bg-muted px-4 py-3">
+        <div key={job.id} className="flex items-center gap-3 rounded-lg border border-border bg-muted px-4 py-3">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-foreground">{job.file_name || "Untitled game"}</p>
@@ -2357,7 +2360,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
         </div>
       ))}
       {failedJobs.map(job => (
-        <div key={job.id} className="rounded-xl border border-red-900 bg-red-950/20 px-4 py-3">
+        <div key={job.id} className="rounded-lg border border-red-900 bg-red-950/20 px-4 py-3">
           <p className="text-sm font-semibold text-foreground">{job.file_name || "Untitled game"} — analysis failed</p>
           <p className="mt-0.5 text-xs text-red-300">{job.error || "Something went wrong."}</p>
         </div>
@@ -2370,7 +2373,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     return (
       <div>
         {jobsPanel}
-        <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-4">
+        <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-4">
           <Clapperboard className="h-10 w-10 text-muted-foreground" strokeWidth={1.5} />
           <div>
             <p className="text-base font-semibold text-foreground mb-1">No film yet</p>
@@ -2379,7 +2382,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
             </p>
           </div>
           <a href="#" onClick={e => { e.preventDefault(); document.querySelector<HTMLButtonElement>("[data-module='decision']")?.click(); }}
-            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
             Go to DecisionIQ
           </a>
         </div>
@@ -2430,7 +2433,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card p-5">
+    <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -2482,7 +2485,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
             const record = wins + losses > 0 ? `${wins}-${losses}` : null;
             const count = group.reviews.length + group.jobs.length;
             return (
-              <div key={group.key} className="rounded-2xl border border-border bg-muted">
+              <div key={group.key} className="rounded-xl border border-border bg-muted">
                 <TeamSectionHeader
                   name={group.name}
                   initials={group.teamId ? teamInitials(group.name) : "—"}
@@ -2542,7 +2545,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       {/* Rename modal */}
       {renamingId && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={() => setRenamingId(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5" onClick={e => e.stopPropagation()}>
             <p className="mb-3 text-sm font-bold text-foreground">Rename</p>
             <input
               autoFocus
@@ -2610,7 +2613,7 @@ function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkT
         <MoreVertical className="h-4 w-4" />
       </button>
       {open && (
-        <div className="absolute right-0 bottom-full mb-1 z-30 w-44 overflow-hidden rounded-xl border border-border bg-muted py-1 shadow-xl"
+        <div className="absolute right-0 bottom-full mb-1 z-30 w-44 overflow-hidden rounded-lg border border-border bg-muted py-1 shadow-xl"
           onClick={e => e.stopPropagation()}>
           <button onClick={() => { setOpen(false); onOpen(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-accent">Open report</button>
           <button onClick={() => { setOpen(false); onRename(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-accent">Rename</button>

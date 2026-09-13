@@ -39,7 +39,7 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
       <div className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${isCoach ? "bg-primary text-primary-foreground" : "bg-accent text-foreground"}`}>
         {isCoach ? "C" : "Y"}
       </div>
-      <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isCoach ? "bg-accent text-accent-foreground rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"}`}>
+      <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${isCoach ? "bg-accent text-accent-foreground rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"}`}>
         {msg.content}
       </div>
     </div>
@@ -54,21 +54,21 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
   return (
     <div className="space-y-4">
       {plan.weekFocus && (
-        <div className="rounded-2xl border border-border bg-accent px-5 py-4">
+        <div className="rounded-xl border border-border bg-accent px-5 py-4">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1"><Calendar className="h-3.5 w-3.5" strokeWidth={2} /> This Week's Focus</p>
           <p className="font-bold text-foreground">{plan.weekFocus}</p>
         </div>
       )}
 
       {plan.coachNote && (
-        <div className="rounded-2xl border border-border bg-background px-5 py-4">
+        <div className="rounded-xl border border-border bg-background px-5 py-4">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5"><MessageCircle className="h-3.5 w-3.5" strokeWidth={2} /> From Your Coach</p>
           <p className="text-sm text-foreground leading-relaxed">{plan.coachNote}</p>
         </div>
       )}
 
       {plan.days.map((day, i) => (
-        <div key={i} className="rounded-2xl border border-border bg-background overflow-hidden">
+        <div key={i} className="rounded-xl border border-border bg-background overflow-hidden">
           <button
             onClick={() => setOpenDay(openDay === i ? null : i)}
             className="flex w-full items-center justify-between px-5 py-4 text-left"
@@ -86,7 +86,7 @@ function PlanCard({ plan }: { plan: PracticePlan }) {
           {openDay === i && (
             <div className="border-t border-border p-4 space-y-3">
               {day.drills.map((drill, j) => (
-                <div key={j} className="rounded-xl border border-border bg-muted p-4">
+                <div key={j} className="rounded-lg border border-border bg-muted p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <p className="font-bold text-foreground">{drill.name}</p>
                     {drill.reps && (
@@ -231,12 +231,12 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
   return (
     <div className="space-y-4">
       {/* Tab switcher */}
-      <div className="flex rounded-2xl border border-border bg-muted p-1">
+      <div className="flex rounded-xl border border-border bg-muted p-1">
         {(["chat", "plan", "drill"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-bold transition-colors ${tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-colors ${tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             <span className="inline-flex items-center gap-1.5">
               {t === "chat" ? <MessageCircle className="h-4 w-4" strokeWidth={2} /> : t === "plan" ? <ClipboardList className="h-4 w-4" strokeWidth={2} /> : <Dumbbell className="h-4 w-4" strokeWidth={2} />}
@@ -248,14 +248,14 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
 
       {/* Chat tab */}
       {tab === "chat" && (
-        <div className="rounded-3xl border border-border bg-gradient-to-b from-muted to-card overflow-hidden flex flex-col" style={{ height: "min(520px, calc(100dvh - 220px))" }}>
+        <div className="rounded-xl border border-border bg-gradient-to-b from-muted to-card overflow-hidden flex flex-col" style={{ height: "min(520px, calc(100dvh - 220px))" }}>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {messages.map((msg, i) => <ChatBubble key={i} msg={msg} />)}
             {chatLoading && (
               <div className="flex gap-3">
                 <div className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">C</div>
-                <div className="rounded-2xl rounded-tl-sm bg-accent px-4 py-3">
+                <div className="rounded-xl rounded-tl-sm bg-accent px-4 py-3">
                   <div className="flex gap-1 items-center h-5">
                     {[0, 1, 2].map(i => (
                       <div key={i} className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -278,7 +278,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
                 <button
                   key={i}
                   onClick={() => { setInput(q); }}
-                  className="rounded-xl border border-border bg-accent/50 px-3.5 py-2 text-xs font-medium text-foreground hover:border-ring hover:bg-accent hover:text-foreground transition-all text-left"
+                  className="rounded-lg border border-border bg-accent/50 px-3.5 py-2 text-xs font-medium text-foreground hover:border-ring hover:bg-accent hover:text-foreground transition-all text-left"
                 >
                   {q}
                 </button>
@@ -289,7 +289,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
           {/* Input */}
           <div className="border-t border-border p-4 flex gap-3">
             <input
-              className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors"
+              className="flex-1 rounded-lg border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors"
               placeholder="Ask your coach anything…"
               value={input}
               onChange={e => setInput(e.target.value)}
@@ -298,7 +298,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
             <button
               onClick={sendMessage}
               disabled={chatLoading || !input.trim()}
-              className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors active:scale-95"
+              className="rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors active:scale-95"
             >
               Send
             </button>
@@ -310,14 +310,14 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
       {tab === "plan" && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Form */}
-          <div className="rounded-3xl border border-border bg-gradient-to-b from-muted to-card p-5 sm:p-6">
+          <div className="rounded-xl border border-border bg-gradient-to-b from-muted to-card p-5 sm:p-6">
             <h3 className="mb-4 text-xl font-bold">Build My Plan</h3>
 
             <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sport</label>
                 <input
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors"
                   placeholder={profile.sport || "Basketball, Soccer, Water Polo…"}
                   value={profile.sport}
                   readOnly
@@ -328,7 +328,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Position</label>
                 <input
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors"
                   placeholder="e.g. Point Guard, Striker, Goalkeeper…"
                   value={position}
                   onChange={e => setPosition(e.target.value)}
@@ -339,7 +339,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Level</label>
                   <select
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:border-white transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:border-white transition-colors"
                     value={level}
                     onChange={e => setLevel(e.target.value)}
                   >
@@ -352,7 +352,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Days/Week</label>
                   <select
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:border-white transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:border-white transition-colors"
                     value={daysPerWeek}
                     onChange={e => setDaysPerWeek(e.target.value)}
                   >
@@ -366,7 +366,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
                   Weaknesses to focus on
                 </label>
                 <textarea
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors resize-none"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm placeholder-muted-foreground focus:outline-none focus:border-white transition-colors resize-none"
                   placeholder={recentPatterns.length ? `From your film: ${recentPatterns[0]}` : "e.g. dribbling under pressure, shot selection, defensive positioning…"}
                   rows={3}
                   value={weaknesses}
@@ -385,7 +385,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
               <button
                 onClick={generatePlan}
                 disabled={planLoading}
-                className="w-full rounded-2xl bg-primary py-4 text-base font-bold text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors active:scale-95"
+                className="w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors active:scale-95"
               >
                 {planLoading ? "Building your plan…" : `Build My ${daysPerWeek}-Day Plan`}
               </button>
@@ -393,29 +393,29 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
           </div>
 
           {/* Plan output */}
-          <div className="rounded-3xl border border-border bg-gradient-to-b from-muted to-card p-5 sm:p-6">
+          <div className="rounded-xl border border-border bg-gradient-to-b from-muted to-card p-5 sm:p-6">
             <h3 className="mb-4 text-xl font-bold">Your Plan</h3>
 
             {planLoading && (
               <div className="space-y-3">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl border border-border bg-background" />)}
+                {[...Array(3)].map((_, i) => <div key={i} className="h-20 animate-pulse rounded-xl border border-border bg-background" />)}
                 <p className="text-center text-sm text-muted-foreground animate-pulse">Building your personalized plan…</p>
               </div>
             )}
 
             {!planLoading && planError && (
-              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-red-900 bg-red-950/20 px-6 text-center">
+              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-red-900 bg-red-950/20 px-6 text-center">
                 <span className="text-3xl">⚠️</span>
                 <p className="text-sm text-red-300">{planError}</p>
                 <button onClick={generatePlan}
-                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
                   Try again
                 </button>
               </div>
             )}
 
             {!planLoading && !plan && !planError && (
-              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-background">
+              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-background">
                 <ClipboardList className="h-11 w-11 text-muted-foreground" strokeWidth={1.5} />
                 <p className="text-center text-sm text-muted-foreground px-4">
                   Fill in your details and click Build My Plan
