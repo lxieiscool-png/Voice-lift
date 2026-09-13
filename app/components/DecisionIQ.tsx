@@ -1044,6 +1044,18 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis" }:
           </div>
         )}
 
+        {/* Coachable moments: the same graded cards clips produce, spread
+            across the game, so a report is more than aggregate numbers. */}
+        {(report.playerCards?.length ?? 0) > 0 && (
+          <div>
+            <div className="mb-3 flex items-baseline justify-between">
+              <p className="text-sm font-black text-foreground">Coachable moments</p>
+              <span className="text-xs text-muted-foreground">{report.playerCards!.length} plays from this game</span>
+            </div>
+            <PlayerCardList decisions={report.playerCards!} />
+          </div>
+        )}
+
         {/* Auto box score — the builders are sport-exclusive, so at most one renders */}
         {report.volleyBox && report.volleyBox.length > 0
           ? <VolleyBoxPanel rows={report.volleyBox} />

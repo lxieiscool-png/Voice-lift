@@ -67,6 +67,9 @@ export type GameReport = {
   teamComparison?: TeamComparison | null;
   boxScore?: PlayerBoxStat[];
   volleyBox?: PlayerVolleyStat[];
+  // Coachable moments spanning the game — the same card format clips
+  // produce, so a game report is no longer just aggregate numbers.
+  playerCards?: PlayerDecision[];
   didWell?: string[];
   workOn?: string[];
 };

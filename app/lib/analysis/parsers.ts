@@ -223,6 +223,8 @@ export function parseGameReport(text: string): GameReport {
     workOn: extractList("Work On"),
     practiceFocus: extract("Game-Level Practice Focus"), playerStats,
     teamComparison: parseTeamComparison(text),
+    // Games now carry the same coachable cards clips do.
+    playerCards: parsePlayerBlocks(text),
   };
 }
 
@@ -233,7 +235,7 @@ export function isEmptyGameReport(r: GameReport | null): boolean {
 }
 
 function parseTeamComparison(text: string): TeamComparison | null {
-  const block = text.match(/Team Comparison:\s*([\s\S]*)$/i)?.[1];
+  const block = text.match(/Team Comparison:\s*([\s\S]*?)(?====\s*PLAYER\s*===|$)/i)?.[1];
   if (!block) return null;
   const teams = block.match(/Teams:\s*(.+?)\s+vs\.?\s+(.+)/i);
   if (!teams) return null;
@@ -251,6 +253,6 @@ function parseTeamComparison(text: string): TeamComparison | null {
     score:  /not visible|n\/a|unknown/i.test(scoreRaw) || !scoreRaw ? null : scoreRaw,
     winner: /unclear|n\/a|unknown/i.test(winnerRaw)    || !winnerRaw ? null : winnerRaw,
     stats,
-    why: block.match(/Why:\s*([\s\S]*?)$/i)?.[1]?.trim() ?? "",
+    why: block.match(/Why:\s*([\s\S]*?)(?====\s*PLAYER\s*===|$)/i)?.[1]?.trim() ?? "",
   };
 }
