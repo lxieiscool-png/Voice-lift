@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <Section title="What we collect">
           <ul>
             <li><strong>Account info:</strong> your email address (via Google sign-in) and any profile details you add (name, sport, team, jersey).</li>
-            <li><strong>Video &amp; images:</strong> when you analyze film, your video is <strong>processed on your own device</strong> — the video file itself is never uploaded to us. Only still frames extracted in your browser are sent for analysis, and those frames are deleted after processing. For full-game background analysis, frames are held briefly in private storage and then deleted. One low-resolution thumbnail per game may be retained to display your library.</li>
+            <li><strong>Video &amp; images:</strong> how your film is handled depends on how you submit it. If you <strong>upload a file</strong> or use <strong>screen capture</strong>, the video is processed on your own device — the video file itself is never uploaded to us, and only still frames extracted in your browser are sent for analysis. If you <strong>paste a public YouTube link</strong>, we send the link (not any video) to our AI provider, which reads the already-public video directly from YouTube. In all cases, frames we handle are deleted after processing; for full-game background analysis they are held briefly in private storage and then deleted. One low-resolution thumbnail per game may be retained to display your library.</li>
             <li><strong>Usage data:</strong> counts of analyses you run, so we can apply plan limits.</li>
             <li><strong>Payment info:</strong> if you subscribe to Reel Pro, payment is handled by Stripe. We do not receive or store your card number.</li>
           </ul>
@@ -44,7 +44,8 @@ export default function PrivacyPage() {
         <Section title="Service providers we share with">
           <p>To run Reel, limited data is processed by trusted providers acting on our behalf:</p>
           <ul>
-            <li><strong>OpenAI</strong> — analyzes the video frames you submit. Per OpenAI&apos;s API terms, this data is not used to train their models and is retained only briefly for abuse monitoring.</li>
+            <li><strong>OpenAI</strong> — analyzes video frames you submit. Per OpenAI&apos;s API terms, this data is not used to train their models and is retained only briefly for abuse monitoring.</li>
+            <li><strong>Google (Gemini API)</strong> — analyzes video frames, and reads public YouTube videos directly when you submit a link. We use Google&apos;s paid API tier, under which submitted data is not used to train their models.</li>
             <li><strong>Supabase</strong> — database, authentication, and storage.</li>
             <li><strong>Stripe</strong> — payment processing for Reel Pro.</li>
             <li><strong>Vercel</strong> — website hosting.</li>
