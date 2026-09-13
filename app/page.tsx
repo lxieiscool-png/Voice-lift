@@ -827,14 +827,14 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
 
         {/* Rotated edge caption */}
         <p className="absolute -right-40 top-1/2 hidden -translate-y-1/2 rotate-90 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.45em] text-white/35 lg:block">
-          Every decision ⊙ graded A+ to F ⊙ basketball &amp; volleyball
+          Every decision graded A+ to F / basketball and volleyball
         </p>
 
         <motion.div style={{ opacity: heroOpacity }}
           className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-24">
           <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
             className={`mb-5 ${microLabel} text-white/50`}>
-            ⊙ The AI film room for athletes
+            The AI film room for athletes
           </motion.p>
           <motion.h1 initial={{ opacity: 0, y: 34 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="font-display uppercase leading-[0.85]">
@@ -870,7 +870,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       <section className="border-y border-white/10 px-5 py-24 sm:py-32">
         <FadeUp>
           <p className="mx-auto max-w-4xl text-center font-display text-sm font-bold uppercase leading-[2.2] tracking-[0.3em] text-white/75 sm:text-lg sm:leading-[2.2]">
-            ⊙ Reel is an AI film room for athletes ✦ who want to get better, not just watch highlights ⌁ upload a game, get graded, fix the pattern ⊙
+            Reel is an AI film room for athletes who want to get better, not just watch highlights. Upload a game, get graded, fix the pattern.
           </p>
         </FadeUp>
       </section>
@@ -880,7 +880,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         <div className="mx-auto max-w-7xl">
           <FadeUp className="mb-14 flex items-end justify-between gap-6">
             <div>
-              <p className={`mb-4 ${microLabel} text-white/40`}>#01 ⊙ Film analysis</p>
+              <p className={`mb-4 ${microLabel} text-white/40`}>01 / Film analysis</p>
               <h2 className="font-display uppercase leading-[0.9]">
                 <span className="block text-5xl font-black sm:text-7xl">Decision</span>
                 <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
@@ -927,7 +927,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
         <div className="mx-auto max-w-7xl">
           <FadeUp className="mb-14 flex items-end justify-between gap-6">
             <div>
-              <p className={`mb-4 ${microLabel} text-white/40`}>#02 ⊙ Personal coaching</p>
+              <p className={`mb-4 ${microLabel} text-white/40`}>02 / Personal coaching</p>
               <h2 className="font-display uppercase leading-[0.9]">
                 <span className="block text-5xl font-black sm:text-7xl">Coach</span>
                 <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
@@ -976,7 +976,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
       <section id="pricing" className="scroll-mt-14 px-5 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl">
           <FadeUp className="mb-14">
-            <p className={`mb-4 ${microLabel} text-white/40`}>#03 ⊙ Pricing</p>
+            <p className={`mb-4 ${microLabel} text-white/40`}>03 / Pricing</p>
             <h2 className="font-display text-5xl font-black uppercase leading-[0.9] sm:text-7xl">Two plans.</h2>
           </FadeUp>
           <div className="grid gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-2">
@@ -1014,7 +1014,7 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           REEL
         </span>
         <FadeUp className="relative z-10 text-center">
-          <p className={`mb-8 ${microLabel} text-white/50`}>No card ⊙ no equipment ⊙ free to start</p>
+          <p className={`mb-8 ${microLabel} text-white/50`}>No card, no equipment, free to start</p>
           <button onClick={() => setShowSignUp(true)} disabled={signingIn}
             className={`rounded-full bg-white px-10 py-4 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
             Start free
@@ -1283,7 +1283,7 @@ export default function Reel() {
 
       {/* Nav */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur px-4 sm:px-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
             <Logo size="sm" />
@@ -1291,19 +1291,6 @@ export default function Reel() {
               <span className="rounded-full bg-emerald-500/15 border border-emerald-800 px-2 py-0.5 text-[10px] font-bold text-emerald-400 tracking-wide">PRO</span>
             )}
           </div>
-
-          <nav className="flex gap-0.5 rounded-lg border border-border bg-card p-0.5">
-            {MODULES.map(mod => (
-              <button key={mod.id} onClick={() => setActiveModule(mod.id)}
-                data-module={mod.id}
-                className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 ${
-                  activeModule === mod.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {mod.label}
-              </button>
-            ))}
-          </nav>
 
           <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -1327,13 +1314,44 @@ export default function Reel() {
         </div>
       </header>
 
-      {/* Body */}
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      {/* Nav rail + body. Sections live on the left so the workspace reads
+          like a tool rather than a page with tabs on top. */}
+      <div className="mx-auto flex max-w-[1400px] gap-8 px-4 sm:px-6">
+        <nav className="hidden w-52 shrink-0 pt-8 lg:block">
+          <div className="sticky top-20 space-y-0.5">
+            {MODULES.map(mod => {
+              const active = activeModule === mod.id;
+              return (
+                <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
+                  className={`block w-full rounded-lg px-3 py-2.5 text-left transition-colors ${
+                    active ? "bg-muted" : "hover:bg-muted/50"
+                  }`}>
+                  <span className={`block font-display text-sm font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                    {mod.label}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground">{mod.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div className="min-w-0 flex-1 py-6 sm:py-8">
+          <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto px-4 pb-1 lg:hidden">
+            {MODULES.map(mod => (
+              <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
+                className={`shrink-0 rounded-lg px-3.5 py-2 font-display text-xs font-semibold transition-colors ${
+                  activeModule === mod.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}>
+                {mod.label}
+              </button>
+            ))}
+          </nav>
 
         {activeModule === "library" ? (
           <>
             <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="font-display text-2xl font-bold sm:text-3xl">
                 Library
                 <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
@@ -1346,7 +1364,7 @@ export default function Reel() {
         ) : activeModule === "teams" ? (
           <>
             <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="font-display text-2xl font-bold sm:text-3xl">
                 Teams
                 <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
@@ -1358,7 +1376,7 @@ export default function Reel() {
           <>
             {/* Module header */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="font-display text-2xl font-bold sm:text-3xl">
                 {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
                 <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
@@ -1376,6 +1394,7 @@ export default function Reel() {
             {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} userId={user?.id} onShowUpgrade={() => setShowUpgrade(true)} />}
           </>
         )}
+        </div>
       </div>
 
       {/* Help / support assistant — floating, available across the app */}

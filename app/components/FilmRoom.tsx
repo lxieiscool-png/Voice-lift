@@ -88,9 +88,9 @@ export default function FilmRoom({ videoId, decisions, timeline = [], onClose }:
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <button onClick={onClose}
           className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-ring hover:text-foreground">
-          ← Back to report
+          Back to report
         </button>
-        <p className="text-sm font-black text-foreground">Film Room</p>
+        <p className="font-display text-sm font-bold text-foreground">Film Room</p>
         <span className="text-xs text-muted-foreground">{feed.length} plays</span>
       </div>
 

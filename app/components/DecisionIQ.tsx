@@ -872,7 +872,7 @@ function VolleyBoxPanel({ rows }: { rows: PlayerVolleyStat[] }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-black text-foreground">Box Score</p>
+        <p className="font-display text-sm font-bold text-foreground">Box Score</p>
         <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
       </div>
       <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
@@ -926,7 +926,7 @@ function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-black text-foreground">Box Score</p>
+        <p className="font-display text-sm font-bold text-foreground">Box Score</p>
         <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
       </div>
       <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
@@ -1002,9 +1002,9 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
         <div className="flex items-center justify-between">
           <button onClick={onClose}
             className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
-            ← {backLabel}
+            {backLabel}
           </button>
-          <p className="text-sm font-black text-foreground">Game Report</p>
+          <p className="font-display text-sm font-bold text-foreground">Game Report</p>
           <div className={`rounded-lg px-3 py-1 text-base font-black ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
             {report.overallGrade}
           </div>
@@ -1093,13 +1093,13 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
           <div>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-black text-foreground">Coachable moments</p>
+                <p className="font-display text-sm font-bold text-foreground">Coachable moments</p>
                 <span className="text-xs text-muted-foreground">{report.playerCards!.length} breakdowns{(report.timeline?.length ?? 0) > 0 ? ` · ${report.timeline!.length} plays logged` : ""}</span>
               </div>
               {canWatch && (
                 <button onClick={() => setFilmRoom(true)}
                   className="shrink-0 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90">
-                  ▶ Watch with analysis
+                  Watch with analysis
                 </button>
               )}
             </div>
@@ -2191,7 +2191,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               {youtubeIdFrom(ytUrl) && decisions.some(d => d.timestamp) && (
                 <button onClick={() => setClipFilmRoom(true)}
                   className="mb-3 w-full rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
-                  ▶ Watch with analysis
+                  Watch with analysis
                 </button>
               )}
               <PlayerCardList decisions={decisions} />
