@@ -32,13 +32,18 @@ export type AnalyzeChunkInput = {
   teamColor?: string;
   teamsNote?: string;
   lenient?: boolean;
+  // Public YouTube URL analyzed natively by Gemini instead of sampled frames.
+  // Real motion, so the model sees plays develop rather than guessing between
+  // stills. Requires the Gemini provider; frames are ignored when set.
+  videoUrl?: string;
 };
 
 export class SportsCheckError extends Error {}
 
 export async function analyzeChunk({
-  sport, frames, mode, chunkIndex = 0, chunkStart = "", chunkEnd = "", jersey, teamColor, teamsNote, lenient,
+  sport, frames, mode, chunkIndex = 0, chunkStart = "", chunkEnd = "", jersey, teamColor, teamsNote, lenient, videoUrl,
 }: AnalyzeChunkInput): Promise<string> {
+  const isVideo = !!videoUrl;
   const honestyBlock = lenient
     ? `BEST-EFFORT MODE: The uploader asked for analysis even though the footage may be unclear. Give them your best read of what most likely happened based on what IS visible — positioning, spacing, body language. Start any uncertain call with "Low confidence:" so they know. Still never invent jersey numbers or specific events you cannot see at all.`
     : `HONESTY OVERRIDE: If the frames are too blurry, too sparse, or too ambiguous to actually tell what happened, DO NOT invent a play. It is far better to grade fewer players well than to fabricate. If you genuinely cannot make out a real decision, output a single line "UNCLEAR: [what you can and can't see]" instead of a player block. Never manufacture a play that isn't clearly supported by the frames.`;
@@ -73,7 +78,7 @@ export async function analyzeChunk({
   const prompt = isGameMode
     ? `You are an elite sports analyst reviewing game film with a coach. Be precise — only report what you can clearly see. Never guess or fabricate details.
 
-Carefully study every frame before responding. Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
+${isVideo ? "Watch the footage carefully before responding." : "Carefully study every frame before responding."} Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
 BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
 
@@ -106,7 +111,9 @@ Sport: ${sport || "auto-detect from frames"}${teamContext}
 `
     : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
-THE FRAMES: These images are sequential stills pulled from ONE short clip, evenly spaced across it in chronological order. Read them as continuous action unfolding over time — track how players and the ball move from the first frame to the last. If the clip clearly contains more than one play, focus your grading on the most significant one. Do NOT treat the frames as separate unrelated photos.
+${isVideo
+  ? `THE VIDEO: You are watching the athlete's actual footage, with real motion. Follow plays as they develop — who moves where, when help arrives, how possessions end. Because you can see continuous action rather than stills, be precise about what actually happened. If the video contains more than one play, grade the most significant ones.`
+  : `THE FRAMES: These images are sequential stills pulled from ONE short clip, evenly spaced across it in chronological order. Read them as continuous action unfolding over time — track how players and the ball move from the first frame to the last. If the clip clearly contains more than one play, focus your grading on the most significant one. Do NOT treat the frames as separate unrelated photos.`}
 
 ${honestyBlock}
 
@@ -204,7 +211,7 @@ Practice Focus:
   // For game mode this only needs to run once (segment 0) — every later segment
   // is frames from the same already-validated video, so skipping it saves a
   // redundant OpenAI call per segment.
-  const needsPrecheck = !isGameMode || chunkIndex === 0;
+  const needsPrecheck = (!isGameMode || chunkIndex === 0) && !isVideo;
   if (needsPrecheck) {
     const precheckPrompt = `Look at these frames. Is this real sports footage showing actual athletes competing in an organized sport (basketball, soccer, football, hockey, baseball, volleyball, lacrosse, tennis, wrestling, etc.)?
 
@@ -243,6 +250,13 @@ Do not add any other text.`;
 
   // Gemini path: thinking "low" for mechanical game-segment extraction,
   // "high" for the deep single-clip coaching pass (the reasoning-heavy task).
+  if (isVideo) {
+    // Video is Gemini-only; OpenAI has no equivalent ingestion path.
+    return await geminiGenerate({
+      prompt, videoUrl, thinking: isGameMode ? "medium" : "high",
+    });
+  }
+
   if (useGemini(isGameMode ? "games" : "clips")) {
     return await geminiGenerate({
       prompt, images: frames, thinking: isGameMode ? "low" : "high",

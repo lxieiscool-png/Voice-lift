@@ -28,7 +28,24 @@ const MODELS = ["gemini-3.7-flash", "gemini-3.6-flash"];
 
 function isTransient(e: unknown): boolean {
   const msg = String((e as any)?.message ?? e);
+  // Credit exhaustion also returns 429 but retrying never helps.
+  if (/credits? (are )?depleted|prepayment/i.test(msg)) return false;
   return /\b(429|500|503)\b|high demand|overloaded|resource.?exhausted|try again/i.test(msg);
+}
+
+// Turn Gemini's API errors into something an athlete can act on.
+export function friendlyGeminiError(e: unknown): string {
+  const msg = String((e as any)?.message ?? e);
+  if (/credits? (are )?depleted|prepayment|billing/i.test(msg)) {
+    return "Analysis is temporarily unavailable. Please try again later.";
+  }
+  if (/private|unlisted|not accessible|permission|forbidden|403/i.test(msg)) {
+    return "That video isn't public, so we can't analyze it from the link. Make it public on YouTube, or use Start screen capture instead.";
+  }
+  if (/not found|invalid|404|unsupported/i.test(msg)) {
+    return "We couldn't open that video. Double-check the link, or use Start screen capture instead.";
+  }
+  return "Couldn't analyze that video. Try Start screen capture instead.";
 }
 
 export type ThinkingLevel = "low" | "medium" | "high";
@@ -36,14 +53,21 @@ export type ThinkingLevel = "low" | "medium" | "high";
 // One generation call: a text prompt plus optional data-URL frames.
 // thinking "low" for mechanical extraction (game segments, prechecks, chat),
 // "high" for the deep clip coaching pass where reasoning quality shows.
-export async function geminiGenerate({ prompt, images = [], thinking = "low", temperature, maxOutputTokens }: {
+export async function geminiGenerate({ prompt, images = [], videoUrl, thinking = "low", temperature, maxOutputTokens }: {
   prompt: string;
   images?: string[];
+  // A public YouTube URL. Gemini ingests it natively — Google serving Google,
+  // so there is nothing to download and nothing for YouTube to block. This is
+  // the only path that reads real motion instead of sampled stills.
+  videoUrl?: string;
   thinking?: ThinkingLevel;
   temperature?: number;
   maxOutputTokens?: number;
 }): Promise<string> {
   const input: Record<string, unknown>[] = [{ type: "text", text: prompt }];
+  if (videoUrl) {
+    input.push({ type: "video", uri: videoUrl });
+  }
   for (const url of images) {
     const m = /^data:(image\/\w+);base64,(.+)$/.exec(url);
     if (!m) continue;

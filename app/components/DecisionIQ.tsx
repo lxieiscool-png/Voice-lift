@@ -1471,49 +1471,88 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     setLoading(false); setProgressLabel("");
   }
 
+  // Paste a YouTube link and analyze it directly. Gemini ingests public
+  // YouTube videos natively, so this reads the real footage instead of the
+  // 320x180 preview thumbnails the old scraping path was limited to.
   async function analyzeYouTube(lenient = false) {
-    if (!ytUrl.trim()) return;
+    if (!ytUrl.trim() || !canAnalyze) return;
     setYtError("");
-    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false);
-    setProgressCurrent(0); setProgressTotal(0);
+    setLoading(true);
+    setDecisions([]); setGameReport(null); setResultMode(null);
+    setProgressLabel("Watching your film… this can take a few minutes for a full game.");
+    setProgressTotal(1); setProgressCurrent(0);
 
     try {
-      setProgressLabel("Loading YouTube video…");
-      const res  = await fetch("/api/youtube-frames", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: ytUrl }),
+      const res = await fetch("/api/youtube-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: ytUrl.trim(), sport: sport || profile.sport,
+          jersey: profile.jersey, teamColor, teamsNote, lenient,
+        }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-      if (data.error) { setYtError(data.error); setLoading(false); return; }
+      if (res.status === 403 && data.error === "limit_reached") { onShowUpgrade?.(); return; }
+      if (res.status === 403 && data.error === "guest_limit_reached") { setYtError(data.message); return; }
+      if (data.error) { setYtError(data.error); return; }
+      if (!res.ok) { setYtError(`Server error ${res.status}`); return; }
 
-      setProgressLabel("Extracting frames from video…");
-      const frames = await extractFramesFromSheets(
-        data.sheets, data.rows, data.cols, data.frameWidth, data.frameHeight, data.frameCount,
-        data.mode === "game" ? (userId ? 400 : 72) : 24, data.interval
-      );
+      setProgressCurrent(1);
+      const videoTitle = `YouTube: ${ytUrl.trim()}`;
+      const thumbnailUrl = null;
 
-      if (frames.length === 0) {
-        setYtError("Could not extract frames from this video.");
-        setLoading(false); return;
+      if (data.mode === "clip") {
+        const parsed = parsePlayerBlocks(data.feedback ?? "");
+        if (parsed.length === 0) {
+          setYtError("We watched the video but couldn't find a play clear enough to grade. Try a link that starts closer to the action.");
+          return;
+        }
+        const detectedSport = sport || parsed.find(p => p.sport)?.sport || profile.sport || "Unknown";
+        const myPlayer = findMyPlayer(parsed, profile.jersey, teamColor);
+        setDecisions(parsed); setResultMode("clip");
+        const clipReview: Review = {
+          id: crypto.randomUUID(), fileName: videoTitle, sport: detectedSport, mode: "clip",
+          grade: myPlayer?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
+          teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
+          gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+          thumbnailUrl,
+        };
+        saveReviews([clipReview, ...reviews]);
+        persistReview(userId, clipReview);
+      } else {
+        const report = parseGameReport(data.report ?? "");
+        const chunkTexts = [data.chunkText ?? ""];
+        report.boxScore = buildBoxScore(chunkTexts);
+        report.volleyBox = buildVolleyBoxScore(chunkTexts);
+        if (isEmptyGameReport(report)) {
+          setYtError("We watched the video but couldn't pull a usable game report out of it. Try Start screen capture instead.");
+          return;
+        }
+        setGameReport(report); setResultMode("game");
+        const myGrade = (data.report ?? "").match(/Your Grade:\s*([A-F][+-]?)/i)?.[1];
+        const gameReview: Review = {
+          id: crypto.randomUUID(), fileName: videoTitle,
+          sport: sport || profile.sport || "Unknown", mode: "game",
+          grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report,
+          teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
+          gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
+          thumbnailUrl,
+        };
+        saveReviews([gameReview, ...reviews]);
+        persistReview(userId, gameReview);
       }
-
-      const mode: "clip" | "game" = data.mode;
-      const videoTitle = `YouTube — ${ytUrl}`;
-
-      await runAnalysis(frames, mode, videoTitle, lenient);
     } catch (err) {
       console.error(err);
-      setYtError("Something went wrong. Try a different video.");
+      setYtError("Something went wrong analyzing that link. Try Start screen capture instead.");
     }
     setLoading(false); setProgressLabel("");
   }
 
   // Returns true if blocked (caller should stop). Non-incrementing courtesy
   // pre-check so we can show the upgrade modal before doing any work; the
-  // authoritative gate lives server-side in /api/jobs/start and /api/analyze.
-  // Fails OPEN on a network error — a transient /api/usage blip shouldn't
-  // strand a user, and the server gate will still enforce the real cap.
+  // authoritative gate lives server-side. Fails OPEN on a network error — a
+  // transient /api/usage blip shouldn't strand a user.
   async function usageBlocked(mode: "clip" | "game"): Promise<boolean> {
     if (!userId) return false;
     try {
@@ -1865,7 +1904,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
                   <input
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
-                    placeholder="YouTube link (optional — labels your review)"
+                    placeholder="Paste a YouTube link"
                     value={ytUrl}
                     onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
                   />
@@ -1888,16 +1927,16 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
 
                   <details className="rounded-xl border border-border bg-background px-4 py-3">
                     <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
-                      Try fetching the link directly instead
+                      Analyze the link directly (beta)
                     </summary>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                      YouTube blocks most server requests and only shares tiny preview images, so this usually fails or returns footage too small to read jersey numbers. Screen capture is the reliable path.
+                      Skips the capture entirely — we watch the video for you. Works only on <span className="font-semibold text-foreground">public</span> YouTube videos, not unlisted or private ones, and a full game can take several minutes. If it doesn&apos;t work, use screen capture above.
                     </p>
                     <button
                       onClick={() => analyzeYouTube()}
                       disabled={loading || !ytUrl.trim() || !canAnalyze}
                       className="mt-2.5 w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-foreground hover:border-ring transition-colors disabled:opacity-40">
-                      {loading ? "Analyzing…" : "Try direct link"}
+                      {loading ? "Watching your film…" : "Analyze this link"}
                     </button>
                   </details>
                 </>

@@ -1,75 +1,111 @@
-import { analyzeChunk, SportsCheckError } from "../../lib/analysis/analyzeChunk";
-import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
-import { isRateLimited } from "../../lib/ratelimit";
-import { getSessionUserId } from "../../lib/supabase/server";
-import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
-  // Blunt anti-abuse: a normal analysis fans out many chunk calls, so this is
-  // generous — only a scripted flood trips it.
-  if (isRateLimited(req, "analyze", 120)) {
-    return Response.json({ error: "Too many requests — slow down and try again in a minute." }, { status: 429 });
-  }
-  let metered: string | null = null;
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) return Response.json({ error: "Invalid request body." }, { status: 400 });
-    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient } = body;
-    // Identity comes from the session cookie only — a userId in the body is
-    // client-controlled and would let anyone meter (or dodge metering as)
-    // any user whose UUID they know.
-    const userId = await getSessionUserId();
+    const { sport, frames, mode, chunkIndex, chunkStart, chunkEnd } = await req.json();
 
-    // Validate before spending anything: frames must be a non-empty array of
-    // image data URLs — otherwise fail fast with 400 instead of erroring deep
-    // in the OpenAI call (and never meter a request we're rejecting).
-    if (!Array.isArray(frames) || frames.length === 0) {
-      return Response.json({ error: "No frames to analyze." }, { status: 400 });
-    }
-    // Real callers send ≤24 frames (clip) or 6 (game segment); every frame
-    // must be an image data URL, not an arbitrary URL we'd fetch for someone.
-    if (frames.length > 32 || frames.some((f: unknown) => typeof f !== "string" || !f.startsWith("data:image/"))) {
-      return Response.json({ error: "Invalid frames." }, { status: 400 });
-    }
+    const imageInputs = frames.map((frame: string) => ({
+      type: "input_image",
+      image_url: frame,
+    }));
 
-    // Clip analysis is a single call, so this is the right spot to meter it for
-    // signed-in users. (Signed-in games run through /api/jobs/start, metered
-    // there — and a guest game hits this route once per chunk, so we must not
-    // count those here.) Guests have no account to gate on and are exempt.
-    if (mode === "clip" && userId) {
-      const usage = await checkAndIncrementUsage(userId, "clip");
-      if (!usage.ok) {
-        return Response.json(
-          { error: "limit_reached", limit: usage.limit, count: usage.count, isPro: usage.isPro },
-          { status: 403 },
-        );
-      }
-      metered = userId;
-    }
+    const isGameMode = mode === "game";
 
-    // Guests get a durable per-IP monthly allowance so the signed-out path
-    // can't be farmed for unlimited free analyses. Games count once, on the
-    // first segment of the batch.
-    if (!userId) {
-      const guestKind = mode === "clip" ? "clip" : "game";
-      const countsNow = mode === "clip" || (chunkIndex ?? 0) === 0;
-      if (countsNow && !(await checkAndIncrementGuestUsage(req, guestKind))) {
-        return Response.json(
-          { error: "guest_limit_reached", message: "You've used this month's free guest analyses. Create a free account to keep going." },
-          { status: 403 },
-        );
-      }
-    }
+    const prompt = isGameMode
+      ? `
+You are DecisionIQ, an elite sports analysis AI reviewing a segment of a full game.
 
-    const feedback = await analyzeChunk({ sport, frames, mode, chunkIndex, chunkStart, chunkEnd, jersey, teamColor, teamsNote, lenient });
+Frames cover ${chunkStart}–${chunkEnd} (segment ${chunkIndex + 1}).
+Sport: ${sport || "auto-detect from frames"}
 
-    return Response.json({ feedback });
+Analyze only what is visible. If unclear, say "unclear."
+
+Return in this exact format:
+
+Period/Quarter: [visible period/quarter or "unclear"]
+Game Clock: [visible clock or "unclear"]
+Score: [visible score or "unclear"]
+
+Key Events:
+- [foul, call, score, or notable play — include jersey number and team if visible. "None detected" if none.]
+
+Player Tracking:
+- [If jersey number is clearly legible: #NUMBER (TEAM). If unclear, use descriptive label like "Blue Guard" or "White Forward". Never guess a number. One line per player.]
+
+Decision Quality:
+[1–2 sentences on decision quality this segment.]
+
+Pattern Noted:
+[One tactical pattern visible this segment.]
+
+Keep the full response under 150 words.
+`
+      : `
+You are DecisionIQ, an elite sports decision-analysis AI.
+
+Analyze ALL players who made notable decisions in this play — offense AND defense.
+Be sport-specific. Use terminology appropriate to the sport detected.
+
+Examples by sport:
+- Basketball: steals, blocks, screens, rotations, help defense, pick-and-roll reads
+- Soccer: tackles, pressing, through balls, off-ball runs, goalkeeper decisions
+- Water polo: blocks, steals, skip passes, driver cuts, goalkeeper positioning
+- Football: route running, coverage, block shedding, blitz reads
+- Hockey: puck battles, breakouts, positioning, shot selection
+
+For EACH player who made a meaningful decision (2–5 players), return a block in exactly this format:
+
+=== PLAYER ===
+Player: [If jersey number is clearly legible, use "#NUMBER (TEAM COLOR or NAME)". If number is unclear or not visible, use a descriptive label like "Blue Guard", "White Forward", "Red Goalkeeper" — NEVER guess a number you are not certain about.]
+Role: [their specific role — e.g. Ball Handler, Help Defender, Shot Blocker, Goalkeeper, Striker]
+Action: [what they did — e.g. Attempted steal, Drive to basket, Block, Defensive rotation, Off-ball cut]
+Sport: [detected sport]
+Decision Grade: [A+ to F]
+
+What Happened:
+[1 concise sentence — only what is visible.]
+
+Decision Read:
+[Was this smart? 1 sentence.]
+
+Best Alternative:
+[The better option available to them.]
+
+Why It Was Better:
+[Brief tactical reason.]
+
+Other Options:
+- [Option 1]
+- [Option 2]
+
+Pattern To Improve:
+[One specific habit for this player.]
+
+Practice Focus:
+[One drill or rep type.]
+=== END ===
+
+Sport: ${sport || "auto-detect from frames"}
+Keep each player block under 120 words.
+`;
+
+    const response = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            ...imageInputs,
+          ],
+        },
+      ],
+    });
+
+    return Response.json({ feedback: response.output_text });
   } catch (error: any) {
-    // Don't charge for an analysis the user never got.
-    if (metered) await refundUsage(metered, "clip");
-    if (error instanceof SportsCheckError) {
-      return Response.json({ error: error.message }, { status: 400 });
-    }
     console.error("OPENAI ERROR:", error);
     return Response.json({ error: error?.message || "Analysis failed." }, { status: 500 });
   }
