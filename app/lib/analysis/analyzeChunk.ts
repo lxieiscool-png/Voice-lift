@@ -41,13 +41,17 @@ export type AnalyzeChunkInput = {
   videoStart?: number;
   videoEnd?: number;
   videoFps?: number;
+  // Jersey numbers actually on the roster. Given these, the model can't
+  // report a #6 when the team only has an #8 — which is where most two-digit
+  // misreads come from.
+  rosterNumbers?: string[];
 };
 
 export class SportsCheckError extends Error {}
 
 export async function analyzeChunk({
   sport, frames, mode, chunkIndex = 0, chunkStart = "", chunkEnd = "", jersey, teamColor, teamsNote, lenient,
-  videoUrl, videoStart, videoEnd, videoFps,
+  videoUrl, videoStart, videoEnd, videoFps, rosterNumbers,
 }: AnalyzeChunkInput): Promise<string> {
   const isVideo = !!videoUrl;
   const honestyBlock = lenient
@@ -89,6 +93,10 @@ ${isVideo ? `You are watching ONE TIME WINDOW of a longer game, and other window
 BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
 
 DIRECTION: Describe direction with court/field-relative terms (baseline, middle, paint, wing, strong-side, weak-side, near side, far side) rather than "left/right" — video can be mirrored and left/right is unreliable. Only say "left" or "right" when genuinely certain, anchored to the viewer's perspective.
+
+${rosterNumbers?.length
+  ? `\nROSTER — the only jersey numbers in this game are: ${rosterNumbers.join(", ")}. If a number you read is not on this list you misread it: pick the closest number that IS on the list, or fall back to a descriptive label. Never report a number that isn't here.\n`
+  : ""}JERSEY NUMBERS — READ TWICE: two-digit numbers and the pairs 6/8, 3/8, 5/6, 1/7, 0/8 are the most common misreads, and a wrong number attributes a play to the wrong athlete, which is worse than no number at all. Confirm a number in at least two separate moments before reporting it. If the two readings disagree, or you only ever saw it once and unclearly, use a descriptive label like "White Point Guard" instead.
 ${jersey || teamColor ? `\nTHE UPLOADER: this athlete is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Whenever they are visible in this segment, always include their line in Player Tracking, log their stat events, and let Decision Quality speak directly to THEM about what they specifically did. If no player matching this description is visible in this segment, simply omit them — never relabel another player as the uploader.\n` : ""}
 Return ONLY this format — no extra commentary:
 
@@ -175,6 +183,10 @@ HOCKEY / LACROSSE — grade with real coaching depth:
 - Defending: gap control, stick and body positioning, slides and recoveries, boxing out the front
 
 For any sport: use its exact positional terminology, and be honest about lower confidence when the footage is a wide shot or the action is too fast to read cleanly from frames.
+
+${rosterNumbers?.length
+  ? `\nROSTER — the only jersey numbers in this game are: ${rosterNumbers.join(", ")}. If a number you read is not on this list you misread it: pick the closest number that IS on the list, or fall back to a descriptive label. Never report a number that isn't here.\n`
+  : ""}JERSEY NUMBERS — READ TWICE: two-digit numbers and the pairs 6/8, 3/8, 5/6, 1/7, 0/8 are the most common misreads, and a wrong number attributes a play to the wrong athlete, which is worse than no number at all. Confirm a number in at least two separate moments before reporting it. If the two readings disagree, or you only ever saw it once and unclearly, use a descriptive label like "White Point Guard" instead.
 
 GRADING RUBRIC — grade the DECISION, not the outcome. A smart read that got a bad bounce is still a good decision; a lucky bucket off a bad read is still a bad decision. Anchor every grade to this scale so grades stay consistent and comparable over time:
 - A+ / A: Optimal read, executed on time — the choice an elite coach applauds.
@@ -264,6 +276,8 @@ Do not add any other text.`;
     // Video is Gemini-only; OpenAI has no equivalent ingestion path.
     return await geminiGenerate({
       prompt, videoUrl, videoStart, videoEnd, videoFps,
+      // Jersey legibility is the whole game for per-player grading.
+      videoResolution: "high",
       thinking: isGameMode ? "medium" : "high",
     });
   }

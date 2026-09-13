@@ -88,6 +88,18 @@ export const analyzeGameJob = inngest.createFunction(
       await supabase.from("analysis_jobs").update({ status: "processing" }).eq("id", jobId);
     });
 
+    // If this game is linked to a team, the roster's jersey numbers become a
+    // hard constraint — the model can't report a #6 when only #8 exists,
+    // which is where most two-digit misreads come from.
+    const rosterNumbers = await step.run("load-roster", async () => {
+      if (!job.team_id) return [] as string[];
+      const { data } = await supabase.from("team_members")
+        .select("jersey_number").eq("team_id", job.team_id);
+      return (data ?? [])
+        .map((r: { jersey_number: string | null }) => (r.jersey_number ?? "").trim())
+        .filter(Boolean);
+    });
+
     // A whole game analyzed in ONE call makes the model summarize a few
     // highlights instead of logging every possession, so the video is split
     // into windows — the same shape as the frame-chunk path below.
@@ -117,7 +129,7 @@ export const analyzeGameJob = inngest.createFunction(
         try {
           const text = await analyzeChunk({
             sport: job.sport, frames, mode: "game", chunkIndex: i, chunkStart, chunkEnd,
-            jersey, teamColor, teamsNote, lenient,
+            jersey, teamColor, teamsNote, lenient, rosterNumbers,
           });
           await supabase.from("analysis_jobs")
             .update({ progress_current: end, progress_label: `Segment ${i + 1} of ${chunkRanges.length}` })
@@ -143,7 +155,7 @@ export const analyzeGameJob = inngest.createFunction(
         const text = await analyzeChunk({
           sport: job.sport, frames: [], mode: "game", chunkIndex: i,
           chunkStart: formatTime(start), chunkEnd: formatTime(end),
-          jersey, teamColor, teamsNote, lenient,
+          jersey, teamColor, teamsNote, lenient, rosterNumbers,
           videoUrl, videoStart: start, videoEnd: end,
         });
         await supabase.from("analysis_jobs")

@@ -53,7 +53,7 @@ export type ThinkingLevel = "low" | "medium" | "high";
 // One generation call: a text prompt plus optional data-URL frames.
 // thinking "low" for mechanical extraction (game segments, prechecks, chat),
 // "high" for the deep clip coaching pass where reasoning quality shows.
-export async function geminiGenerate({ prompt, images = [], videoUrl, videoStart, videoEnd, videoFps, thinking = "low", temperature, maxOutputTokens }: {
+export async function geminiGenerate({ prompt, images = [], videoUrl, videoStart, videoEnd, videoFps, videoResolution, thinking = "low", temperature, maxOutputTokens }: {
   prompt: string;
   images?: string[];
   // A public YouTube URL. Gemini ingests it natively — Google serving Google,
@@ -67,6 +67,10 @@ export async function geminiGenerate({ prompt, images = [], videoUrl, videoStart
   videoEnd?: number;
   // Frames per second Gemini samples. Default is 1; 0.5 halves cost.
   videoFps?: number;
+  // Pixels per frame Gemini keeps. Jersey numbers are small and two-digit
+  // misreads (6 vs 8, 25 vs 26) come straight from resolution, so analysis
+  // asks for "high" rather than the default.
+  videoResolution?: "low" | "medium" | "high" | "ultra_high";
   thinking?: ThinkingLevel;
   temperature?: number;
   maxOutputTokens?: number;
@@ -74,6 +78,7 @@ export async function geminiGenerate({ prompt, images = [], videoUrl, videoStart
   const input: Record<string, unknown>[] = [{ type: "text", text: prompt }];
   if (videoUrl) {
     const video: Record<string, unknown> = { type: "video", uri: videoUrl };
+    if (videoResolution) video.resolution = videoResolution;
     if (videoStart !== undefined || videoEnd !== undefined || videoFps !== undefined) {
       // Offsets are duration strings with an "s" suffix ("480s"), not numbers.
       const processing: Record<string, unknown> = { type: "static" };
