@@ -30,8 +30,10 @@ export type UsageStatus = { ok: boolean; count: number; limit: number; isPro: bo
 // prompts). Kept in env, not code, so no email or ID lives in the repo and
 // adding an owner is a dashboard change, not a deploy.
 function isOwner(userId: string): boolean {
-  return (process.env.OWNER_USER_IDS ?? "")
-    .split(",").map(s => s.trim()).filter(Boolean).includes(userId);
+  // Accept either spelling — the plural is the documented name, but the
+  // singular is the easy typo and silently disables the bypass otherwise.
+  const raw = process.env.OWNER_USER_IDS || process.env.OWNER_USER_ID || "";
+  return raw.split(",").map(s => s.trim()).filter(Boolean).includes(userId);
 }
 
 const OWNER_STATUS = (kind: UsageKind): UsageStatus =>
