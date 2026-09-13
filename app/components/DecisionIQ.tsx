@@ -2081,7 +2081,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </div>
 
         {/* Results */}
-        <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-4 sm:p-5">
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">
@@ -2373,7 +2373,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     return (
       <div>
         {jobsPanel}
-        <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-4">
+        <div className="rounded-lg border border-border bg-card p-10 flex flex-col items-center justify-center text-center gap-4">
           <Clapperboard className="h-10 w-10 text-muted-foreground" strokeWidth={1.5} />
           <div>
             <p className="text-base font-semibold text-foreground mb-1">No film yet</p>
@@ -2433,7 +2433,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-5">
+    <div className="rounded-lg border border-border bg-card p-5">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
