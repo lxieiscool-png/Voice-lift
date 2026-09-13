@@ -58,6 +58,27 @@ async function fetchDurationSeconds(videoId: string): Promise<number | null> {
       if (Number.isFinite(len) && len > 0) return len;
     } catch { /* next client */ }
   }
+
+  // Innertube answers without a duration for a lot of videos; the watch page
+  // still carries it in metadata even when the player payload is stripped.
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cookie": "CONSENT=YES+cb; SOCS=CAI",
+      },
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const ms = html.match(/"approxDurationMs":"(\d+)"/)?.[1];
+      if (ms) return Math.round(parseInt(ms, 10) / 1000);
+      const secs = html.match(/"lengthSeconds":"(\d+)"/)?.[1];
+      if (secs) return parseInt(secs, 10);
+      const iso = html.match(/itemprop="duration" content="PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?"/);
+      if (iso) return (+(iso[1] ?? 0)) * 3600 + (+(iso[2] ?? 0)) * 60 + (+(iso[3] ?? 0));
+    }
+  } catch { /* give up; the caller falls back to the uploader's own answer */ }
   return null;
 }
 
@@ -82,7 +103,15 @@ export async function POST(req: Request) {
     const lenient   = !!body.lenient;
 
     const durationSeconds = await fetchDurationSeconds(videoId);
-    const mode: "clip" | "game" = (durationSeconds ?? 0) > 120 ? "game" : "clip";
+    // The uploader picks "Team game footage" or "Just a clip" in the UI, and
+    // that answer is better than any heuristic — duration lookups fail often
+    // enough that guessing from them alone turned full games into clips.
+    // Duration only overrides when we actually know it and it's short.
+    const saysGame = body.isGameFootage !== false;
+    const mode: "clip" | "game" =
+      durationSeconds && durationSeconds <= 120 ? "clip"
+      : saysGame ? "game"
+      : "clip";
 
     // Same metering as every other analysis path.
     const userId = await getSessionUserId();

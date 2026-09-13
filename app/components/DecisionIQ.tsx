@@ -1540,6 +1540,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         body: JSON.stringify({
           url: ytUrl.trim(), sport: sport || profile.sport,
           jersey: profile.jersey, teamColor, teamsNote, lenient,
+          isGameFootage,
           teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
           gameType: linkedTeamId ? gameType : null,
           gameDate: linkedTeamId && gameDate ? gameDate : null,
