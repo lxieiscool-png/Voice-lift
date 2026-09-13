@@ -1881,33 +1881,21 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 </div>
               ) : (
                 <>
-                  {screenCaptureSupported() ? (
-                    <div className="rounded-2xl border border-border bg-muted/30 p-5">
-                      <p className="text-sm font-bold text-foreground">Capture from your screen</p>
-                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                        Works with YouTube, HUDL, or any film that plays in your browser. Open your film in another tab, start the capture, pick that tab, and press play. Nothing to download, nothing to record, no giant file to upload.
-                      </p>
-                      <button
-                        onClick={() => startScreenCapture()}
-                        disabled={loading || !canAnalyze}
-                        className="mt-3 w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
-                        Start screen capture
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                      <p className="text-xs leading-relaxed text-muted-foreground">
-                        Screen capture needs a laptop or desktop. On a phone, use the Upload tab to send the video file instead.
-                      </p>
-                    </div>
-                  )}
+                  {/* Primary: paste a link. Gemini reads public YouTube
+                      natively, so this is now the fastest path to a report. */}
+                  <div className="rounded-2xl border border-border bg-muted/30 p-5">
+                    <p className="text-sm font-bold text-foreground">Paste your film link</p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      We watch the video and grade it. Nothing to download, record, or upload. Works on <span className="font-semibold text-foreground">public</span> YouTube videos.
+                    </p>
+                    <input
+                      className="mt-3 w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={ytUrl}
+                      onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
+                    />
+                  </div>
 
-                  <input
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
-                    placeholder="Paste a YouTube link"
-                    value={ytUrl}
-                    onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
-                  />
                   <input
                     className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
@@ -1925,20 +1913,35 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   )}
                   {teamLinkingFields}
 
-                  <details className="rounded-xl border border-border bg-background px-4 py-3">
-                    <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
-                      Analyze the link directly (beta)
-                    </summary>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                      Skips the capture entirely — we watch the video for you. Works only on <span className="font-semibold text-foreground">public</span> YouTube videos, not unlisted or private ones, and a full game can take several minutes. If it doesn&apos;t work, use screen capture above.
+                  <button
+                    onClick={() => analyzeYouTube()}
+                    disabled={loading || !ytUrl.trim() || !canAnalyze}
+                    className="w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
+                    {loading ? "Watching your film…" : "Analyze this link"}
+                  </button>
+
+                  {/* Fallback for film the link path can't reach: unlisted
+                      YouTube, HUDL, anything behind a login. */}
+                  {screenCaptureSupported() ? (
+                    <details className="rounded-xl border border-border bg-background px-4 py-3">
+                      <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+                        Film not on public YouTube? Capture your screen instead
+                      </summary>
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        For unlisted videos, HUDL, or anything behind a login. Open your film in another tab, start the capture, pick that tab, and press play — 2x speed works. Hit stop when the play is over.
+                      </p>
+                      <button
+                        onClick={() => startScreenCapture()}
+                        disabled={loading || !canAnalyze}
+                        className="mt-2.5 w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-foreground hover:border-ring transition-colors disabled:opacity-40">
+                        Start screen capture
+                      </button>
+                    </details>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      If your film isn&apos;t on public YouTube, use the Upload tab — screen capture needs a laptop or desktop.
                     </p>
-                    <button
-                      onClick={() => analyzeYouTube()}
-                      disabled={loading || !ytUrl.trim() || !canAnalyze}
-                      className="mt-2.5 w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-foreground hover:border-ring transition-colors disabled:opacity-40">
-                      {loading ? "Watching your film…" : "Analyze this link"}
-                    </button>
-                  </details>
+                  )}
                 </>
               )}
 
