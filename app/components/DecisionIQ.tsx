@@ -37,7 +37,7 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
-import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore, buildVolleyBoxScore } from "../lib/analysis/parsers";
+import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore, buildVolleyBoxScore, buildDecisionTimeline } from "../lib/analysis/parsers";
 import FilmRoom, { youtubeIdFrom } from "./FilmRoom";
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
@@ -767,8 +767,23 @@ function PlayerCard({ decision, defaultOpen = false }: {
 }
 
 export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
-  // Group into team rosters by jersey/team tag so a two-team clip shows two
-  // side-by-side sections instead of one flat, unsorted list.
+  // When moments are placed on the tape, the timeline IS the organizing idea:
+  // one flat run through the game, earliest to latest. Grouping by team here
+  // would scramble it — you'd read 3:33, 7:44, 37:40 and then jump back to
+  // 4:08 for the other team.
+  const timed = decisions.some(d => d.timestamp);
+  if (timed) {
+    return (
+      <div className="space-y-3">
+        {decisions.map((d, i) => (
+          <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
+        ))}
+      </div>
+    );
+  }
+
+  // No timestamps (frame-based clips): fall back to team rosters so a
+  // two-team clip still reads as two sections instead of one flat list.
   const groups = new Map<string, { label: string; hex: string; decisions: PlayerDecision[] }>();
   for (const d of decisions) {
     const tag = extractTeamTag(d.player);
@@ -964,7 +979,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
   const focusStat = focus ? parseStatLine(focus.raw) : null;
 
   if (filmRoom && videoId) {
-    return <FilmRoom videoId={videoId} decisions={report.playerCards ?? []} onClose={() => setFilmRoom(false)} />;
+    return <FilmRoom videoId={videoId} decisions={report.playerCards ?? []} timeline={report.timeline ?? []} onClose={() => setFilmRoom(false)} />;
   }
 
   return (
@@ -1066,7 +1081,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-foreground">Coachable moments</p>
-                <span className="text-xs text-muted-foreground">{report.playerCards!.length} plays from this game</span>
+                <span className="text-xs text-muted-foreground">{report.playerCards!.length} breakdowns{(report.timeline?.length ?? 0) > 0 ? ` · ${report.timeline!.length} plays logged` : ""}</span>
               </div>
               {canWatch && (
                 <button onClick={() => setFilmRoom(true)}
@@ -1572,6 +1587,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const chunkTexts = [data.chunkText ?? ""];
         report.boxScore = buildBoxScore(chunkTexts);
         report.volleyBox = buildVolleyBoxScore(chunkTexts);
+      report.timeline = buildDecisionTimeline(chunkTexts);
         if (isEmptyGameReport(report)) {
           setYtError("We watched the video but couldn't pull a usable game report out of it. Try Start screen capture instead.");
           return;

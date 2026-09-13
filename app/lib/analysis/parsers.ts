@@ -50,6 +50,41 @@ export type DecisionTally = {
 // from this evidence rather than the model eyeballing dozens of text blobs —
 // so the same game always yields the same counts, and the grade is explainable
 // ("B-: 14 good / 9 poor across 31 decisions") instead of a vibe.
+// One logged play, kept individually rather than collapsed into a count.
+// This is the dense layer: every possession the windows saw, in order — the
+// coachable cards are a curated handful drawn from these.
+export type TimelineEvent = {
+  timestamp: string;
+  seconds: number;
+  player: string;
+  quality: "good" | "neutral" | "poor";
+  description: string;
+};
+
+export function buildDecisionTimeline(chunkTexts: string[]): TimelineEvent[] {
+  const out: TimelineEvent[] = [];
+  for (const text of chunkTexts) {
+    const section = text.match(/Decision Events:\s*([\s\S]*?)(?=\n[A-Z][\w &/]+:|===|$)/i)?.[1] ?? "";
+    for (const rawLine of section.split("\n")) {
+      const line = rawLine.replace(/^[-•*]\s*/, "").trim();
+      if (!line || /^none\b/i.test(line)) continue;
+      const timeMatch = line.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s*\|\s*/);
+      const rest = timeMatch ? line.slice(timeMatch[0].length) : line;
+      const m = rest.match(/^(.+?)\s*\|\s*(good|neutral|poor)\b\s*\|?\s*(.*)$/i);
+      if (!m) continue;
+      const timestamp = timeMatch?.[1] ?? "";
+      out.push({
+        timestamp,
+        seconds: timestamp ? timestampSeconds(timestamp) : Number.MAX_SAFE_INTEGER,
+        player: m[1].trim(),
+        quality: m[2].toLowerCase() as "good" | "neutral" | "poor",
+        description: m[3].trim(),
+      });
+    }
+  }
+  return out.sort((a, b) => a.seconds - b.seconds);
+}
+
 export function buildDecisionTally(chunkTexts: string[]): DecisionTally {
   const byKey = new Map<string, { player: string; good: number; neutral: number; poor: number }>();
   let good = 0, neutral = 0, poor = 0;

@@ -74,6 +74,9 @@ export type GameReport = {
   // Coachable moments spanning the game — the same card format clips
   // produce, so a game report is no longer just aggregate numbers.
   playerCards?: PlayerDecision[];
+  // Every possession the analysis logged, in order. Dense feed; the cards
+  // above are the curated subset worth a full coaching writeup.
+  timeline?: { timestamp: string; seconds: number; player: string; quality: "good" | "neutral" | "poor"; description: string }[];
   didWell?: string[];
   workOn?: string[];
 };

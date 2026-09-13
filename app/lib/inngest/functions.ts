@@ -4,7 +4,7 @@ import { inngest } from "./client";
 import { createAdminClient } from "../supabase/admin";
 import { analyzeChunk, SportsCheckError } from "../analysis/analyzeChunk";
 import { synthesizeGameReport } from "../analysis/synthesize";
-import { parseGameReport, buildBoxScore, buildVolleyBoxScore } from "../analysis/parsers";
+import { parseGameReport, buildBoxScore, buildVolleyBoxScore, buildDecisionTimeline } from "../analysis/parsers";
 import { formatTime } from "../decisioniq-helpers";
 import { refundUsage } from "../usage";
 
@@ -173,6 +173,7 @@ export const analyzeGameJob = inngest.createFunction(
       const chunkTexts = chunkSummaries.map(c => c.text);
       report.boxScore = buildBoxScore(chunkTexts);
       report.volleyBox = buildVolleyBoxScore(chunkTexts);
+      report.timeline = buildDecisionTimeline(chunkTexts);
       const myGrade = reportText.match(/Your Grade:\s*([A-F][+-]?)/i)?.[1];
       const id = randomUUID();
       const { error } = await supabase.from("reviews").insert({
