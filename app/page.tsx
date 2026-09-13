@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import type { Profile, Review } from "./lib/types";
 import { averageGrade, gradeClass, formatDate, GRADE_VALUE } from "./lib/shared";
@@ -8,22 +9,31 @@ import { createClient } from "./lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import Logo from "./components/Logo";
 import UpgradeModal from "./components/UpgradeModal";
+import ThemeToggle from "./components/ThemeToggle";
+import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, type LucideIcon } from "lucide-react";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
 const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
+const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
+const SupportWidget = dynamic(() => import("./components/SupportWidget"), { ssr: false });
+
+function fireBurst(e: React.MouseEvent) {
+  import("./components/LandingEffects").then(m => m.fireBurst(e));
+}
 
 const DEFAULT_PROFILE: Profile = { name: "", sport: "", team: "" };
 const MODULES = [
   { id: "decision", label: "DecisionIQ", sub: "Film analysis"     },
   { id: "coach",    label: "CoachIQ",    sub: "Personal coaching" },
   { id: "library",  label: "Library",    sub: "Past reviews"      },
+  { id: "teams",    label: "Teams",      sub: "Season & roster"   },
 ] as const;
 type ModuleId = typeof MODULES[number]["id"];
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
-function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profile) => void }) {
+function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSave: (p: Profile) => void; reviews?: Review[] }) {
   const [editing, setEditing] = useState(false);
   const [draft,   setDraft]   = useState(profile);
   function save() { onSave(draft); setEditing(false); }
@@ -32,7 +42,7 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
     return (
       <button
         onClick={() => { setDraft({ name: "", sport: "", team: "", jersey: "" }); setEditing(true); }}
-        className="mb-6 w-full border border-dashed border-zinc-800 py-3 text-sm text-zinc-600 hover:border-zinc-600 hover:text-zinc-400 transition-colors rounded-xl"
+        className="mb-6 w-full border border-dashed border-border py-3 text-sm text-muted-foreground hover:border-ring hover:text-muted-foreground transition-colors rounded-xl"
       >
         Set up your athlete profile
       </button>
@@ -41,44 +51,67 @@ function ProfileCard({ profile, onSave }: { profile: Profile; onSave: (p: Profil
 
   if (editing) {
     return (
-      <div className="mb-6 border border-zinc-800 bg-zinc-950 rounded-xl p-5">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Profile</p>
+      <div className="mb-6 border border-border bg-card rounded-xl p-5">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Your name" value={draft.name ?? ""} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Primary sport" value={draft.sport ?? ""} onChange={e => setDraft(d => ({ ...d, sport: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
             placeholder="Team / school" value={draft.team ?? ""} onChange={e => setDraft(d => ({ ...d, team: e.target.value }))} />
-          <input className="rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500"
-            placeholder="Jersey number (e.g. 23) — tracks your grades over time"
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+            placeholder="Jersey number (e.g. 23) tracks your grades over time"
             value={draft.jersey ?? ""} onChange={e => setDraft(d => ({ ...d, jersey: e.target.value }))} />
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+            placeholder="Position (e.g. Point Guard)"
+            value={draft.position ?? ""} onChange={e => setDraft(d => ({ ...d, position: e.target.value }))} />
+          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+            placeholder="Team jersey colors (e.g. White, or 'mixed white + blue')"
+            value={draft.teamColor ?? ""} onChange={e => setDraft(d => ({ ...d, teamColor: e.target.value }))} />
         </div>
         <div className="mt-3 flex gap-2">
-          <button onClick={save} className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">Save</button>
-          <button onClick={() => setEditing(false)} className="rounded-lg px-4 py-2 text-sm text-zinc-500 hover:text-white transition-colors">Cancel</button>
+          <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Save</button>
+          <button onClick={() => setEditing(false)} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
         </div>
       </div>
     );
   }
 
+  const avg = averageGrade(reviews.map(r => r.grade).filter(g => g && g !== "N/A"));
   return (
-    <div className="mb-6 flex items-center justify-between border border-zinc-800 bg-zinc-950 rounded-xl px-4 py-3">
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-white text-black text-sm font-bold">
+    <div className="mb-6 flex items-center justify-between rounded-2xl border border-border bg-gradient-to-r from-muted/70 to-card px-4 py-3.5">
+      <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-muted-foreground text-primary-foreground text-sm font-black shadow-lg shadow-white/10">
           {profile.jersey ? `#${profile.jersey}` : profile.name.charAt(0).toUpperCase()}
         </div>
-        <div>
-          <p className="text-sm font-semibold text-white">{profile.name}</p>
-          <p className="text-xs text-zinc-500">
-            {[profile.sport, profile.team, profile.jersey ? `#${profile.jersey}` : ""].filter(Boolean).join(" · ")}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-foreground">{profile.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {[profile.sport, profile.team].filter(Boolean).join(" · ") || "Athlete"}
           </p>
         </div>
       </div>
-      <button onClick={() => { setDraft(profile); setEditing(true); }}
-        className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">
-        Edit
-      </button>
+      <div className="flex items-center gap-2 shrink-0">
+        {reviews.length > 0 && (
+          <>
+            <div className="hidden sm:flex flex-col items-center rounded-xl border border-border bg-muted px-3 py-1.5">
+              <span className="text-sm font-black text-foreground leading-tight">{reviews.length}</span>
+              <span className="text-[9px] uppercase tracking-widest text-muted-foreground">clips</span>
+            </div>
+            {avg !== "N/A" && (
+              <div className="hidden sm:flex flex-col items-center rounded-xl border border-border bg-muted px-3 py-1.5">
+                <span className="text-sm font-black leading-tight text-foreground">{avg}</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">avg grade</span>
+              </div>
+            )}
+          </>
+        )}
+        <button onClick={() => { setDraft(profile); setEditing(true); }}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
+          Edit
+        </button>
+      </div>
     </div>
   );
 }
@@ -125,11 +158,11 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
   return (
     <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
       {stats.map(({ label, value, grade, fire }) => (
-        <div key={label} className="border border-zinc-800 bg-zinc-950 rounded-xl px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-1">{label}</p>
+        <div key={label} className="border border-border bg-card rounded-xl px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
           {grade
             ? <span className={`inline-block rounded-md px-2.5 py-0.5 text-lg font-bold ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="text-xl font-bold text-white capitalize">{value}{fire ? " 🔥" : ""}</p>
+            : <p className="flex items-center gap-1 text-xl font-bold text-foreground capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
           }
         </div>
       ))}
@@ -154,8 +187,8 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
   const poly  = pts.map(p => `${p.x},${p.y}`).join(" ");
 
   return (
-    <div className="mb-5 border border-zinc-800 bg-zinc-950 rounded-xl p-4">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Grade Trend</p>
+    <div className="mb-5 border border-border bg-card rounded-xl p-4">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Grade Trend</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 110 }}>
         {[{ v: 13, l: "A+" }, { v: 9, l: "B" }, { v: 6, l: "C" }, { v: 1, l: "F" }].map(({ v, l }) => (
           <g key={v}>
@@ -177,17 +210,17 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
-const HOW_STEPS: Record<"decision" | "coach", { num: string; title: string; desc: string }[]> = {
+const HOW_STEPS: Record<"decision" | "coach", { icon: LucideIcon; title: string; desc: string }[]> = {
   decision: [
-    { num: "01", title: "Upload your footage",      desc: "Drop in a short clip or a full game. DecisionIQ figures out the sport, the teams, and the situation automatically." },
-    { num: "02", title: "Every player is reviewed", desc: "Every player on screen, offense and defense, gets their own grade, breakdown, and feedback based on what they did and what they could have done instead." },
-    { num: "03", title: "See the full picture",     desc: "Each decision card shows what happened, whether it was the right read, the better option, and one thing to work on. Full games get period breakdowns and foul patterns." },
-    { num: "04", title: "Track your progress",      desc: "Every review is saved. Over time you can see your grade trend and whether your decision-making is improving." },
+    { icon: Clapperboard, title: "Upload your footage",      desc: "Short clip or full game. Sport, teams, and situation are detected automatically." },
+    { icon: Brain, title: "Every player is reviewed", desc: "Everyone on screen gets a grade, a breakdown, and what they should've done instead." },
+    { icon: ClipboardList, title: "See the full picture",     desc: "What happened, the better option, and one thing to work on. Games get full reports." },
+    { icon: TrendingUp, title: "Track your progress",      desc: "Every review is saved. Watch your grade trend climb over time." },
   ],
   coach: [
-    { num: "01", title: "Ask your coach anything",  desc: "Question about technique, strategy, positioning, or mindset? CoachIQ knows your sport and your film patterns. Answers are specific to you." },
-    { num: "02", title: "Get a real practice plan", desc: "Tell CoachIQ your position, experience, available days, and what you want to improve. It builds a full week of sessions with specific drills and reps." },
-    { num: "03", title: "Connected to your film",   desc: "Patterns found in your DecisionIQ reviews automatically feed into CoachIQ. Your plan targets the exact weaknesses your film identified." },
+    { icon: MessageCircle, title: "Ask your coach anything",  desc: "Technique, strategy, mindset. Answers specific to your sport and your film." },
+    { icon: Dumbbell, title: "Get a real practice plan", desc: "A full week of sessions with specific solo drills and exact reps." },
+    { icon: Target, title: "Connected to your film",   desc: "Weaknesses found in your film feed straight into your plan." },
   ],
 };
 
@@ -206,37 +239,38 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
   const steps = HOW_STEPS[activeModule];
 
   return (
-    <div className="mb-6 border border-zinc-800 bg-zinc-950 rounded-xl overflow-hidden">
+    <div className="mb-6 rounded-2xl border border-border bg-gradient-to-b from-muted/60 to-card overflow-hidden">
       <button onClick={toggle}
         className="flex w-full items-center justify-between px-5 py-4 text-left">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-0.5">How it works</p>
-          <p className="text-sm font-semibold text-white">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">How it works</p>
+          <p className="text-sm font-semibold text-foreground">
             {activeModule === "decision" ? "From raw footage to real feedback" : "From questions to a real plan"}
           </p>
         </div>
-        <span className="text-[10px] text-zinc-600">{open ? "HIDE" : "SHOW"}</span>
+        <span className="rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{open ? "HIDE" : "SHOW"}</span>
       </button>
 
       {open && (
-        <div className="border-t border-zinc-800 p-5 space-y-4">
+        <div className="border-t border-border/60 p-5 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(s => (
-              <div key={s.num} className="border border-zinc-800 rounded-xl p-4">
-                <p className="text-[10px] font-bold text-zinc-700 mb-2 tracking-widest">{s.num}</p>
-                <p className="text-sm font-semibold text-white mb-1">{s.title}</p>
-                <p className="text-xs text-zinc-500 leading-relaxed">{s.desc}</p>
+            {steps.map((s, i) => (
+              <div key={s.title} className="group relative rounded-xl border border-border bg-muted p-4 transition-colors hover:border-ring">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/80"><s.icon className="h-4.5 w-4.5 text-foreground" strokeWidth={1.75} /></span>
+                  <span className="text-[10px] font-black tracking-widest text-muted-foreground">0{i + 1}</span>
+                </div>
+                <p className="text-sm font-semibold text-foreground mb-1">{s.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
 
           {activeModule === "decision" && (
-            <div className="border border-zinc-800 rounded-xl px-4 py-3">
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                <span className="font-semibold text-white">DecisionIQ</span> is your film room.{" "}
-                <span className="font-semibold text-white">CoachIQ</span> is your coach on the sideline. Use both together: analyze a clip, then ask CoachIQ to build a plan around what you found.
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed px-1">
+              <span className="font-semibold text-foreground">DecisionIQ</span> is your film room.{" "}
+              <span className="font-semibold text-foreground">CoachIQ</span> is your coach on the sideline. Analyze a clip, then build a plan around what you found.
+            </p>
           )}
         </div>
       )}
@@ -278,38 +312,38 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
     a.href = url; a.download = "reel-history.json"; a.click();
     URL.revokeObjectURL(url);
   }
-    
+
   return (
     <>
       {/* Backdrop */}
       {open && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />}
 
       {/* Drawer */}
-      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-zinc-950 border-l border-zinc-800 transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-card border-l border-border transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex h-full flex-col overflow-y-auto">
 
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
-            <p className="text-sm font-semibold text-white">Settings</p>
-            <button onClick={onClose} className="text-xs text-zinc-600 hover:text-white transition-colors">Close</button>
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <p className="text-sm font-semibold text-foreground">Settings</p>
+            <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Close</button>
           </div>
 
           <div className="flex-1 space-y-6 p-5">
 
             {/* Profile */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Profile</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
               <div className="space-y-2">
                 {(["name", "sport", "team", "jersey"] as const).map(k => (
                   <input key={k}
-                    className="w-full rounded-lg border border-zinc-800 bg-black px-3 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
                     placeholder={k === "name" ? "Your name" : k === "sport" ? "Primary sport" : k === "team" ? "Team / school" : "Jersey number (e.g. 23)"}
                     value={draft[k] ?? ""}
                     onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))}
                   />
                 ))}
                 <button onClick={save}
-                  className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                  className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
                   {saved ? "Saved" : "Save Profile"}
                 </button>
               </div>
@@ -317,7 +351,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Stats */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Your Stats</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Your Stats</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Total Reviews", value: reviews.length },
@@ -325,9 +359,9 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                   { label: "Games", value: reviews.filter(r => r.mode === "game").length },
                   { label: "Sports", value: new Set(reviews.map(r => r.sport.toLowerCase())).size },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-lg border border-zinc-800 px-3 py-2.5">
-                    <p className="text-[10px] text-zinc-600 mb-0.5">{label}</p>
-                    <p className="text-lg font-bold text-white">{value}</p>
+                  <div key={label} className="rounded-lg border border-border px-3 py-2.5">
+                    <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
+                    <p className="text-lg font-bold text-foreground">{value}</p>
                   </div>
                 ))}
               </div>
@@ -335,26 +369,26 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Data */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Data</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Data</p>
               <div className="space-y-2">
                 <button onClick={exportHistory} disabled={reviews.length === 0}
-                  className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-300 hover:bg-zinc-900 disabled:opacity-30 transition-colors">
+                  className="w-full rounded-lg border border-border py-2.5 text-sm text-foreground hover:bg-muted disabled:opacity-30 transition-colors">
                   Export History
                 </button>
                 {!confirmClear
                   ? <button onClick={() => setConfirmClear(true)} disabled={reviews.length === 0}
-                      className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-500 hover:text-red-400 hover:border-red-900 disabled:opacity-30 transition-colors">
+                      className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 disabled:opacity-30 transition-colors">
                       Clear All History
                     </button>
                   : <div className="rounded-lg border border-red-900 p-3 space-y-2">
-                      <p className="text-xs text-zinc-400">Delete all {reviews.length} reviews? This can't be undone.</p>
+                      <p className="text-xs text-muted-foreground">Delete all {reviews.length} reviews? This can't be undone.</p>
                       <div className="flex gap-2">
                         <button onClick={() => { onClearHistory(); setConfirmClear(false); onClose(); }}
-                          className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors">
+                          className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-foreground hover:bg-red-700 transition-colors">
                           Delete All
                         </button>
                         <button onClick={() => setConfirmClear(false)}
-                          className="flex-1 rounded-lg border border-zinc-700 py-2 text-xs text-zinc-400 hover:text-white transition-colors">
+                          className="flex-1 rounded-lg border border-border py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                           Cancel
                         </button>
                       </div>
@@ -365,23 +399,49 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Account */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Account</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Account</p>
               {user ? (
                 <div className="space-y-2">
-                  <div className="rounded-lg border border-zinc-800 p-3">
-                    <p className="text-xs text-zinc-500 mb-0.5">Signed in as</p>
-                    <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-xs text-muted-foreground mb-0.5">Signed in as</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{user.email}</p>
+                  </div>
+                  <div className="rounded-lg border border-border p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Plan</p>
+                      <p className="text-sm font-semibold text-foreground">{isPro ? "Reel Pro" : "Free"}</p>
+                    </div>
+                    {isPro ? (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/stripe/portal", { method: "POST" });
+                            const data = await res.json();
+                            if (data.url) window.location.href = data.url;
+                          } catch { /* portal unavailable; support email remains the fallback */ }
+                        }}
+                        className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:border-ring transition-colors">
+                        Manage subscription
+                      </button>
+                    ) : (
+                      onUpgrade && (
+                        <button onClick={onUpgrade}
+                          className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                          Upgrade
+                        </button>
+                      )
+                    )}
                   </div>
                   <button onClick={onSignOut}
-                    className="w-full rounded-lg border border-zinc-800 py-2.5 text-sm text-zinc-400 hover:text-red-400 hover:border-red-900 transition-colors">
+                    className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 transition-colors">
                     Sign Out
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500">Sign in to save your history across all devices.</p>
+                  <p className="text-xs text-muted-foreground">Sign in to save your history across all devices.</p>
                   <button onClick={onSignIn}
-                    className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors">
+                    className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
                     Sign in with Google
                   </button>
                 </div>
@@ -391,11 +451,11 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* About */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">About</p>
-              <div className="rounded-lg border border-zinc-800 p-4 space-y-1">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">About</p>
+              <div className="rounded-lg border border-border p-4 space-y-1">
                 <Logo size="sm" className="mb-1" />
-                <p className="text-xs text-zinc-500">Coaching for every athlete. Any sport, any level.</p>
-                <p className="text-xs text-zinc-700 mt-2">Built with DecisionIQ + CoachIQ</p>
+                <p className="text-xs text-muted-foreground">Coaching for every athlete. Any sport, any level.</p>
+                <p className="text-xs text-muted-foreground mt-2">Built with DecisionIQ + CoachIQ</p>
               </div>
             </div>
 
@@ -415,19 +475,19 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
     {
       eyebrow: "Welcome to Reel",
       title: name ? `Hey ${name}.` : "You're in.",
-      body: "This is your personal film room and coaching hub. Everything you need to analyze your game and get better — all in one place.",
+      body: "This is your personal film room and coaching hub. Everything you need to analyze your game and get better, all in one place.",
       cta: "Show me how →",
     },
     {
       eyebrow: "DecisionIQ",
       title: "Upload a clip. Get real feedback.",
-      body: "Drop in any video — a 10-second clip or a full game. DecisionIQ grades every player on screen, breaks down each decision, and tells you exactly what to work on.",
+      body: "Drop in any video, a 10-second clip or a full game. DecisionIQ grades every player on screen, breaks down each decision, and tells you exactly what to work on.",
       cta: "Got it →",
     },
     {
       eyebrow: "You're ready",
       title: "Upload your first clip.",
-      body: "It takes about 30 seconds. Pick something recent — a play you were proud of, or one you want to understand better.",
+      body: "It takes about 30 seconds. Pick something recent: a play you were proud of, or one you want to understand better.",
       cta: "Upload a clip",
     },
   ];
@@ -437,27 +497,27 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm p-0 sm:p-6">
-      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
+      <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-8 shadow-2xl">
         {/* Progress */}
         <div className="mb-8 flex gap-1.5">
           {slides.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-white" : "bg-zinc-800"}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= step ? "bg-primary" : "bg-accent"}`} />
           ))}
         </div>
 
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{s.eyebrow}</p>
-        <h2 className="mb-3 text-2xl font-black tracking-tight text-white">{s.title}</h2>
-        <p className="mb-8 text-sm text-zinc-400 leading-relaxed">{s.body}</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.eyebrow}</p>
+        <h2 className="mb-3 text-2xl font-black tracking-tight text-foreground">{s.title}</h2>
+        <p className="mb-8 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => isLast ? onDone() : setStep(s => s + 1)}
-            className="flex-1 rounded-xl bg-white py-3.5 text-sm font-bold text-black hover:bg-zinc-100 transition-colors"
+            className="flex-1 rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             {s.cta}
           </button>
           {!isLast && (
-            <button onClick={onDone} className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+            <button onClick={onDone} className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors">
               Skip
             </button>
           )}
@@ -469,18 +529,20 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
 
 // ─── Sign Up Modal ────────────────────────────────────────────────────────────
 
-const SPORTS = ["Basketball", "Soccer", "Football", "Baseball", "Softball", "Volleyball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
-const LEVELS = ["Middle school", "High school", "College", "Semi-pro / Amateur", "Professional"];
+const SPORTS = ["Basketball", "Volleyball", "Soccer", "Football", "Baseball", "Softball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
+const LEVELS = ["Middle school", "High school", "Club / AAU", "College", "Pro / Semi-pro"];
 const GOALS  = ["Improve decision-making", "Better film breakdown", "Personalized drills", "Track my progress", "Get recruited"];
 
-function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onClose: () => void }) {
+function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onClose: () => void }) {
   const [step,     setStep]     = useState(0);
   const [name,     setName]     = useState("");
   const [sport,    setSport]    = useState("");
   const [position, setPosition] = useState("");
   const [level,    setLevel]    = useState("");
   const [goals,    setGoals]    = useState<string[]>([]);
-  
+  const [jersey,   setJersey]   = useState("");
+  const [teamColor, setTeamColor] = useState("");
+
   const steps = [
     {
       title: "What's your name?",
@@ -488,7 +550,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       content: (
         <input
           autoFocus
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+          className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
           placeholder="Your first name"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -504,7 +566,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         <div className="grid grid-cols-2 gap-2">
           {SPORTS.map(s => (
             <button key={s} onClick={() => setSport(s)}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${sport === s ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${sport === s ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
               {s}
             </button>
           ))}
@@ -518,12 +580,35 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       content: (
         <input
           autoFocus
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-400 text-base"
+          className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
           placeholder={`e.g. Point guard, Striker, Quarterback…`}
           value={position}
           onChange={e => setPosition(e.target.value)}
           onKeyDown={e => e.key === "Enter" && setStep(3)}
         />
+      ),
+      canNext: true, // optional
+    },
+    {
+      title: "Who are you on film?",
+      sub: "Your jersey number and team colors let Reel find YOU in the footage and track your grades, not just the team's.",
+      content: (
+        <div className="flex flex-col gap-2">
+          <input
+            autoFocus
+            className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
+            placeholder="Jersey number (e.g. 23)"
+            value={jersey}
+            onChange={e => setJersey(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+            inputMode="numeric"
+          />
+          <input
+            className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
+            placeholder="Team jersey colors (e.g. White, or 'mixed white + blue pinnies')"
+            value={teamColor}
+            onChange={e => setTeamColor(e.target.value)}
+          />
+        </div>
       ),
       canNext: true, // optional
     },
@@ -534,7 +619,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         <div className="flex flex-col gap-2">
           {LEVELS.map(l => (
             <button key={l} onClick={() => setLevel(l)}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${level === l ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
+              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${level === l ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
               {l}
             </button>
           ))}
@@ -551,8 +636,8 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
             const on = goals.includes(g);
             return (
               <button key={g} onClick={() => setGoals(on ? goals.filter(x => x !== g) : [...goals, g])}
-                className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors flex items-center gap-3 ${on ? "border-white bg-white text-black" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}>
-                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${on ? "border-black bg-black text-white" : "border-zinc-600"}`}>{on ? "✓" : ""}</span>
+                className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors flex items-center gap-3 ${on ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${on ? "border-black bg-background text-foreground" : "border-ring"}`}>{on ? "✓" : ""}</span>
                 {g}
               </button>
             );
@@ -568,34 +653,34 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
-      <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
+      <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Close */}
-        <button onClick={onClose} className="absolute right-5 top-5 text-zinc-600 hover:text-white transition-colors text-xl leading-none">✕</button>
+        <button onClick={onClose} className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
 
         {/* Progress dots */}
         <div className="mb-8 flex gap-1.5">
           {steps.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-white" : "bg-zinc-800"}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-accent"}`} />
           ))}
         </div>
 
         {/* Content */}
-        <h2 className="mb-1 text-xl font-black tracking-tight text-white">{current.title}</h2>
-        <p className="mb-6 text-sm text-zinc-500">{current.sub}</p>
+        <h2 className="mb-1 text-xl font-black tracking-tight text-foreground">{current.title}</h2>
+        <p className="mb-6 text-sm text-muted-foreground">{current.sub}</p>
         {current.content}
 
         {/* Actions */}
         <div className="mt-6 flex gap-3">
           {step > 0 && (
             <button onClick={() => setStep(s => s - 1)}
-              className="rounded-xl border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-400 hover:text-white transition-colors">
+              className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
               Back
             </button>
           )}
           <button
-            onClick={() => isLast ? onContinue({ name, sport, position, level, goals }) : setStep(s => s + 1)}
+            onClick={() => isLast ? onContinue({ name, sport, position, level, goals, jersey, teamColor }) : setStep(s => s + 1)}
             disabled={!current.canNext}
-            className="flex-1 rounded-xl bg-white py-3 text-sm font-bold text-black disabled:opacity-30 hover:bg-zinc-100 transition-colors">
+            className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-30 hover:bg-primary/90 transition-colors">
             {isLast ? "Create my account →" : step === 2 ? "Skip" : "Continue"}
           </button>
         </div>
@@ -604,254 +689,357 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
   );
 }
 
+// ─── Animation helpers ────────────────────────────────────────────────────────
+
+function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div ref={ref} className={className}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, delay, ease: [0.25, 0.46, 0.45, 0.94] }}>
+      {children}
+    </motion.div>
+  );
+}
+
+function AnalysisDemo() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.7 }}
+      className="relative overflow-hidden rounded-3xl border border-border"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/demo-basketball.jpg" alt="Basketball layup being analyzed by Reel" className="block w-full" />
+
+      {/* contrast vignette */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
+      {/* live badge */}
+      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+        Analyzing film
+      </div>
+
+      {/* shooter tracking box */}
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true }} transition={{ delay: 0.4, type: "spring", stiffness: 120 }}
+        className="absolute" style={{ left: "49%", top: "30%", width: "23%", height: "46%" }}
+      >
+        <div className="h-full w-full rounded-xl border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
+        <span className="absolute -top-5 left-0 whitespace-nowrap rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-foreground">#30 · Blue</span>
+      </motion.div>
+
+      {/* defender tag */}
+      <motion.div
+        initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
+        viewport={{ once: true }} transition={{ delay: 0.7 }}
+        className="absolute" style={{ left: "30%", top: "39%" }}
+      >
+        <span className="whitespace-nowrap rounded-md bg-red-500/90 px-2 py-0.5 text-[10px] font-bold text-foreground shadow-lg">Late contest</span>
+      </motion.div>
+
+      {/* grade card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }} transition={{ delay: 0.95 }}
+        className="absolute bottom-3 right-3 w-60 max-w-[72%] rounded-2xl border border-border bg-muted/85 p-4 shadow-2xl backdrop-blur-md sm:bottom-5 sm:right-5"
+      >
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-lg font-black text-foreground">A-</div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground">#30 · Blue</p>
+            <p className="text-xs text-muted-foreground">Basketball · Finish at rim</p>
+          </div>
+        </div>
+        <div className="rounded-lg bg-accent px-3 py-2">
+          <p className="mb-0.5 text-[9px] uppercase tracking-widest text-muted-foreground">The read</p>
+          <p className="text-xs leading-relaxed text-foreground">Rose up through contact and drew the foul. Aggressive, correct call against a late closeout.</p>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[] }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
+function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
   const [showSignUp, setShowSignUp] = useState(false);
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroScale   = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+
+  const microLabel = "text-[10px] font-semibold uppercase tracking-[0.28em]";
+
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="overflow-x-hidden bg-black font-sans text-white">
+      <AnimatePresence>
+        {showSignUp && (
+          <SignUpModal
+            onClose={() => setShowSignUp(false)}
+            onContinue={(data) => { setShowSignUp(false); onSignUp(data); }}
+          />
+        )}
+      </AnimatePresence>
 
-      {showSignUp && (
-        <SignUpModal
-          onClose={() => setShowSignUp(false)}
-          onContinue={(data) => { setShowSignUp(false); onSignUp(data); }}
-        />
-      )}
-
-      {/* Nav */}
-      <header className="absolute top-0 left-0 right-0 z-20 px-6 py-5">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Logo size="md" />
-          <div className="flex items-center gap-3">
-            <button onClick={onEnterApp} className="text-sm text-zinc-400 hover:text-white transition-colors">
-              Try without account
-            </button>
+      {/* ── Nav: links left, logotype dead-center, actions right ── */}
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md">
+        <div className="relative mx-auto flex h-14 max-w-7xl items-center justify-between px-5">
+          <nav className={`hidden items-center gap-8 md:flex ${microLabel} text-white/50`}>
+            <a href="#film" className="transition-colors hover:text-white">Film</a>
+            <a href="#coach" className="transition-colors hover:text-white">Coach</a>
+            <a href="#pricing" className="transition-colors hover:text-white">Pricing</a>
+          </nav>
+          <span className="pointer-events-none font-display text-lg font-black tracking-[0.4em] md:absolute md:left-1/2 md:-translate-x-1/2 md:pl-[0.4em]">REEL</span>
+          <div className="flex items-center gap-5">
             <button onClick={onSignIn} disabled={signingIn}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50">
-              {signingIn ? "Redirecting…" : "Log in"}
+              className={`${microLabel} text-white/50 transition-colors hover:text-white disabled:opacity-50`}>
+              {signingIn ? "…" : "Log in"}
             </button>
             <button onClick={() => setShowSignUp(true)} disabled={signingIn}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-zinc-100 transition-colors disabled:opacity-50">
-              Sign up
+              className={`rounded-full bg-white px-4 py-1.5 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
+              Start
             </button>
           </div>
         </div>
       </header>
 
-      {/* Hero — full bleed image */}
-      <section className="relative h-screen min-h-[600px] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
-          alt="Basketball player mid-air"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10" />
+      {/* ── Hero: full-bleed film, editorial type bottom-left ── */}
+      <section ref={heroRef} className="relative h-screen min-h-[640px] overflow-hidden">
+        <motion.div style={{ scale: heroScale }} className="absolute inset-0 origin-center">
+          <video
+            autoPlay muted loop playsInline
+            poster="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
+            ref={(el) => { if (el) el.playbackRate = 0.6; }}
+            className="h-full w-full object-cover"
+          >
+            <source src="/hero-basketball.mov" type="video/mp4" />
+          </video>
+        </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/25" />
 
-        <div className="relative flex h-full flex-col items-center justify-center px-6 text-center">
-          <p className="mb-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
-            Coaching for every athlete
-          </p>
-          <h1 className="mb-6 text-4xl font-black leading-tight tracking-tight sm:text-6xl lg:text-8xl">
-            Every athlete<br />deserves a<br />
-            <span className="text-zinc-400">great coach.</span>
-          </h1>
-          <p className="mx-auto mb-8 max-w-xl text-sm text-zinc-400 leading-relaxed sm:text-lg">
-            Film analysis. Personalized coaching. Practice plans built around your game. All free, for every athlete, everywhere.
-          </p>
-          <div className="flex flex-col items-center gap-3 w-full max-w-xs sm:max-w-none sm:flex-row">
+        {/* Rotated edge caption */}
+        <p className="absolute -right-40 top-1/2 hidden -translate-y-1/2 rotate-90 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.45em] text-white/35 lg:block">
+          Every decision ⊙ graded A+ to F ⊙ basketball &amp; volleyball
+        </p>
+
+        <motion.div style={{ opacity: heroOpacity }}
+          className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-24">
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
+            className={`mb-5 ${microLabel} text-white/50`}>
+            ⊙ The AI film room for athletes
+          </motion.p>
+          <motion.h1 initial={{ opacity: 0, y: 34 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="font-display uppercase leading-[0.85]">
+            <span className="block text-[15vw] font-black sm:text-[11vw] lg:text-[9.5rem]">Your game.</span>
+            <span className="text-outline block text-[15vw] font-black sm:text-[11vw] lg:text-[9.5rem]">Graded.</span>
+          </motion.h1>
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7 }}
+            className="mt-6 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
+            Upload film. Every decision gets graded like a coach would grade it. Then you get the drill that fixes the pattern.
+          </motion.p>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.7 }}
+            className="mt-8 flex flex-wrap items-center gap-6">
             <button onClick={() => setShowSignUp(true)} disabled={signingIn}
-              className="w-full rounded-xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors disabled:opacity-50 sm:w-auto">
-              Create free account
+              className={`rounded-full bg-white px-8 py-3.5 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
+              Start free
             </button>
             <button onClick={onSignIn} disabled={signingIn}
-              className="w-full rounded-xl border border-zinc-700 px-8 py-4 text-base font-semibold text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors disabled:opacity-50 sm:w-auto">
+              className={`${microLabel} text-white/60 underline decoration-white/30 underline-offset-8 transition-colors hover:text-white disabled:opacity-50`}>
               {signingIn ? "Redirecting…" : "Log in"}
             </button>
-            <button onClick={onEnterApp} disabled={signingIn}
-              className="w-full rounded-xl px-8 py-4 text-base font-semibold text-zinc-500 hover:text-zinc-300 transition-colors sm:w-auto">
-              Try without account
-            </button>
-          </div>
-          {authError && <p className="mt-3 text-sm text-red-400">{authError}</p>}
-        </div>
+          </motion.div>
+          {authError && <p className="mt-4 text-sm text-red-400">{authError}</p>}
+        </motion.div>
 
-        {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
-          <div className="h-8 w-px bg-white" />
-        </div>
+        <motion.div animate={{ y: [0, 8, 0], opacity: [0.25, 0.7, 0.25] }} transition={{ duration: 2.4, repeat: Infinity }}
+          className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex">
+          <span className="text-[9px] uppercase tracking-[0.4em] text-white/40">Scroll</span>
+          <div className="h-7 w-px bg-white/25" />
+        </motion.div>
       </section>
 
-      {/* Photo grid */}
-      <section className="relative z-10 grid grid-cols-2 sm:grid-cols-4 h-64 sm:h-80">
-        {[
-          { id: "1629901925121-8a141c2a42f4", alt: "Basketball dunk" },
-          { id: "1537882111161-c3379a777c8b", alt: "Football game" },
-          { id: "1552984439-3067a809a6d4", alt: "Basketball game" },
-          { id: "1489358921548-9b3f69a1eb4a", alt: "Football action" },
-        ].map(({ id, alt }) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={id}
-            src={`https://images.unsplash.com/photo-${id}?w=600&q=80&fit=crop&crop=faces,center`}
-            alt={alt}
-            className="h-full w-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-100 transition-all duration-700"
-          />
-        ))}
+      {/* ── Editorial statement ── */}
+      <section className="border-y border-white/10 px-5 py-24 sm:py-32">
+        <FadeUp>
+          <p className="mx-auto max-w-4xl text-center font-display text-sm font-bold uppercase leading-[2.2] tracking-[0.3em] text-white/75 sm:text-lg sm:leading-[2.2]">
+            ⊙ Reel is an AI film room for athletes ✦ who want to get better, not just watch highlights ⌁ upload a game, get graded, fix the pattern ⊙
+          </p>
+        </FadeUp>
       </section>
 
-      {/* Mission */}
-      <section className="relative z-10 border-t border-zinc-900 bg-black">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="grid gap-12 lg:grid-cols-2 items-center">
+      {/* ── #01 DecisionIQ ── */}
+      <section id="film" className="scroll-mt-14 px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl">
+          <FadeUp className="mb-14 flex items-end justify-between gap-6">
             <div>
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600">Our Mission</p>
-              <h2 className="mb-5 text-3xl font-black tracking-tight sm:text-4xl">
-                Talent is everywhere.<br />
-                <span className="text-zinc-500">Opportunity isn't.</span>
+              <p className={`mb-4 ${microLabel} text-white/40`}>#01 ⊙ Film analysis</p>
+              <h2 className="font-display uppercase leading-[0.9]">
+                <span className="block text-5xl font-black sm:text-7xl">Decision</span>
+                <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
               </h2>
-              <p className="text-zinc-500 leading-relaxed mb-4">
-                A private coach can cost $100 to $300 an hour. Most young athletes, especially those from low-income families, rural areas, or underserved communities, never get access to that level of feedback.
-              </p>
-              <p className="text-zinc-400 leading-relaxed">
-                Reel was built to change that. Upload any clip or game, and get the same quality of tactical analysis and personalized coaching that elite athletes pay thousands for. Free, for everyone.
-              </p>
             </div>
-            <div className="grid gap-4">
-              {[
-                { stat: "Free", desc: "No subscriptions, no paywalls. Always free for athletes." },
-                { stat: "Any sport", desc: "Basketball, soccer, football, water polo, lacrosse, volleyball, hockey, and more." },
-                { stat: "Any level", desc: "From middle school to college. Beginners to advanced. Everyone gets coached." },
-              ].map(({ stat, desc }) => (
-                <div key={stat} className="border border-zinc-800 rounded-xl p-5">
-                  <p className="text-2xl font-black text-white mb-1">{stat}</p>
-                  <p className="text-sm text-zinc-500">{desc}</p>
+            <div className="hidden text-right sm:block">
+              <p className={`${microLabel} text-white/40`}>Grade scale</p>
+              <p className="font-display text-5xl font-black sm:text-6xl">A+ to F</p>
+            </div>
+          </FadeUp>
+
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <FadeUp>
+              <p className="mb-8 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
+                A clip or a full game. Reel watches every player on the floor and grades the decision, not the outcome. A smart read that missed is still a smart read.
+              </p>
+              <div>
+                {[
+                  ["Every player on screen", "graded A+ to F"],
+                  ["Full games", "report + auto box score"],
+                  ["The better read", "explained, every play"],
+                  ["Fix it alone", "one drill per weakness"],
+                ].map(([left, right]) => (
+                  <div key={left} className="flex items-baseline justify-between gap-4 border-t border-white/10 py-4">
+                    <span className={`${microLabel} text-white`}>{left}</span>
+                    <span className={`${microLabel} text-right text-white/40`}>{right}</span>
+                  </div>
+                ))}
+                <div className="border-t border-white/10 pt-8">
+                  <button onClick={() => setShowSignUp(true)}
+                    className={`rounded-full bg-white px-7 py-3 ${microLabel} text-black transition-opacity hover:opacity-85`}>
+                    Analyze your film
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            </FadeUp>
+            <AnalysisDemo />
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="border-t border-zinc-900">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 text-center">The Platform</p>
-          <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Three tools. One mission.</h2>
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* DecisionIQ */}
-            <div className="border border-zinc-800 rounded-2xl p-8">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Film Analysis</p>
-              <h3 className="mb-4 text-2xl font-black">DecisionIQ</h3>
-              <p className="mb-6 text-zinc-500 leading-relaxed">
-                Upload a clip or a full game. DecisionIQ analyzes every player on screen, offense and defense, grades each decision, and tells you exactly what the better option was and why.
-              </p>
-              <div className="space-y-3">
-                {[
-                  "Grades every player, not just the ball handler",
-                  "Works on full games: period breakdowns, foul patterns, player stats",
-                  "Auto-detects sport, teams, and jersey numbers",
-                  "Tracks your grade trend over time",
-                ].map(f => (
-                  <div key={f} className="flex items-start gap-3">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
-                    <p className="text-sm text-zinc-400">{f}</p>
-                  </div>
-                ))}
-              </div>
+      {/* ── #02 CoachIQ ── */}
+      <section id="coach" className="scroll-mt-14 border-t border-white/10 px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl">
+          <FadeUp className="mb-14 flex items-end justify-between gap-6">
+            <div>
+              <p className={`mb-4 ${microLabel} text-white/40`}>#02 ⊙ Personal coaching</p>
+              <h2 className="font-display uppercase leading-[0.9]">
+                <span className="block text-5xl font-black sm:text-7xl">Coach</span>
+                <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
+              </h2>
             </div>
-
-            {/* CoachIQ */}
-            <div className="border border-zinc-800 rounded-2xl p-8">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Personal Coaching</p>
-              <h3 className="mb-4 text-2xl font-black">CoachIQ</h3>
-              <p className="mb-6 text-zinc-500 leading-relaxed">
-                Your personal coach, available 24/7. Ask anything about technique, strategy, or mindset. Or build a full weekly practice plan with specific drills, reps, and explanations, all tailored to your game.
-              </p>
-              <div className="space-y-3">
-                {[
-                  "Knows your sport, position, and recent film patterns",
-                  "Builds personalized weekly practice plans",
-                  "All drills are solo. No gym, no equipment, no teammates needed",
-                  "Speaks directly to you, like a real coach would",
-                ].map(f => (
-                  <div key={f} className="flex items-start gap-3">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
-                    <p className="text-sm text-zinc-400">{f}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="hidden text-right sm:block">
+              <p className={`${microLabel} text-white/40`}>In your corner</p>
+              <p className="font-display text-5xl font-black sm:text-6xl">24/7</p>
             </div>
+          </FadeUp>
 
-            {/* Progress Tracking */}
-            <div className="border border-zinc-800 rounded-2xl p-8">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Progress Tracking</p>
-              <h3 className="mb-4 text-2xl font-black">Film Library</h3>
-              <p className="mb-6 text-zinc-500 leading-relaxed">
-                Every clip you upload is saved, graded, and tracked. Watch your decision-making improve over weeks and months, not just one game at a time.
-              </p>
-              <div className="space-y-3">
-                {[
-                  "Grade trend chart — see if you're actually improving",
-                  "Stats bar: total clips, games, average grade, upload streak",
-                  "Search and filter your whole film history by sport or grade",
-                  "Turn any grade into a shareable card for Instagram or TikTok",
-                ].map(f => (
-                  <div key={f} className="flex items-start gap-3">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
-                    <p className="text-sm text-zinc-400">{f}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="border-t border-zinc-900">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 text-center">Simple by design</p>
-          <h2 className="mb-12 text-center text-3xl font-black tracking-tight sm:text-4xl">Start in 30 seconds.</h2>
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div>
             {[
-              { num: "01", title: "Upload your clip", desc: "Drop in any video from your phone or camera. A 10-second clip or a full game. Reel handles both." },
-              { num: "02", title: "Get real feedback", desc: "Every player gets graded. Every decision gets broken down. You see exactly what happened and what to do differently." },
-              { num: "03", title: "Train smarter", desc: "Take your feedback to CoachIQ. Build a practice plan that directly targets the weaknesses your film revealed." },
-            ].map(s => (
-              <div key={s.num} className="border border-zinc-800 rounded-xl p-6">
-                <p className="mb-3 text-3xl font-black text-zinc-800">{s.num}</p>
-                <p className="mb-2 text-base font-bold text-white">{s.title}</p>
-                <p className="text-sm text-zinc-500 leading-relaxed">{s.desc}</p>
+              ["Ask Coach", "A coach who has seen your film. Blunt answers, real terminology, no essays."],
+              ["Build My Plan", "A weekly practice plan built around your weaknesses. Every drill doable alone, zero equipment."],
+              ["Drill Check", "Record yourself doing the drill. Get a verdict on your form and the one fix that matters."],
+            ].map(([name, desc], i) => (
+              <FadeUp key={name} delay={i * 0.08}>
+                <div className="grid gap-3 border-t border-white/10 py-8 sm:grid-cols-2 sm:items-baseline">
+                  <p className="font-display text-2xl font-black uppercase sm:text-3xl">
+                    <span className="mr-4 text-sm font-bold text-white/30">0{i + 1}</span>{name}
+                  </p>
+                  <p className="max-w-md text-sm leading-relaxed text-white/55 sm:justify-self-end sm:text-right">{desc}</p>
+                </div>
+              </FadeUp>
+            ))}
+            <div className="border-t border-white/10" />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Mission ── */}
+      <section className="border-y border-white/10 px-5 py-28 text-center sm:py-36">
+        <FadeUp>
+          <h2 className="mx-auto font-display uppercase leading-[0.95]">
+            <span className="block text-4xl font-black sm:text-6xl lg:text-7xl">Talent is everywhere.</span>
+            <span className="text-outline block text-4xl font-black sm:text-6xl lg:text-7xl">Opportunity isn&apos;t.</span>
+          </h2>
+          <p className="mx-auto mt-8 max-w-lg text-sm leading-relaxed text-white/60 sm:text-base">
+            A private coach runs $100 to $300 an hour. Most athletes never get that level of feedback. Reel gives every athlete a film room, free to start.
+          </p>
+        </FadeUp>
+      </section>
+
+      {/* ── #03 Pricing ── */}
+      <section id="pricing" className="scroll-mt-14 px-5 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl">
+          <FadeUp className="mb-14">
+            <p className={`mb-4 ${microLabel} text-white/40`}>#03 ⊙ Pricing</p>
+            <h2 className="font-display text-5xl font-black uppercase leading-[0.9] sm:text-7xl">Two plans.</h2>
+          </FadeUp>
+          <div className="grid gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-2">
+            {[
+              { name: "Free", price: "$0", note: "No card required", rows: [["Full games", "1 / month"], ["Clips", "2 / month"], ["Coach chat", "15 msgs / month"], ["Practice plans", "1 / month"], ["Teams", "1 team"]], cta: "Start free", solid: false },
+              { name: "Reel Pro", price: "$8", note: "per month", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Coach chat", "unlimited"], ["Practice plans", "unlimited"], ["Teams", "unlimited"]], cta: "Go Pro", solid: true },
+            ].map((plan) => (
+              <div key={plan.name} className="bg-black p-8 sm:p-12">
+                <div className="flex items-baseline justify-between">
+                  <p className={`${microLabel} text-white/40`}>{plan.name}</p>
+                  <p className={`${microLabel} text-white/30`}>{plan.note}</p>
+                </div>
+                <p className="mb-8 mt-4 font-display text-7xl font-black sm:text-8xl">{plan.price}</p>
+                <div className="mb-8">
+                  {plan.rows.map(([left, right]) => (
+                    <div key={left} className="flex items-baseline justify-between gap-4 border-t border-white/10 py-3.5">
+                      <span className={`${microLabel} text-white`}>{left}</span>
+                      <span className={`${microLabel} text-right text-white/40`}>{right}</span>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => { if (plan.solid) localStorage.setItem("reel-upgrade-intent", "1"); setShowSignUp(true); }}
+                  className={`w-full rounded-full py-3.5 ${microLabel} transition-opacity hover:opacity-85 ${plan.solid ? "bg-white text-black" : "border border-white/25 text-white"}`}>
+                  {plan.cta}
+                </button>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Motto / CTA */}
-      <section className="border-t border-zinc-900">
-        <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-          <h2 className="mb-6 text-4xl font-black tracking-tight sm:text-6xl">
-            Your film room.<br />Your coach.<br />
-            <span className="text-zinc-600">Your edge.</span>
-          </h2>
-          <p className="mb-10 text-zinc-500 text-lg">
-            No experience required. No equipment needed. No cost. Ever.
-          </p>
-          <button onClick={() => setShowSignUp(true)}
-            className="rounded-xl bg-white px-10 py-4 text-base font-bold text-black hover:bg-zinc-100 transition-colors">
-            Create free account
+      {/* ── CTA ── */}
+      <section className="relative flex h-[70vh] items-center justify-center overflow-hidden border-t border-white/10">
+        <span aria-hidden className="text-outline pointer-events-none absolute select-none font-display text-[36vw] font-black leading-none opacity-20">
+          REEL
+        </span>
+        <FadeUp className="relative z-10 text-center">
+          <p className={`mb-8 ${microLabel} text-white/50`}>No card ⊙ no equipment ⊙ free to start</p>
+          <button onClick={() => setShowSignUp(true)} disabled={signingIn}
+            className={`rounded-full bg-white px-10 py-4 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
+            Start free
           </button>
-        </div>
+          <p className="mt-6">
+            <button onClick={onEnterApp} className={`${microLabel} text-white/40 underline decoration-white/25 underline-offset-8 transition-colors hover:text-white`}>
+              Try without an account
+            </button>
+          </p>
+        </FadeUp>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 px-6 py-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Logo size="sm" className="opacity-30" />
-          <p className="text-xs text-zinc-700">Coaching for every athlete.</p>
+      <footer className="border-t border-white/10 bg-black px-6 py-10">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 sm:flex-row sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="font-display text-sm font-black tracking-[0.4em]">REEL</span>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-white/35">The AI film room</p>
+          </div>
+          <nav className={`flex flex-wrap items-center justify-center gap-x-7 gap-y-2 ${microLabel} text-white/40`}>
+            <a href="/privacy" className="transition-colors hover:text-white">Privacy</a>
+            <a href="/terms" className="transition-colors hover:text-white">Terms</a>
+            <a href="/accessibility" className="transition-colors hover:text-white">Accessibility</a>
+            <a href="mailto:support@getreel.org" className="transition-colors hover:text-white">Contact</a>
+          </nav>
         </div>
       </footer>
     </div>
@@ -874,6 +1062,14 @@ export default function Reel() {
   const [showUpgrade,     setShowUpgrade]     = useState(false);
   const [isPro,           setIsPro]           = useState(false);
   const [upgradeSuccess,  setUpgradeSuccess]  = useState(false);
+
+  // "Check my drill" from a report jumps to CoachIQ (which opens its Drill
+  // Check tab and picks up the prefilled drill from localStorage).
+  useEffect(() => {
+    const open = () => setActiveModule("coach");
+    window.addEventListener("reel-open-drill-check", open);
+    return () => window.removeEventListener("reel-open-drill-check", open);
+  }, []);
 
   const supabase = createClient();
 
@@ -911,12 +1107,21 @@ export default function Reel() {
         if (u) {
           setShowApp(true);
           loadUserData(u.id);
-          if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
-          // Load pro status
-          fetch(`/api/usage?userId=${u.id}`)
+          // Landing "Go Pro" sets this flag before sign-up: carry the intent
+          // through the OAuth round-trip straight into the upgrade modal.
+          const wantsUpgrade = localStorage.getItem("reel-upgrade-intent");
+          if (wantsUpgrade) localStorage.removeItem("reel-upgrade-intent");
+          else if (!localStorage.getItem("reel-onboarded")) setShowOnboarding(true);
+          // Load pro status first — someone who is already Pro (or an owner)
+          // should never see the upgrade pitch, even if they clicked Go Pro.
+          fetch(`/api/usage`)
             .then(r => r.json())
-            .then(d => setIsPro(d.is_pro ?? false))
-            .catch(() => {});
+            .then(d => {
+              const pro = d.is_pro ?? false;
+              setIsPro(pro);
+              if (wantsUpgrade && !pro) setShowUpgrade(true);
+            })
+            .catch(() => { if (wantsUpgrade) setShowUpgrade(true); });
         }
       }
       if (event === "SIGNED_OUT") {
@@ -937,7 +1142,10 @@ export default function Reel() {
     if (signupRaw) {
       try {
         const signup = JSON.parse(signupRaw);
-        const p: Profile = { name: signup.name || "", sport: signup.sport || "", team: "" };
+        const p: Profile = {
+          name: signup.name || "", sport: signup.sport || "", team: "",
+          jersey: signup.jersey || "", position: signup.position || "", teamColor: signup.teamColor || "",
+        };
         setProfile(p);
         localStorage.setItem("decisioniq-profile", JSON.stringify(p));
         localStorage.removeItem("reel-signup-data");
@@ -951,7 +1159,7 @@ export default function Reel() {
     const { data: profileData } = await supabase
       .from("profiles").select("*").eq("id", userId).single();
     if (profileData) {
-      const p = { name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "" };
+      const p = { name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "", jersey: profileData.jersey || "", position: profileData.position || "", teamColor: profileData.teamColor || "" };
       setProfile(p);
       localStorage.setItem("decisioniq-profile", JSON.stringify(p));
     }
@@ -963,6 +1171,8 @@ export default function Reel() {
       const mapped: Review[] = reviewsData.map(r => ({
         id: r.id, fileName: r.file_name, sport: r.sport, mode: r.mode,
         grade: r.grade, timestamp: new Date(r.created_at).getTime(),
+        teamId: r.team_id, opponentName: r.opponent_name, gameType: r.game_type,
+        gameDate: r.game_date, location: r.location, thumbnailUrl: r.thumbnail_url,
         ...(r.data || {}),
       }));
       setReviews(mapped);
@@ -988,7 +1198,7 @@ export default function Reel() {
     if (error) { setAuthError("Couldn't connect to Google. Try again."); setSigningIn(false); }
   }
 
-  async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[] }) {
+  async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) {
     setSigningIn(true);
     setAuthError("");
     localStorage.setItem("reel-signup-data", JSON.stringify(data));
@@ -1021,11 +1231,12 @@ export default function Reel() {
   // Show loading spinner briefly
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <p className="text-zinc-700 text-sm animate-pulse">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground text-sm animate-pulse">Loading…</p>
       </div>
     );
   }
+
   // Show landing page if not signed in and hasn't clicked "try"
   if (!showApp) {
     return <LandingPage onSignIn={signInWithGoogle} onSignUp={signUpWithGoogle} onEnterApp={() => setShowApp(true)} signingIn={signingIn} authError={authError} />;
@@ -1037,7 +1248,7 @@ export default function Reel() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-background text-foreground">
 
       {showOnboarding && (
         <OnboardingOverlay name={profile.name} onDone={dismissOnboarding} />
@@ -1051,7 +1262,7 @@ export default function Reel() {
       {upgradeSuccess && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-emerald-800 bg-emerald-950 px-5 py-3 shadow-2xl">
           <span className="text-emerald-400 text-lg">✓</span>
-          <p className="text-sm font-semibold text-white">Welcome to Reel Pro! Unlimited film, unlimited growth.</p>
+          <p className="text-sm font-semibold text-foreground">Welcome to Reel Pro! More film, more feedback, more growth.</p>
         </div>
       )}
 
@@ -1071,7 +1282,7 @@ export default function Reel() {
       />
 
       {/* Nav */}
-      <header className="sticky top-0 z-30 border-b border-zinc-900 bg-black/95 backdrop-blur px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur px-4 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
           <div className="flex items-center gap-3">
@@ -1081,12 +1292,12 @@ export default function Reel() {
             )}
           </div>
 
-          <nav className="flex gap-0.5 rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
+          <nav className="flex gap-0.5 rounded-lg border border-border bg-card p-0.5">
             {MODULES.map(mod => (
               <button key={mod.id} onClick={() => setActiveModule(mod.id)}
                 data-module={mod.id}
                 className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors sm:px-4 ${
-                  activeModule === mod.id ? "bg-white text-black" : "text-zinc-500 hover:text-white"
+                  activeModule === mod.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {mod.label}
@@ -1094,15 +1305,17 @@ export default function Reel() {
             ))}
           </nav>
 
+          <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-colors h-9 px-2"
+            className="flex items-center gap-2 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-ring transition-colors h-9 px-2"
             aria-label="Settings">
             {user?.user_metadata?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.user_metadata.avatar_url} alt="Your avatar"
                 className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
             ) : user ? (
-              <span className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold shrink-0">
+              <span className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-500 text-foreground text-[10px] font-bold shrink-0">
                 {(user.email || "?").charAt(0).toUpperCase()}
               </span>
             ) : null}
@@ -1110,6 +1323,7 @@ export default function Reel() {
               <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.113a7.047 7.047 0 0 1 0-2.228L1.821 7.773a1 1 0 0 1-.205-1.251l1.18-2.044a1 1 0 0 1 1.186-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
             </svg>
           </button>
+          </div>
         </div>
       </header>
 
@@ -1121,13 +1335,24 @@ export default function Reel() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 Library
-                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">All your past film sessions — search, filter, and replay any review.</p>
+              <p className="mt-1 text-sm text-muted-foreground">All your past film sessions. Search, filter, and replay any review.</p>
             </div>
             <StatsBar reviews={reviews} />
             {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
-            <FilmLibrary reviews={reviews} onReviewsChange={setReviews} />
+            <FilmLibrary reviews={reviews} onReviewsChange={setReviews} userId={user?.id} />
+          </>
+        ) : activeModule === "teams" ? (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Teams
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">Track a season, roster, and record across every game you upload.</p>
+            </div>
+            <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />
           </>
         ) : (
           <>
@@ -1135,9 +1360,9 @@ export default function Reel() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
-                <span className="ml-2 text-base font-normal text-zinc-600">by Reel</span>
+                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {activeModule === "decision"
                   ? "Upload a clip or full game. Every player gets analyzed: offense, defense, and everything in between."
                   : "Your personal coach. Ask anything, or build a custom practice plan tailored to your game."}
@@ -1145,13 +1370,16 @@ export default function Reel() {
             </div>
 
             <HowItWorks activeModule={activeModule as "decision" | "coach"} />
-            <ProfileCard profile={profile} onSave={saveProfile} />
+            <ProfileCard profile={profile} onSave={saveProfile} reviews={reviews} />
 
             {activeModule === "decision" && <DecisionIQ profile={profile} reviews={reviews} onReviewsChange={setReviews} userId={user?.id} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />}
-            {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} />}
+            {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} userId={user?.id} onShowUpgrade={() => setShowUpgrade(true)} />}
           </>
         )}
       </div>
+
+      {/* Help / support assistant — floating, available across the app */}
+      <SupportWidget />
     </main>
   );
 }
