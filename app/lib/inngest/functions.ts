@@ -69,9 +69,12 @@ export const analyzeGameJob = inngest.createFunction(
     },
   },
   async ({ event, step }) => {
-    const { jobId, userId, frameCount, timestamps, jersey, teamColor, teamsNote, lenient } = event.data as {
+    const { jobId, userId, frameCount, timestamps, jersey, teamColor, teamsNote, lenient, videoUrl, durationSeconds } = event.data as {
       jobId: string; userId: string; frameCount: number; timestamps: number[];
       jersey?: string; teamColor?: string; teamsNote?: string; lenient?: boolean;
+      // YouTube path: no frames are uploaded at all. The video is analyzed in
+      // place, one time window per step.
+      videoUrl?: string; durationSeconds?: number;
     };
     const supabase = createAdminClient();
 
@@ -84,6 +87,21 @@ export const analyzeGameJob = inngest.createFunction(
     await step.run("mark-processing", async () => {
       await supabase.from("analysis_jobs").update({ status: "processing" }).eq("id", jobId);
     });
+
+    // A whole game analyzed in ONE call makes the model summarize a few
+    // highlights instead of logging every possession, so the video is split
+    // into windows — the same shape as the frame-chunk path below.
+    const WINDOW_SECONDS = 240;
+    const MAX_WINDOWS = 20;
+    const videoWindows: { start: number; end: number }[] = [];
+    if (videoUrl) {
+      const total = Math.max(1, durationSeconds ?? 0);
+      const count = Math.min(MAX_WINDOWS, Math.max(1, Math.ceil(total / WINDOW_SECONDS)));
+      const span = total / count;
+      for (let i = 0; i < count; i++) {
+        videoWindows.push({ start: Math.floor(i * span), end: Math.ceil(Math.min(total, (i + 1) * span)) });
+      }
+    }
 
     const chunkRanges: { start: number; end: number }[] = [];
     for (let i = 0; i < frameCount; i += CHUNK_SIZE) chunkRanges.push({ start: i, end: Math.min(i + CHUNK_SIZE, frameCount) });
@@ -117,9 +135,29 @@ export const analyzeGameJob = inngest.createFunction(
       });
     }
 
+    // One window of the video per step: Gemini reads only that slice, so each
+    // call can log its possessions exhaustively instead of skimming the game.
+    async function runVideoWindow(i: number) {
+      const { start, end } = videoWindows[i];
+      return step.run(`video-window-${i}`, async () => {
+        const text = await analyzeChunk({
+          sport: job.sport, frames: [], mode: "game", chunkIndex: i,
+          chunkStart: formatTime(start), chunkEnd: formatTime(end),
+          jersey, teamColor, teamsNote, lenient,
+          videoUrl, videoStart: start, videoEnd: end,
+        });
+        await supabase.from("analysis_jobs")
+          .update({ progress_current: i + 1, progress_label: `Window ${i + 1} of ${videoWindows.length}` })
+          .eq("id", jobId);
+        return { index: i, start: formatTime(start), end: formatTime(end), text };
+      });
+    }
+
+    const units = videoUrl ? videoWindows : chunkRanges;
     const chunkSummaries: { index: number; start: string; end: string; text: string }[] = [];
-    for (let batchStart = 0; batchStart < chunkRanges.length; batchStart += CONCURRENCY) {
-      const batch = chunkRanges.slice(batchStart, batchStart + CONCURRENCY).map((_, k) => runSegment(batchStart + k));
+    for (let batchStart = 0; batchStart < units.length; batchStart += CONCURRENCY) {
+      const batch = units.slice(batchStart, batchStart + CONCURRENCY)
+        .map((_, k) => (videoUrl ? runVideoWindow(batchStart + k) : runSegment(batchStart + k)));
       chunkSummaries.push(...(await Promise.all(batch)));
     }
 
@@ -154,10 +192,12 @@ export const analyzeGameJob = inngest.createFunction(
         .eq("id", jobId);
     });
 
-    await step.run("cleanup-frames", async () => {
-      const paths = Array.from({ length: frameCount }, (_, i) => `${jobId}/${String(i).padStart(5, "0")}.jpg`);
-      await supabase.storage.from("game-frames").remove(paths);
-    });
+    if (!videoUrl) {
+      await step.run("cleanup-frames", async () => {
+        const paths = Array.from({ length: frameCount }, (_, i) => `${jobId}/${String(i).padStart(5, "0")}.jpg`);
+        await supabase.storage.from("game-frames").remove(paths);
+      });
+    }
 
     return { reviewId };
   }

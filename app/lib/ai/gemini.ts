@@ -53,20 +53,36 @@ export type ThinkingLevel = "low" | "medium" | "high";
 // One generation call: a text prompt plus optional data-URL frames.
 // thinking "low" for mechanical extraction (game segments, prechecks, chat),
 // "high" for the deep clip coaching pass where reasoning quality shows.
-export async function geminiGenerate({ prompt, images = [], videoUrl, thinking = "low", temperature, maxOutputTokens }: {
+export async function geminiGenerate({ prompt, images = [], videoUrl, videoStart, videoEnd, videoFps, thinking = "low", temperature, maxOutputTokens }: {
   prompt: string;
   images?: string[];
   // A public YouTube URL. Gemini ingests it natively — Google serving Google,
   // so there is nothing to download and nothing for YouTube to block. This is
   // the only path that reads real motion instead of sampled stills.
   videoUrl?: string;
+  // Analyze only part of the video, in seconds. Asking one call to cover a
+  // whole game makes the model summarize a few highlights instead of logging
+  // every possession, so long footage is split into windows.
+  videoStart?: number;
+  videoEnd?: number;
+  // Frames per second Gemini samples. Default is 1; 0.5 halves cost.
+  videoFps?: number;
   thinking?: ThinkingLevel;
   temperature?: number;
   maxOutputTokens?: number;
 }): Promise<string> {
   const input: Record<string, unknown>[] = [{ type: "text", text: prompt }];
   if (videoUrl) {
-    input.push({ type: "video", uri: videoUrl });
+    const video: Record<string, unknown> = { type: "video", uri: videoUrl };
+    if (videoStart !== undefined || videoEnd !== undefined || videoFps !== undefined) {
+      // Offsets are duration strings with an "s" suffix ("480s"), not numbers.
+      const processing: Record<string, unknown> = { type: "static" };
+      if (videoStart !== undefined) processing.start_offset = `${Math.max(0, Math.floor(videoStart))}s`;
+      if (videoEnd !== undefined) processing.end_offset = `${Math.ceil(videoEnd)}s`;
+      if (videoFps !== undefined) processing.fps = videoFps;
+      video.processing = processing;
+    }
+    input.push(video);
   }
   for (const url of images) {
     const m = /^data:(image\/\w+);base64,(.+)$/.exec(url);

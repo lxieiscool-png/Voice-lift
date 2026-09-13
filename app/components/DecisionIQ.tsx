@@ -1489,6 +1489,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         body: JSON.stringify({
           url: ytUrl.trim(), sport: sport || profile.sport,
           jersey: profile.jersey, teamColor, teamsNote, lenient,
+          teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
+          gameType: linkedTeamId ? gameType : null,
+          gameDate: linkedTeamId && gameDate ? gameDate : null,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -1501,6 +1504,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       setProgressCurrent(1);
       const videoTitle = `YouTube: ${ytUrl.trim()}`;
       const thumbnailUrl = null;
+
+      // Full games run in the background — the job poller shows progress and
+      // drops the finished report into the library on its own.
+      if (data.queued) {
+        setJobStarted(true);
+        setProgressLabel("");
+        return;
+      }
 
       if (data.mode === "clip") {
         const parsed = parsePlayerBlocks(data.feedback ?? "");

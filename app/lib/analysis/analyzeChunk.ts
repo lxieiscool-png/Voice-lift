@@ -36,12 +36,18 @@ export type AnalyzeChunkInput = {
   // Real motion, so the model sees plays develop rather than guessing between
   // stills. Requires the Gemini provider; frames are ignored when set.
   videoUrl?: string;
+  // Window of the video to analyze, in seconds (long footage is split so the
+  // model logs every possession instead of summarizing the whole game).
+  videoStart?: number;
+  videoEnd?: number;
+  videoFps?: number;
 };
 
 export class SportsCheckError extends Error {}
 
 export async function analyzeChunk({
-  sport, frames, mode, chunkIndex = 0, chunkStart = "", chunkEnd = "", jersey, teamColor, teamsNote, lenient, videoUrl,
+  sport, frames, mode, chunkIndex = 0, chunkStart = "", chunkEnd = "", jersey, teamColor, teamsNote, lenient,
+  videoUrl, videoStart, videoEnd, videoFps,
 }: AnalyzeChunkInput): Promise<string> {
   const isVideo = !!videoUrl;
   const honestyBlock = lenient
@@ -78,7 +84,7 @@ export async function analyzeChunk({
   const prompt = isGameMode
     ? `You are an elite sports analyst reviewing game film with a coach. Be precise — only report what you can clearly see. Never guess or fabricate details.
 
-${isVideo ? "Watch the footage carefully before responding." : "Carefully study every frame before responding."} Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
+${isVideo ? `You are watching ONE TIME WINDOW of a longer game, and other windows are handled separately — so cover THIS window exhaustively from its first second to its last. Log EVERY possession you see, not a highlight selection: a four-minute window of basketball usually contains 8-16 possessions, and your Stat Events and Decision Events lists should reflect that. A short list means you skimmed.` : "Carefully study every frame before responding."} Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
 BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
 
@@ -100,7 +106,7 @@ Stat Events:
 - [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard" or "Blue Setter". ${statVocab} Rules: only log an event when the outcome is genuinely visible across the frames — never guess a make vs a miss or a kill vs a ball kept in play; if you can see the attempt but not how it ended, DO NOT log it. Do not infer events between frames you cannot see. One line per event; one play may produce two lines (e.g. a steal AND the resulting turnover, or a set_assist AND the kill it fed). Write "None" if nothing countable is clearly visible.]
 
 Decision Events:
-- [One line per notable DECISION you can clearly see, from either team. Format EXACTLY: "TEAM #NUM | quality | what happened". Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "Blue #12 | good | drove baseline and kicked to the open corner shooter", or "White #10 | poor | forced the set to a covered middle with the outside open"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see; write "None" if nothing notable is clearly visible.]
+- [One line per DECISION you can clearly see, from either team — aim for at least one per possession, not a highlight reel. Format EXACTLY: "TEAM #NUM | quality | what happened". Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "Blue #12 | good | drove baseline and kicked to the open corner shooter", or "White #10 | poor | forced the set to a covered middle with the outside open"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see, but a four-minute stretch of play should yield roughly 8-16 lines here — if you have fewer than 6, go back through the footage for possessions you skipped. Write "None" only if the footage truly shows no play.]
 
 Tactical Pattern:
 [One sentence naming one concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
@@ -112,12 +118,14 @@ Sport: ${sport || "auto-detect from frames"}${teamContext}
     : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
 ${isVideo
-  ? `THE VIDEO: You are watching the athlete's actual footage, with real motion. Follow plays as they develop — who moves where, when help arrives, how possessions end. Because you can see continuous action rather than stills, be precise about what actually happened. If the video contains more than one play, grade the most significant ones.`
+  ? `THE VIDEO: You are watching the athlete's actual footage, with real motion. Follow plays as they develop — who moves where, when help arrives, how possessions end. Because you can see continuous action rather than stills, be precise about what actually happened.
+
+COVER THE WHOLE VIDEO — THIS IS THE MOST COMMON FAILURE: do NOT grade only the first or most exciting play. Work through the footage from start to finish and grade a notable decision from EVERY possession you can see. A video with eight possessions should produce player blocks spanning all eight, not three blocks from the opening minute. Before you finish, check that your last block comes from near the END of the video, not the beginning.`
   : `THE FRAMES: These images are sequential stills pulled from ONE short clip, evenly spaced across it in chronological order. Read them as continuous action unfolding over time — track how players and the ball move from the first frame to the last. If the clip clearly contains more than one play, focus your grading on the most significant one. Do NOT treat the frames as separate unrelated photos.`}
 
 ${honestyBlock}
 
-Study the frames carefully. Identify EVERY player making a notable decision — offense AND defense, from BOTH teams. Look hard at every player visible across the frames, not just whoever is holding the ball. Do not stop at 2 or 3 — if 6, 8, or more players are doing something worth grading, grade all of them. Only skip a player if they are genuinely not doing anything decision-relevant in this clip.
+${isVideo ? "Watch the whole video carefully." : "Study the frames carefully."} Identify EVERY player making a notable decision — offense AND defense, from BOTH teams${isVideo ? ", across every possession in the footage" : ""}. Look hard at every player visible, not just whoever is holding the ball. Do not stop at 2 or 3 — if 6, 8, or more players are doing something worth grading, grade all of them. Both teams should be represented: grading four players from one team and two from the other means you stopped early. Only skip a player if they are genuinely not doing anything decision-relevant in this clip.
 
 ONLY grade athletes who are actively playing in the game. Completely ignore and do NOT grade: referees, officials, coaches, spectators, people in the stands, people on the bench who are not in the play, ball boys, or anyone not actively competing on the field/court.
 
@@ -253,7 +261,8 @@ Do not add any other text.`;
   if (isVideo) {
     // Video is Gemini-only; OpenAI has no equivalent ingestion path.
     return await geminiGenerate({
-      prompt, videoUrl, thinking: isGameMode ? "medium" : "high",
+      prompt, videoUrl, videoStart, videoEnd, videoFps,
+      thinking: isGameMode ? "medium" : "high",
     });
   }
 

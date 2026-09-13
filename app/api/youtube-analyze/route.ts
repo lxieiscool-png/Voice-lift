@@ -1,5 +1,6 @@
 import { analyzeChunk } from "../../lib/analysis/analyzeChunk";
-import { synthesizeGameReport } from "../../lib/analysis/synthesize";
+import { createAdminClient } from "../../lib/supabase/admin";
+import { inngest } from "../../lib/inngest/client";
 import { friendlyGeminiError } from "../../lib/ai/gemini";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
@@ -103,19 +104,45 @@ export async function POST(req: Request) {
 
     // Canonical watch URL — Gemini resolves this form reliably.
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const text = await analyzeChunk({
-      sport, frames: [], mode, jersey, teamColor, teamsNote, lenient, videoUrl,
-    });
 
+    // Clips are one call and finish well inside the request timeout.
     if (mode === "clip") {
+      const text = await analyzeChunk({
+        sport, frames: [], mode, jersey, teamColor, teamsNote, lenient, videoUrl,
+      });
       return Response.json({ mode, feedback: text, durationSeconds });
     }
 
-    // Game: the single event log stands in for the per-segment summaries, so
-    // the existing tally + synthesis pipeline works unchanged.
-    const chunkSummaries = [{ index: 0, start: "0:00", end: "end", text }];
-    const report = await synthesizeGameReport({ sport, chunkSummaries, teamsNote, jersey, teamColor });
-    return Response.json({ mode, report, chunkText: text, durationSeconds });
+    // Games are split into time windows and take minutes — far past the
+    // serverless request limit — so they run as a background job. The client
+    // already polls analysis_jobs, so it picks this up with no extra wiring.
+    if (!userId) {
+      if (metered) await refundUsage(metered.userId, metered.kind);
+      return Response.json(
+        { error: "Sign in to analyze a full game — it runs in the background so you can close the tab." },
+        { status: 401 },
+      );
+    }
+
+    const supabase = createAdminClient();
+    const { data: job, error: jobError } = await supabase.from("analysis_jobs").insert({
+      user_id: userId, status: "queued",
+      file_name: `YouTube: ${url}`, sport: sport ?? null,
+      team_id: body.teamId ?? null, opponent_name: body.opponentName ?? null,
+      game_type: body.gameType ?? null, game_date: body.gameDate ?? null,
+      progress_total: Math.min(20, Math.max(1, Math.ceil((durationSeconds ?? 240) / 240))),
+    }).select("id").single();
+    if (jobError) throw new Error(jobError.message);
+
+    await inngest.send({
+      name: "game/analysis.requested",
+      data: {
+        jobId: job.id, userId, videoUrl, durationSeconds: durationSeconds ?? 0,
+        frameCount: 0, timestamps: [], jersey, teamColor, teamsNote, lenient,
+      },
+    });
+
+    return Response.json({ mode, queued: true, jobId: job.id, durationSeconds });
   } catch (error: unknown) {
     if (metered) await refundUsage(metered.userId, metered.kind);
     console.error("YOUTUBE ANALYZE ERROR:", error);
