@@ -90,8 +90,8 @@ export function ourKey(r: Review): string | null {
   const colors = gameColors(r);
   const typed = teamKeysFromColor(r.teamColor).find(k => colors.includes(k));
   if (typed) return typed;
-  // A real colour that isn't in this game's box score: don't guess.
-  if (teamKeysFromColor(r.teamColor).length > 0) return null;
+  // No match (e.g. typed "navy", model wrote "blue"): newer analyses already
+  // resolved the uploader's side using that same colour hint, so trust it.
   const resolved = r.gameReport?.teams?.[0]?.color;
   return resolved && colors.includes(resolved) ? resolved : null;
 }

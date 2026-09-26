@@ -20,7 +20,7 @@ export function gameResult(review: Review, teamName?: string | null): { outcome:
   const sb = review.gameReport?.scoreboard?.teams;
   if (sb && sb.length === 2) {
     const typed = teamKeysFromColor(review.teamColor);
-    const ours = sb.find(t => typed.includes(t.color)) ?? (typed.length ? undefined : sb.find(t => t.color === review.gameReport?.teams?.[0]?.color));
+    const ours = sb.find(t => typed.includes(t.color)) ?? sb.find(t => t.color === review.gameReport?.teams?.[0]?.color);
     const theirs = ours && sb.find(t => t !== ours);
     if (ours && theirs) {
       const outcome = ours.final > theirs.final ? "W" : ours.final < theirs.final ? "L" : "T";
