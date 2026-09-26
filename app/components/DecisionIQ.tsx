@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, Clapperboard, Dumbbell, Loader2, Lock, MoreVertical, Upload, Users, Video, VideoOff, X } from "lucide-react";
-import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat, PlayerVolleyStat } from "../lib/types";
+import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, TeamComparison, Team, PlayerBoxStat, PlayerVolleyStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck, playedAt } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
 import { TeamSectionHeader, GameCard, teamAvatarColor } from "./GameCards";
@@ -39,6 +39,7 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 // ─── Parsers ──────────────────────────────────────────────────────────────────
 
 import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore, buildVolleyBoxScore, buildDecisionTimeline } from "../lib/analysis/parsers";
+import { buildRosterView, type RosterPlayer, type RosterTeam } from "../lib/analysis/gameAccuracy";
 import FilmRoom, { youtubeIdFrom } from "./FilmRoom";
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
@@ -848,10 +849,6 @@ const GAME_SECTIONS = [
   { key: "practiceFocus"   as const, label: "Practice This Week"    },
 ];
 
-function playerInitials(label: string) {
-  return label.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
-}
-
 function VolleyBoxPanel({ rows }: { rows: PlayerVolleyStat[] }) {
   // Split into two teams by the normalized team key, largest first.
   const groups = new Map<string, PlayerVolleyStat[]>();
@@ -969,7 +966,7 @@ function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
 }
 
 export function GameResultsView({ report, onClose, backLabel = "New analysis", sourceName }: { report: GameReport; onClose: () => void; backLabel?: string; sourceName?: string }) {
-  const [focus, setFocus] = useState<PlayerStat | null>(null);
+  const [focus, setFocus] = useState<RosterPlayer | null>(null);
   const [filmRoom, setFilmRoom] = useState(false);
   // Film room only works when we know which video this came from and we have
   // moments to jump to.
@@ -977,20 +974,9 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
   const canWatch = !!videoId && (report.playerCards?.length ?? 0) > 0;
   const tc = report.teamComparison ?? null;
 
-  // Group tracked players into teams by their "(TEAM)" tag
-  const groups = new Map<string, { name: string; players: PlayerStat[] }>();
-  for (const p of report.playerStats) {
-    const name = parseStatLine(p.raw).team?.trim() || "Unknown";
-    const k = name.toLowerCase();
-    if (!groups.has(k)) groups.set(k, { name, players: [] });
-    groups.get(k)!.players.push(p);
-  }
-  const sorted = [...groups.values()].sort((a, b) => b.players.length - a.players.length);
-  const teams  = sorted.slice(0, 2);
-  const extras = sorted.slice(2).flatMap(g => g.players);
-  if (teams.length > 0 && extras.length) teams[teams.length - 1].players.push(...extras);
-
-  const focusStat = focus ? parseStatLine(focus.raw) : null;
+  // Team columns come from counted data (box score + decision timeline),
+  // not from the model's prose.
+  const teams = buildRosterView(report);
 
   if (filmRoom && videoId) {
     return <FilmRoom videoId={videoId} decisions={report.playerCards ?? []} timeline={report.timeline ?? []} onClose={() => setFilmRoom(false)} />;
@@ -1043,40 +1029,47 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
         )}
 
         {/* Team comparison chart */}
-        {tc ? <TeamComparisonPanel tc={tc} /> : (
+        {tc ? <TeamComparisonPanel tc={tc} hasScoreboard={!!report.scoreboard} teams={teams} /> : (
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-sm text-muted-foreground">Team comparison wasn't possible for this footage — not enough clearly visible team-level data (score, both teams on screen, etc.).</p>
           </div>
         )}
 
         {/* Two-team rosters */}
-        {teams.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {teams.map((t, ti) => (
-              <div key={ti} className="rounded-xl border border-border bg-card p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-black capitalize text-foreground">{t.name}</p>
-                  <span className="text-xs text-muted-foreground">{t.players.length} tracked</span>
+        {teams.some(t => t.players.length > 0) && (
+          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            {teams.map(t => (
+              <div key={t.color}>
+                <div className="mb-2 flex items-baseline justify-between gap-3 border-b border-border pb-2">
+                  <p className="font-display text-sm font-bold text-foreground">
+                    {t.name ?? <span className="capitalize">{t.color}</span>}
+                    {t.name && <span className="ml-1.5 font-sans text-xs font-normal capitalize text-muted-foreground">{t.color}</span>}
+                  </p>
+                  <span className="text-xs text-muted-foreground">{t.players.length} players</span>
                 </div>
-                <div className="space-y-2">
-                  {t.players.map((p, i) => {
-                    const s = parseStatLine(p.raw);
+                <div className="divide-y divide-border">
+                  {t.players.map(p => {
+                    const b = p.box;
                     return (
-                      <button key={i} onClick={() => setFocus(p)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-ring">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-foreground">
-                          {s.jersey ? `#${s.jersey}` : playerInitials(p.label)}
-                        </span>
+                      <button key={p.key} onClick={() => setFocus(p)}
+                        className="flex w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-muted/50">
+                        <span className="w-9 shrink-0 font-mono text-sm font-bold tabular-nums text-foreground">#{p.jersey}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-foreground">{p.label}</span>
-                          <span className="block text-[11px] text-muted-foreground">
-                            {s.sharp > 0 && <span className="text-emerald-500">{s.sharp} sharp</span>}
-                            {s.sharp > 0 && s.costly > 0 && <span> · </span>}
-                            {s.costly > 0 && <span className="text-red-500">{s.costly} costly</span>}
-                            {(s.sharp > 0 || s.costly > 0) && s.fouls > 0 && <span> · </span>}
-                            {s.fouls > 0 && <span className="text-amber-500">{s.fouls} {s.fouls === 1 ? "foul" : "fouls"}</span>}
-                            {s.sharp === 0 && s.costly === 0 && s.fouls === 0 && <span>tracked</span>}
+                          <span className="block text-sm text-foreground">
+                            {b ? <>
+                              <span className="font-semibold tabular-nums">{b.pts}</span> <span className="text-muted-foreground">PTS</span>
+                              <span className="ml-2.5 tabular-nums">{b.reb}</span> <span className="text-muted-foreground">REB</span>
+                              <span className="ml-2.5 tabular-nums">{b.ast}</span> <span className="text-muted-foreground">AST</span>
+                            </> : <span className="text-muted-foreground">{p.label}</span>}
                           </span>
+                          {(p.good + p.poor) > 0 && (
+                            <span className="block text-[11px] text-muted-foreground">
+                              {p.good > 0 && <span className="text-emerald-500">{p.good} good</span>}
+                              {p.good > 0 && p.poor > 0 && <span> · </span>}
+                              {p.poor > 0 && <span className="text-red-500">{p.poor} poor</span>}
+                              <span> decisions</span>
+                            </span>
+                          )}
                         </span>
                         <span className="text-muted-foreground">›</span>
                       </button>
@@ -1160,36 +1153,42 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
       </div>
 
       {/* Player detail modal */}
-      {focus && focusStat && (
+      {focus && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={() => setFocus(null)}>
           <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
-            <div className="mb-4 flex items-center gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-accent text-lg font-black text-foreground">
-                {focusStat.jersey ? `#${focusStat.jersey}` : playerInitials(focus.label)}
-              </span>
+            <div className="mb-5 flex items-center gap-4">
+              <span className="font-mono text-3xl font-black tabular-nums text-foreground">#{focus.jersey}</span>
               <div className="min-w-0">
-                <p className="text-base font-black text-foreground">{focus.label}</p>
-                {focusStat.team && <p className="text-xs capitalize text-muted-foreground">{focusStat.team}</p>}
+                <p className="text-base font-bold text-foreground">{focus.label}</p>
+                <p className="text-xs capitalize text-muted-foreground">
+                  {teams.find(t => t.color === focus.color)?.name ?? focus.color}
+                </p>
               </div>
             </div>
-            <div className="mb-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg bg-muted py-3">
-                <p className="text-xl font-black text-emerald-500">{focusStat.sharp}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Sharp</p>
+            {focus.box && (
+              <div className="mb-5 grid grid-cols-4 gap-y-3 text-center">
+                {([
+                  ["PTS", focus.box.pts], ["REB", focus.box.reb], ["AST", focus.box.ast], ["STL", focus.box.stl],
+                  ["FG", `${focus.box.fgm}/${focus.box.fga}`], ["3PT", `${focus.box.tpm}/${focus.box.tpa}`],
+                  ["TOV", focus.box.tov], ["PF", focus.box.pf],
+                ] as [string, string | number][]).map(([k, v]) => (
+                  <div key={k}>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{v}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{k}</p>
+                  </div>
+                ))}
               </div>
-              <div className="rounded-lg bg-muted py-3">
-                <p className="text-xl font-black text-red-500">{focusStat.costly}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Costly</p>
-              </div>
-              <div className="rounded-lg bg-muted py-3">
-                <p className="text-xl font-black text-amber-500">{focusStat.fouls}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Fouls</p>
-              </div>
+            )}
+            <div className="mb-5 flex items-baseline gap-4 border-t border-border pt-4 text-sm">
+              <span className="text-muted-foreground">Decisions</span>
+              <span><span className="font-bold text-emerald-500">{focus.good}</span> good</span>
+              <span><span className="font-bold text-foreground">{focus.neutral}</span> neutral</span>
+              <span><span className="font-bold text-red-500">{focus.poor}</span> poor</span>
             </div>
-            {focusStat.standout && (
-              <div className="mb-4 rounded-lg bg-muted p-3">
+            {focus.standout && (
+              <div className="mb-5">
                 <p className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Standout moment</p>
-                <p className="text-sm leading-relaxed text-foreground">{focusStat.standout}</p>
+                <p className="text-sm leading-relaxed text-foreground">{focus.standout}</p>
               </div>
             )}
             <button onClick={() => setFocus(null)} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Close</button>
@@ -1203,25 +1202,33 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
 // ─── Team Comparison (light score-panel style) ────────────────────────────────
 
 function teamInitials(name: string) {
-  return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  // "Titanium (Gray)" -> "TI", "Anaheim Select (Blue)" -> "AS"
+  const words = name.replace(/\([^)]*\)/g, "").trim().split(/\s+/).filter(w => /^[a-z0-9]/i.test(w));
+  if (words.length === 0) return "?";
+  return (words.length === 1 ? words[0].slice(0, 2) : words.map(w => w[0]).join("").slice(0, 2)).toUpperCase();
 }
 
-function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
-  const aWon = tc.winner ? tc.winner.toLowerCase().includes(tc.teamA.toLowerCase()) || tc.teamA.toLowerCase().includes(tc.winner.toLowerCase()) : false;
-  const bWon = tc.winner ? !aWon : false;
+function TeamComparisonPanel({ tc, hasScoreboard = false, teams = [] }: { tc: TeamComparison; hasScoreboard?: boolean; teams?: RosterTeam[] }) {
   const [scoreA, scoreB] = tc.score?.match(/(\d+)\s*[–\-:]\s*(\d+)/)?.slice(1) ?? [null, null];
+  // W/L only means something next to a real score.
+  const hasScore = scoreA != null && scoreB != null;
+  const aWon = hasScore ? +scoreA! > +scoreB! : false;
+  const bWon = hasScore ? +scoreB! > +scoreA! : false;
+  // How much of each team's on-film scoring the box score accounts for.
+  const coverage = teams.filter(t => t.scoredOnFilm != null && t.totals)
+    .map(t => ({ name: t.name ?? t.color, tracked: t.totals!.pts, actual: t.scoredOnFilm! }));
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       {/* Header: teams + score */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+          <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground sm:flex">
             {teamInitials(tc.teamA)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-foreground">{tc.teamA}</p>
-            <p className="text-xs text-muted-foreground">Home / Team A</p>
+            <p className="text-sm font-bold leading-tight text-foreground">{tc.teamA}</p>
+            {hasScore && <p className="text-xs text-muted-foreground">{aWon ? "Won" : bWon ? "Lost" : "Tied"}</p>}
           </div>
         </div>
 
@@ -1235,7 +1242,10 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
           ) : (
             <p className="text-xs font-semibold text-muted-foreground">VS</p>
           )}
-          {tc.winner && (
+          {hasScoreboard && hasScore && (
+            <p className="mt-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">Final · scoreboard</p>
+          )}
+          {hasScore && !hasScoreboard && (
             <div className="mt-0.5 flex justify-center gap-1.5">
               <span className={`rounded px-1.5 text-[10px] font-bold ${aWon ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500"}`}>{aWon ? "W" : "L"}</span>
               <span className={`rounded px-1.5 text-[10px] font-bold ${bWon ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500"}`}>{bWon ? "W" : "L"}</span>
@@ -1244,12 +1254,12 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
         </div>
 
         <div className="flex items-center gap-3 min-w-0 flex-row-reverse">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+          <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground sm:flex">
             {teamInitials(tc.teamB)}
           </div>
           <div className="min-w-0 text-right">
-            <p className="truncate text-sm font-bold text-foreground">{tc.teamB}</p>
-            <p className="text-xs text-muted-foreground">Away / Team B</p>
+            <p className="text-sm font-bold leading-tight text-foreground">{tc.teamB}</p>
+            {hasScore && <p className="text-xs text-muted-foreground">{bWon ? "Won" : aWon ? "Lost" : "Tied"}</p>}
           </div>
         </div>
       </div>
@@ -1267,9 +1277,10 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
                   <span className="font-semibold text-muted-foreground">{label}</span>
                   <span className="font-bold text-foreground">{b}</span>
                 </div>
+                {/* Team shades, not green/red: more turnovers isn't "winning" the bar. */}
                 <div className="flex h-1.5 gap-1 overflow-hidden rounded-full">
-                  <div className="rounded-full bg-emerald-600" style={{ width: `${aPct}%` }} />
-                  <div className="rounded-full bg-red-600 flex-1" />
+                  <div className="rounded-full bg-foreground" style={{ width: `${aPct}%` }} />
+                  <div className="flex-1 rounded-full bg-muted-foreground/40" />
                 </div>
               </div>
             );
@@ -1277,29 +1288,26 @@ function TeamComparisonPanel({ tc }: { tc: TeamComparison }) {
         </div>
       )}
 
+      {coverage.length > 0 && (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Box score accounts for {coverage.map((c, i) => (
+            <span key={i}>{i > 0 && " and "}<span className={c.tracked === c.actual ? "text-foreground" : "text-amber-500"}>{c.tracked} of {c.actual}</span> {c.name} points</span>
+          ))} scored on film.
+        </p>
+      )}
+
       {/* Why */}
       {tc.why && (
         <div className="mt-5 rounded-lg bg-muted p-4">
           <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
-            ✓ {tc.winner ? `Why ${tc.winner} won` : "What decided it"}
+            {tc.winner ? `Why ${tc.winner.replace(/\s*\([^)]*\)/, "")} won` : "What decided it"}
           </p>
-          <p className="text-sm leading-relaxed text-muted-foreground">{tc.why}</p>
+          {/* Reviews saved before the parser fix carry this header on the end. */}
+          <p className="text-sm leading-relaxed text-muted-foreground">{tc.why.replace(/\s*COACHABLE MOMENTS:?\s*$/i, "")}</p>
         </div>
       )}
     </div>
   );
-}
-
-// ─── Player Stats (light "Highlights" style panel) ───────────────────────────
-
-function parseStatLine(raw: string) {
-  const jersey   = raw.match(/#(\d+)/)?.[1] ?? null;
-  const team     = raw.match(/\(([^)]+)\)/)?.[1]?.trim() ?? null;
-  const sharp    = parseInt(raw.match(/(\d+)\s*sharp/i)?.[1] ?? "0", 10);
-  const costly   = parseInt(raw.match(/(\d+)\s*costly/i)?.[1] ?? "0", 10);
-  const fouls    = parseInt(raw.match(/Fouls?:\s*(\d+)/i)?.[1] ?? "0", 10);
-  const standout = raw.match(/Standout[^:]*:\s*(.+?)\s*$/i)?.[1]?.trim() ?? null;
-  return { jersey, team, sharp, costly, fouls, standout };
 }
 
 // ─── Find My Player ───────────────────────────────────────────────────────────
@@ -1395,13 +1403,14 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
 // checkpoint and creeps toward the next one in between, but never past it,
 // so it keeps moving without ever claiming more than has actually happened.
 type JobProgressState = { status: string; progress_label: string | null; progress_current: number; progress_total: number };
-const JOB_BATCH = 5; // matches CONCURRENCY in the Inngest game job
+const JOB_BATCH = 10; // matches VIDEO_CONCURRENCY in the Inngest game job
 
 function jobCheckpoints(job: JobProgressState): { target: number; ceiling: number; label: string } {
   const { status, progress_label, progress_current: cur, progress_total: total } = job;
   if (status === "complete") return { target: 100, ceiling: 100, label: "Done" };
   if (status === "queued") return { target: 1, ceiling: 4, label: "Starting…" };
-  if (progress_label?.startsWith("Building")) return { target: 90, ceiling: 99, label: "Writing your game report…" };
+  if (progress_label?.startsWith("Building")) return { target: 92, ceiling: 99, label: "Writing your game report…" };
+  if (progress_label?.startsWith("Double")) return { target: 88, ceiling: 92, label: "Double-checking the score…" };
   if (progress_label?.startsWith("Watching") && total > 0) {
     const at = (n: number) => 8 + 82 * Math.min(n, total) / total;
     return { target: at(cur), ceiling: at(cur + JOB_BATCH), label: `Watching the game — ${cur} of ${total} segments done` };

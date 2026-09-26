@@ -4,7 +4,8 @@ import { inngest } from "./client";
 import { createAdminClient } from "../supabase/admin";
 import { analyzeChunk, SportsCheckError } from "../analysis/analyzeChunk";
 import { synthesizeGameReport } from "../analysis/synthesize";
-import { parseGameReport, buildBoxScore, buildVolleyBoxScore, buildDecisionTimeline } from "../analysis/parsers";
+import { parseGameReport } from "../analysis/parsers";
+import { prepareGame, gameFactsForPrompt, finalizeGameReport, mismatchedWindows, acceptSecondLook } from "../analysis/gameAccuracy";
 import { formatTime } from "../decisioniq-helpers";
 import { refundUsage } from "../usage";
 import { geminiGenerate } from "../ai/gemini";
@@ -23,6 +24,7 @@ export const ping = inngest.createFunction(
 
 const CHUNK_SIZE = 6;
 const CONCURRENCY = 5;
+const VIDEO_CONCURRENCY = 10;
 
 async function downloadFrame(supabase: ReturnType<typeof createAdminClient>, jobId: string, index: number) {
   const path = `${jobId}/${String(index).padStart(5, "0")}.jpg`;
@@ -104,8 +106,11 @@ export const analyzeGameJob = inngest.createFunction(
     // A whole game analyzed in ONE call makes the model summarize a few
     // highlights instead of logging every possession, so the video is split
     // into windows — the same shape as the frame-chunk path below.
-    const WINDOW_SECONDS = 240;
-    const MAX_WINDOWS = 20;
+    // Two-minute windows: on real footage they logged ~1.8x the events of
+    // four-minute ones for the same stretch, and each call finished in ~15s
+    // instead of ~110s, so more of them run faster overall.
+    const WINDOW_SECONDS = 120;
+    const MAX_WINDOWS = 45;
 
     // YouTube often refuses to tell Vercel's servers how long a video is. The
     // old fallback of 0 became a single 1-second window — a 40-minute game
@@ -184,6 +189,9 @@ export const analyzeGameJob = inngest.createFunction(
     }
 
     const units = videoUrl ? videoWindows : chunkRanges;
+    // Video windows are short Gemini calls with no frames to download, so
+    // twice as many can run at once.
+    const concurrency = videoUrl ? VIDEO_CONCURRENCY : CONCURRENCY;
     const chunkSummaries: { index: number; start: string; end: string; text: string }[] = [];
     // Progress is written once per batch, not per window: windows run in
     // parallel and finish out of order, so "window 3 done" said nothing about
@@ -193,8 +201,8 @@ export const analyzeGameJob = inngest.createFunction(
         .update({ progress_current: 0, progress_total: units.length, progress_label: "Watching the game…" })
         .eq("id", jobId);
     });
-    for (let batchStart = 0; batchStart < units.length; batchStart += CONCURRENCY) {
-      const batch = units.slice(batchStart, batchStart + CONCURRENCY)
+    for (let batchStart = 0; batchStart < units.length; batchStart += concurrency) {
+      const batch = units.slice(batchStart, batchStart + concurrency)
         .map((_, k) => (videoUrl ? runVideoWindow(batchStart + k) : runSegment(batchStart + k)));
       chunkSummaries.push(...(await Promise.all(batch)));
       const done = chunkSummaries.length;
@@ -205,22 +213,67 @@ export const analyzeGameJob = inngest.createFunction(
       });
     }
 
+    // Clean player labels across windows and read the scoreboard. Pure code,
+    // so it's safe to recompute on every step replay.
+    const teamName = await step.run("load-team-name", async () => {
+      if (!job.team_id) return null;
+      const { data } = await supabase.from("teams").select("name").eq("id", job.team_id).single();
+      return (data?.name as string | undefined) ?? null;
+    });
+    const hint = { teamColor, teamsNote, teamName, opponentName: job.opponent_name };
+    let game = prepareGame(chunkSummaries.map(c => c.text), hint);
+
+    // Second look at windows whose logged points don't match the scoreboard,
+    // told how many points each team really scored there. Kept only when it
+    // matches the scoreboard without taking a basket away from a player the
+    // first pass named (acceptSecondLook) — otherwise the first pass stands.
+    const recheck = videoUrl ? mismatchedWindows(game) : [];
+    if (recheck.length > 0) {
+      await step.run("progress-recheck", async () => {
+        await supabase.from("analysis_jobs").update({ progress_label: "Double-checking the score…" }).eq("id", jobId);
+      });
+      for (let b = 0; b < recheck.length; b += VIDEO_CONCURRENCY) {
+        const second = await Promise.all(recheck.slice(b, b + VIDEO_CONCURRENCY).map(w =>
+          step.run(`recheck-${w.index}`, async () => {
+            const { start, end } = videoWindows[w.index];
+            try {
+              return await analyzeChunk({
+                sport: job.sport, frames: [], mode: "game", chunkIndex: w.index,
+                chunkStart: formatTime(start), chunkEnd: formatTime(end),
+                jersey, teamColor, teamsNote, lenient, rosterNumbers,
+                videoUrl, videoStart: start, videoEnd: end,
+                scoreCheck: { scored: w.scored, logged: w.logged },
+              });
+            } catch {
+              return null; // a failed second look just keeps the first pass
+            }
+          })));
+        recheck.slice(b, b + VIDEO_CONCURRENCY).forEach((w, k) => {
+          const text = second[k];
+          if (text && acceptSecondLook(chunkSummaries[w.index].text, text, w.index, game)) {
+            chunkSummaries[w.index] = { ...chunkSummaries[w.index], text };
+          }
+        });
+      }
+      game = prepareGame(chunkSummaries.map(c => c.text), hint);
+    }
+    const cleanSummaries = chunkSummaries.map((c, i) => ({ ...c, text: game.texts[i] }));
+
     const reportText = await step.run("synthesize", async () => {
       await supabase.from("analysis_jobs").update({ progress_label: "Building game report…" }).eq("id", jobId);
-      return synthesizeGameReport({ sport: job.sport, chunkSummaries, teamsNote, jersey, teamColor });
+      return synthesizeGameReport({
+        sport: job.sport, chunkSummaries: cleanSummaries, teamsNote, jersey, teamColor,
+        facts: gameFactsForPrompt(game),
+      });
     });
 
     const reviewId = await step.run("save-review", async () => {
-      const report = parseGameReport(reportText);
-      // Each builder returns [] unless the segments' stat events are its
-      // sport, so at most one of these is populated.
-      const chunkTexts = chunkSummaries.map(c => c.text);
-      report.boxScore = buildBoxScore(chunkTexts);
-      report.volleyBox = buildVolleyBoxScore(chunkTexts);
-      report.timeline = buildDecisionTimeline(chunkTexts);
+      // Box score, timeline, teams, score and stat bars all come from code;
+      // the model's text only supplies the coaching.
+      const report = finalizeGameReport(parseGameReport(reportText), game);
       // No possessions and no stat events means the analysis didn't really run. Fail it
       // (onFailure refunds the credit) rather than saving a blank "N/A" review.
-      if (report.timeline.length === 0 && report.boxScore.length === 0 && report.volleyBox.length === 0) {
+      if (!report.timeline?.length && !report.boxScore?.length && !report.volleyBox?.length) {
         const reason = "We couldn't find any plays in this video. Your game credit was refunded — try again, or use screen capture.";
         await supabase.from("analysis_jobs").update({ status: "failed", error: reason }).eq("id", jobId);
         throw new NonRetriableError(reason);
@@ -230,7 +283,9 @@ export const analyzeGameJob = inngest.createFunction(
       const { error } = await supabase.from("reviews").insert({
         id, user_id: userId, file_name: job.file_name, sport: job.sport, mode: "game",
         grade: myGrade ?? report.overallGrade, created_at: new Date().toISOString(),
-        data: { gameReport: report, teamColor: teamColor?.trim() || null },
+        // Raw window texts are kept so a report can be audited or re-tallied
+        // later without paying to analyze the video again.
+        data: { gameReport: report, teamColor: teamColor?.trim() || null, chunkTexts: game.rawTexts },
         team_id: job.team_id, opponent_name: job.opponent_name, game_type: job.game_type,
         game_date: job.game_date, location: job.location, thumbnail_url: job.thumbnail_url,
       });

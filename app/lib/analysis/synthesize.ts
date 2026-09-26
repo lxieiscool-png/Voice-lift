@@ -10,9 +10,11 @@ export type SynthesizeInput = {
   teamsNote?: string;
   jersey?: string;
   teamColor?: string;
+  // Code-computed teams, final score and team stat lines (gameFactsForPrompt).
+  facts?: string;
 };
 
-export async function synthesizeGameReport({ sport, chunkSummaries, teamsNote, jersey, teamColor }: SynthesizeInput): Promise<string> {
+export async function synthesizeGameReport({ sport, chunkSummaries, teamsNote, jersey, teamColor, facts = "" }: SynthesizeInput): Promise<string> {
   // Grade from evidence, not vibes: every decision the segments logged is
   // tallied in code first, then handed to the model as the basis for the
   // grade. Same game in, same counts out.
@@ -43,7 +45,7 @@ TONE — BE DIRECT, DO NOT SUGARCOAT: say the real thing plainly, the way a good
 
 BREVITY: Every field must be a single sentence — two at the very most. Punchy, direct hits like a coach who doesn't waste words. No filler, no windup.
 
-Sport: ${sport || "auto-detected"}${teamContext}${uploaderContext}
+Sport: ${sport || "auto-detected"}${teamContext}${uploaderContext}${facts}
 
 Film segments:
 ${summaryText}

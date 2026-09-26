@@ -79,6 +79,29 @@ export type GameReport = {
   timeline?: { timestamp: string; seconds: number; player: string; quality: "good" | "neutral" | "poor"; description: string }[];
   didWell?: string[];
   workOn?: string[];
+  // The game's two teams by jersey colour (lowercase, same keys as
+  // boxScore[].team), uploader's team first, with real names when known.
+  teams?: { color: string; name: string | null }[];
+  // Box score summed per team, same order as `teams`.
+  teamTotals?: TeamTotals[];
+  // Final score read off the in-video scoreboard — the answer key the box
+  // score is checked against. Null when no scoreboard was readable.
+  scoreboard?: GameScoreboard | null;
+};
+
+export type TeamTotals = {
+  color: string; pts: number; fgm: number; fga: number; tpm: number; tpa: number;
+  ftm: number; fta: number; reb: number; ast: number; stl: number; tov: number; blk: number; pf: number;
+};
+
+export type GameScoreboard = {
+  // Same order as GameReport.teams. `start` is the score when the footage
+  // begins (film often starts mid-game), `final` when it ends — so points
+  // scored on film = final - start, which is what the box score should hit.
+  teams: { color: string; name: string | null; final: number; start: number }[];
+  // Per analysis window: points each colour scored per the scoreboard (null
+  // when unreadable) vs points the box score tracked in that window.
+  windows: { index: number; scored: Record<string, number> | null; tracked: Record<string, number> }[];
 };
 
 export type ChunkSummary = { index: number; start: string; end: string; text: string };

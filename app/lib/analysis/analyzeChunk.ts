@@ -45,13 +45,16 @@ export type AnalyzeChunkInput = {
   // report a #6 when the team only has an #8 — which is where most two-digit
   // misreads come from.
   rosterNumbers?: string[];
+  // Second look at a window whose logged points didn't match the scoreboard:
+  // how much each team actually scored here, per the scoreboard.
+  scoreCheck?: { scored: Record<string, number>; logged: Record<string, number> };
 };
 
 export class SportsCheckError extends Error {}
 
 export async function analyzeChunk({
   sport, frames, mode, chunkIndex = 0, chunkStart = "", chunkEnd = "", jersey, teamColor, teamsNote, lenient,
-  videoUrl, videoStart, videoEnd, videoFps, rosterNumbers,
+  videoUrl, videoStart, videoEnd, videoFps, rosterNumbers, scoreCheck,
 }: AnalyzeChunkInput): Promise<string> {
   const isVideo = !!videoUrl;
   const honestyBlock = lenient
@@ -88,7 +91,7 @@ export async function analyzeChunk({
   const prompt = isGameMode
     ? `You are an elite sports analyst reviewing game film with a coach. Be precise — only report what you can clearly see. Never guess or fabricate details.
 
-${isVideo ? `You are watching ONE TIME WINDOW of a longer game, and other windows are handled separately — so cover THIS window exhaustively from its first second to its last. Log EVERY possession you see, not a highlight selection: a four-minute window of basketball usually contains 8-16 possessions, and your Stat Events and Decision Events lists should reflect that. A short list means you skimmed.` : "Carefully study every frame before responding."} Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
+${isVideo ? `You are watching ONE TIME WINDOW of a longer game, and other windows are handled separately — so cover THIS window exhaustively from its first second to its last. Log EVERY possession you see, not a highlight selection: a two-minute window of basketball usually contains 4-8 possessions per team, and your Stat Events and Decision Events lists should reflect that. A short list means you skimmed.` : "Carefully study every frame before responding."} Only track athletes actively competing — ignore referees, officials, coaches, spectators, and bench players not involved in the play.
 
 BREVITY: Every written field must be a single sentence — two at the very most. Be punchy, specific, and coach-like. No filler, no restating the obvious.
 
@@ -98,11 +101,14 @@ ${rosterNumbers?.length
   ? `\nROSTER — the only jersey numbers in this game are: ${rosterNumbers.join(", ")}. If a number you read is not on this list you misread it: pick the closest number that IS on the list, or fall back to a descriptive label. Never report a number that isn't here.\n`
   : ""}JERSEY NUMBERS — READ TWICE: two-digit numbers and the pairs 6/8, 3/8, 5/6, 1/7, 0/8 are the most common misreads, and a wrong number attributes a play to the wrong athlete, which is worse than no number at all. Confirm a number in at least two separate moments before reporting it. If the two readings disagree, or you only ever saw it once and unclearly, use a descriptive label like "White Point Guard" instead.
 ${jersey || teamColor ? `\nTHE UPLOADER: this athlete is ${teamColor ? `on the ${teamColor} team` : ""}${jersey ? ` wearing #${jersey}` : ""}. Whenever they are visible in this segment, always include their line in Player Tracking, log their stat events, and let Decision Quality speak directly to THEM about what they specifically did. If no player matching this description is visible in this segment, simply omit them — never relabel another player as the uploader.\n` : ""}
+TEAM LABELS: every player label starts with their JERSEY COLOUR word — "Gray #12", "Blue #5", "White Guard". Never use a team, school or club name in a label, even if you can read it on the scoreboard or jerseys; the same player must carry the same label everywhere.
+
 Return ONLY this format — no extra commentary:
 
 Period/Quarter: [e.g. "2nd Quarter", "Set 2", or "unclear"]
 Game Clock: [e.g. "4:32" or "unclear"]
-Score: [e.g. "Lakers 54 – Celtics 48", "Blue 18 – White 14", or "unclear"]
+Score Start: [the scoreboard as it reads at the START of this footage, by jersey colour, with the names shown on the scoreboard in brackets — e.g. "Gray 12 – Blue 18 [Titanium – Anaheim Select]". Only if a scoreboard or score graphic is clearly readable; otherwise "unclear". Never estimate.]
+Score End: [the same, as it reads at the END of this footage, or "unclear"]
 
 Key Events:
 - [Each notable play, foul, or score. Include jersey number and team only if clearly readable. Use "Blue #12" style if partially visible. "None detected" if nothing notable.]
@@ -111,10 +117,10 @@ Player Tracking:
 - [One line for EVERY active player visible in this segment, from BOTH teams — basketball: usually 8–10 lines; volleyball: up to 12, six per side — never just 2–3. Look HARD for jersey numbers on chests and backs in every frame — a number readable in even one clear frame counts: "Red #11 Guard". Use a descriptive label like "White Point Guard" only when the number is genuinely unreadable in every frame. Never guess or partially read a number, but don't omit one you can actually read.]
 
 Stat Events:
-- [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard" or "Blue Setter". ${statVocab} Rules: only log an event when the outcome is genuinely visible across the frames — never guess a make vs a miss or a kill vs a ball kept in play; if you can see the attempt but not how it ended, DO NOT log it. Do not infer events between frames you cannot see. One line per event; one play may produce two lines (e.g. a steal AND the resulting turnover, or a set_assist AND the kill it fed). Write "None" if nothing countable is clearly visible.]
+- [One line per COUNTABLE stat event you can clearly see the OUTCOME of in these frames. Format EXACTLY: "TEAM #NUM | event". Team+number must match the Player Tracking labels (e.g. "Blue #12"); if the number is unreadable, use the color + role like "Blue Guard" or "Blue Setter". ${statVocab} Rules: only log an event when the outcome is genuinely visible across the frames — never guess a make vs a miss or a kill vs a ball kept in play; if you can see the attempt but not how it ended, DO NOT log it. Do not infer events between frames you cannot see. One line per event; one play may produce two lines (e.g. a steal AND the resulting turnover, or a set_assist AND the kill it fed). Write "None" if nothing countable is clearly visible. SCORING CHECK: every made basket and free throw is a line here. If the scoreboard is readable, the points you log for each team must add up to how much that team's score changed between Score Start and Score End — if they don't, you missed a basket: go back and find it, and if you truly can't tell who scored it, log it as "COLOUR Unknown | made_2" rather than dropping it.]
 
 Decision Events:
-- [One line per DECISION you can clearly see, from either team — aim for at least one per possession, not a highlight reel. Format EXACTLY: "M:SS | TEAM #NUM | quality | what happened", where M:SS is where in the video it happens. Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "3:14 | Blue #12 | good | drove baseline and kicked to the open corner shooter"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see, but a four-minute stretch of play should yield roughly 8-16 lines here — if you have fewer than 6, go back through the footage for possessions you skipped. Write "None" only if the footage truly shows no play.]
+- [One line per DECISION you can clearly see, from either team — aim for at least one per possession, not a highlight reel. Format EXACTLY: "M:SS | TEAM #NUM | quality | what happened", where M:SS is where in the video it happens. Team+number must match the Player Tracking labels. "quality" must be one of exactly: good, neutral, poor. Describe the decision factually in a few words — no coaching, no advice, no praise or scolding; just what they chose to do and how it turned out (e.g. "3:14 | Blue #12 | good | drove baseline and kicked to the open corner shooter"). Judge the DECISION, not the outcome: a smart read that missed is still "good"; a lucky point off a forced attack is still "poor". Only log decisions you can actually see, but a two-minute stretch of play should yield roughly 6-12 lines here — if you have fewer than 5, go back through the footage for possessions you skipped. Write "None" only if the footage truly shows no play.]
 
 Tactical Pattern:
 [One sentence naming one concrete tactical pattern visible this segment — e.g. "The defense consistently sagged off the corner three, leaving the shooter open twice."]
@@ -123,7 +129,9 @@ Tactical Pattern:
 Segment ${chunkIndex + 1} covers ${chunkStart}–${chunkEnd}.
 ${isVideo ? `TIMESTAMPS: the footage you were given starts at ${chunkStart} of the full video. Every timestamp you report must be the ABSOLUTE position in the full video, so add ${chunkStart} to whatever time you observe. All of yours must fall between ${chunkStart} and ${chunkEnd}.` : ""}
 Sport: ${sport || "auto-detect from frames"}${teamContext}
-`
+${scoreCheck ? `
+SECOND LOOK — SCORING: per the scoreboard, in this footage ${Object.entries(scoreCheck.scored).map(([c, n]) => `${c[0].toUpperCase() + c.slice(1)} scored ${n}`).join(" and ")}, but a first pass logged ${Object.entries(scoreCheck.logged).map(([c, n]) => `${n} for ${c[0].toUpperCase() + c.slice(1)}`).join(" and ")}. Watch again and account for every point: made baskets, and-ones, free throws (including ones shot after a stoppage). Log every scoring play you can actually see. If you see the ball go in but can't read the scorer's number, log it as "COLOUR Unknown | made_2" (or made_3 / made_ft). Never log a basket you did not see just to reach the number — if you truly can't find it, leave it out.
+` : ""}`
     : `You are an elite sports coach doing a film session with your athlete. You are direct, specific, and honest. You only describe what you can actually see in the frames — never fabricate or assume.
 
 ${isVideo

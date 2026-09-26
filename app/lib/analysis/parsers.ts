@@ -318,6 +318,8 @@ function parseTeamComparison(text: string): TeamComparison | null {
     score:  /not visible|n\/a|unknown/i.test(scoreRaw) || !scoreRaw ? null : scoreRaw,
     winner: /unclear|n\/a|unknown/i.test(winnerRaw)    || !winnerRaw ? null : winnerRaw,
     stats,
-    why: block.match(/Why:\s*([\s\S]*?)(?====\s*PLAYER\s*===|$)/i)?.[1]?.trim() ?? "",
+    // Stop at the coachable-moments header too, or "COACHABLE MOMENTS:" leaks
+    // onto the end of the "why they won" text.
+    why: block.match(/Why:\s*([\s\S]*?)(?=\n\s*COACHABLE MOMENTS|====?\s*PLAYER\s*===|$)/i)?.[1]?.trim() ?? "",
   };
 }
