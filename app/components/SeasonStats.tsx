@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { Review, TeamMember } from "../lib/types";
+import { Segmented } from "./ui/segmented";
 import { createClient } from "../lib/supabase/client";
 import {
   buildSeasonLedger, goodDecisionPct, hittingPct, perGame, pct,
@@ -206,21 +207,15 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
   const toggle = (j: string) => setOpen(open === j ? null : j);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <section>
       <div className="mb-1 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h3 className="font-display text-sm font-bold text-foreground">Season Stats</h3>
+          <h2 className="font-display text-sm font-bold text-foreground">Season stats</h2>
           <EstimateBadge />
         </div>
         {ledger.players.length > 0 && (
-          <div className="flex rounded-lg border border-border p-0.5 text-xs font-semibold">
-            {([["Per game", true], ["Totals", false]] as const).map(([label, v]) => (
-              <button key={label} onClick={() => setAvg(v)}
-                className={`rounded-md px-2.5 py-1 ${avg === v ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <Segmented value={avg ? "avg" : "tot"} onChange={v => setAvg(v === "avg")}
+            options={[{ value: "avg", label: "Per game" }, { value: "tot", label: "Totals" }]} />
         )}
       </div>
       <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
@@ -263,7 +258,7 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
 
       <NeedsColor items={ledger.needsColor} onSetColor={onSetColor} />
       <SupersededNote items={ledger.superseded} />
-    </div>
+    </section>
   );
 }
 
@@ -272,7 +267,6 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
 export function MySeasonCard({ reviews, jersey, onSetColor }: {
   reviews: Review[]; jersey?: string; onSetColor?: (r: Review, color: string) => void;
 }) {
-  const [showLog, setShowLog] = useState(false);
   const games = reviews.filter(r => r.mode === "game");
   if (games.length === 0) return null;
   const ledger = buildSeasonLedger(games);
@@ -289,9 +283,9 @@ export function MySeasonCard({ reviews, jersey, onSetColor }: {
   ] : [];
 
   return (
-    <div className="mb-4 rounded-xl border border-border bg-card p-5">
+    <section>
       <div className="mb-3 flex items-center gap-2">
-        <p className="font-display text-sm font-bold text-foreground">Your Season</p>
+        <h2 className="font-display text-sm font-bold text-foreground">Your season{j ? ` · #${j}` : ""}</h2>
         <EstimateBadge />
       </div>
       {!j ? (
@@ -310,14 +304,11 @@ export function MySeasonCard({ reviews, jersey, onSetColor }: {
               </div>
             ))}
           </div>
-          <button onClick={() => setShowLog(!showLog)} className="mt-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showLog ? "" : "-rotate-90"}`} /> Game log
-          </button>
-          {showLog && <div className="mt-2 overflow-x-auto rounded-lg border border-border"><div className="min-w-[560px]"><GameLog sport={ledger.sport} player={me} cols={cols} /></div></div>}
+          <div className="mt-5 overflow-x-auto rounded-lg border border-border"><div className="min-w-[560px]"><GameLog sport={ledger.sport} player={me} cols={cols} /></div></div>
         </>
       )}
       <NeedsColor items={ledger.needsColor} onSetColor={onSetColor} />
       <SupersededNote items={ledger.superseded} />
-    </div>
+    </section>
   );
 }

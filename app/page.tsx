@@ -10,6 +10,7 @@ import type { User } from "@supabase/supabase-js";
 import Logo from "./components/Logo";
 import UpgradeModal from "./components/UpgradeModal";
 import ThemeToggle from "./components/ThemeToggle";
+import { Segmented } from "./components/ui/segmented";
 import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, type LucideIcon } from "lucide-react";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
@@ -157,13 +158,13 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
   ];
 
   return (
-    <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-y-4 border-y border-border py-4 sm:grid-cols-4">
       {stats.map(({ label, value, grade, fire }) => (
-        <div key={label} className="border border-border bg-card rounded-xl px-4 py-3">
+        <div key={label}>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
           {grade
             ? <span className={`inline-block rounded-md px-2.5 py-0.5 text-lg font-bold ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="flex items-center gap-1 text-xl font-bold text-foreground capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
+            : <p className="flex items-center gap-1 font-display text-xl font-bold text-foreground capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
           }
         </div>
       ))}
@@ -177,7 +178,7 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
   const recent = [...reviews].reverse().slice(-20);
   if (recent.length < 2) return null;
 
-  const W = 600, H = 120, PL = 28, PR = 12, PT = 12, PB = 24;
+  const W = 720, H = 180, PL = 28, PR = 12, PT = 12, PB = 24;
   const iW = W - PL - PR, iH = H - PT - PB;
   const xp = (i: number) => PL + (i / (recent.length - 1)) * iW;
   const yp = (v: number) => PT + iH - ((v - 1) / 12) * iH;
@@ -188,24 +189,25 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
   const poly  = pts.map(p => `${p.x},${p.y}`).join(" ");
 
   return (
-    <div className="mb-5 border border-border bg-card rounded-xl p-4">
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Grade Trend</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 110 }}>
+    <section>
+      <h2 className="mb-1 font-display text-sm font-bold text-foreground">Grade trend</h2>
+      <p className="mb-3 text-xs text-muted-foreground">Your last {recent.length} reviews, oldest to newest.</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
         {[{ v: 13, l: "A+" }, { v: 9, l: "B" }, { v: 6, l: "C" }, { v: 1, l: "F" }].map(({ v, l }) => (
           <g key={v}>
-            <line x1={PL} y1={yp(v)} x2={W - PR} y2={yp(v)} stroke="#18181b" strokeWidth="1" />
-            <text x={PL - 5} y={yp(v) + 4} textAnchor="end" fill="#52525b" fontSize="9">{l}</text>
+            <line x1={PL} y1={yp(v)} x2={W - PR} y2={yp(v)} stroke="var(--border)" strokeWidth="1" />
+            <text x={PL - 5} y={yp(v) + 4} textAnchor="end" fill="var(--muted-foreground)" fontSize="9">{l}</text>
           </g>
         ))}
         <polyline points={poly} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} stroke="#000" strokeWidth="1.5" />)}
+        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} stroke="var(--background)" strokeWidth="1.5" />)}
         {[0, Math.floor((recent.length - 1) / 2), recent.length - 1].map(i => (
-          <text key={i} x={xp(i)} y={H - 4} textAnchor="middle" fill="#3f3f46" fontSize="9">
+          <text key={i} x={xp(i)} y={H - 4} textAnchor="middle" fill="var(--muted-foreground)" fontSize="9">
             {new Date(recent[i].timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </text>
         ))}
       </svg>
-    </div>
+    </section>
   );
 }
 
@@ -1053,6 +1055,7 @@ export default function Reel() {
   const [activeModule,  setActiveModule]  = useState<ModuleId>("decision");
   const [profile,       setProfile]       = useState<Profile>(DEFAULT_PROFILE);
   const [reviews,       setReviews]       = useState<Review[]>([]);
+  const [libraryView,   setLibraryView]   = useState<"film" | "stats">("film");
   const [settingsOpen,  setSettingsOpen]  = useState(false);
   const [user,          setUser]          = useState<User | null>(null);
   const [authLoading,   setAuthLoading]   = useState(true);
@@ -1370,17 +1373,30 @@ export default function Reel() {
 
         {activeModule === "library" ? (
           <>
-            <div className="mb-6">
-              <h1 className="font-display text-2xl font-bold sm:text-3xl">
-                Library
-                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">All your past film sessions. Search, filter, and replay any review.</p>
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="font-display text-2xl font-bold sm:text-3xl">
+                  Library
+                  <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {libraryView === "film" ? "Every game and clip you've analyzed, by team." : "Your season numbers and how your grades are trending."}
+                </p>
+              </div>
+              <Segmented value={libraryView} onChange={setLibraryView}
+                options={[{ value: "film", label: "Film", count: reviews.length }, { value: "stats", label: "Stats" }]} />
             </div>
-            <StatsBar reviews={reviews} />
-            {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
-            <MySeasonCard reviews={reviews} jersey={profile.jersey} onSetColor={setGameColor} />
-            <FilmLibrary reviews={reviews} onReviewsChange={setReviews} userId={user?.id} />
+            {libraryView === "film" ? (
+              <FilmLibrary reviews={reviews} onReviewsChange={setReviews} userId={user?.id} />
+            ) : reviews.length === 0 ? (
+              <p className="border-t border-border py-10 text-center text-sm text-muted-foreground">Analyze a game or clip and your stats will show up here.</p>
+            ) : (
+              <div className="space-y-10">
+                <StatsBar reviews={reviews} />
+                <MySeasonCard reviews={reviews} jersey={profile.jersey} onSetColor={setGameColor} />
+                {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
+              </div>
+            )}
           </>
         ) : activeModule === "teams" ? (
           <>

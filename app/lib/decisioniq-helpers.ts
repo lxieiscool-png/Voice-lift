@@ -1,5 +1,14 @@
 import type { PlayerDecision, Review } from "./types";
 
+// When a game was played, as epoch ms. game_date is a date-only string
+// ("2026-02-06"); new Date() reads that as UTC midnight, which shows as the
+// previous day in US time zones — so build it as a local date instead.
+export function playedAt(r: Review): number {
+  const m = r.gameDate?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+  return r.gameDate ? new Date(r.gameDate).getTime() : r.timestamp;
+}
+
 // Best-effort W/L/T for a single game, from the AI-detected winner in the game
 // report's team comparison. Returns null when there's no reliable result to
 // show (a clip, no team comparison, or an unclear winner) — same honesty

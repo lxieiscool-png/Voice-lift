@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, Clapperboard, Dumbbell, Loader2, Lock, MoreVertical, Upload, Users, Video, VideoOff, X } from "lucide-react";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, PlayerStat, TeamComparison, Team, PlayerBoxStat, PlayerVolleyStat } from "../lib/types";
-import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck } from "../lib/decisioniq-helpers";
+import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck, playedAt } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
 import { TeamSectionHeader, GameCard, teamAvatarColor } from "./GameCards";
 import { Button } from "./ui/button";
+import { Segmented } from "./ui/segmented";
 
 function persistReview(userId: string | undefined, review: Review) {
   if (!userId) return;
@@ -2411,7 +2412,8 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     if (gradeFilter === "poor" && v >= 5) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!r.sport.toLowerCase().includes(q) && !r.fileName.toLowerCase().includes(q)) return false;
+      const team = r.teamId ? myTeams.find(t => t.id === r.teamId)?.name ?? "" : "";
+      if (![r.sport, r.fileName, r.opponentName ?? "", team].some(x => x.toLowerCase().includes(q))) return false;
     }
     return true;
   });
@@ -2491,7 +2493,8 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     }
     return groupMap.get(key)!;
   };
-  for (const r of filtered) {
+  // Newest game first within each team — by the game's own date when set.
+  for (const r of [...filtered].sort((a, b) => playedAt(b) - playedAt(a))) {
     const g = ensureGroup(r.teamId || null);
     g.reviews.push(r);
     g.latest = Math.max(g.latest, r.timestamp);
@@ -2511,52 +2514,41 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
 
   const dateLabel = (r: Review) => {
     const base = r.gameDate
-      ? new Date(r.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      ? new Date(playedAt(r)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
       : formatDate(r.timestamp);
     return r.gameType ? `${base} · ${r.gameType}` : base;
   };
 
+  const gameCount = reviews.filter(r => r.mode === "game").length;
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Film Library</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{reviews.length} review{reviews.length !== 1 ? "s" : ""} · organized by team</p>
-        </div>
-      </div>
-
-      {/* Search + Filters */}
-      <div className="mb-4 space-y-3">
+    <div>
+      {/* Toolbar: search, type, grade — one row */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by sport or file name…"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+          placeholder="Search team, opponent, or title…"
+          className="min-w-0 flex-1 basis-56 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
         />
-        <div className="flex flex-wrap gap-2">
-          {(["all", "clip", "game"] as const).map(f => (
-            <button key={f} onClick={() => setModeFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${modeFilter === f ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
-              {f === "all" ? "All" : f === "clip" ? "Clips" : "Games"}
-            </button>
-          ))}
-          <div className="w-px bg-accent mx-1 self-stretch" />
-          {(["all", "good", "mid", "poor"] as const).map(f => (
-            <button key={f} onClick={() => setGradeFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${gradeFilter === f ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}>
-              {f === "all" ? "Any grade" : f === "good" ? "B+ and up" : f === "mid" ? "C to B" : "Below C"}
-            </button>
-          ))}
-        </div>
+        <Segmented value={modeFilter} onChange={setModeFilter} options={[
+          { value: "all", label: "All", count: reviews.length },
+          { value: "game", label: "Games", count: gameCount },
+          { value: "clip", label: "Clips", count: reviews.length - gameCount },
+        ]} />
+        <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value as typeof gradeFilter)}
+          aria-label="Filter by grade"
+          className="rounded-lg border border-border bg-background px-2.5 py-2 text-xs font-semibold text-foreground focus:outline-none focus:border-ring">
+          <option value="all">Any grade</option>
+          <option value="good">B+ and up</option>
+          <option value="mid">C to B</option>
+          <option value="poor">Below C</option>
+        </select>
       </div>
 
       {groups.length === 0 ? (
-        <div className="flex h-24 items-center justify-center rounded-lg border border-border">
-          <p className="text-sm text-muted-foreground">No reviews match your filters.</p>
-        </div>
+        <p className="border-t border-border py-10 text-center text-sm text-muted-foreground">No reviews match your filters.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-8">
           {groups.map(group => {
             const isCollapsed = collapsed.has(group.key);
             // Best-effort record from this team's linked games.
@@ -2567,21 +2559,23 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
               else if (res?.outcome === "L") losses++;
             }
             const record = wins + losses > 0 ? `${wins}-${losses}` : null;
-            const count = group.reviews.length + group.jobs.length;
+            const games = group.reviews.filter(r => r.mode === "game").length + group.jobs.length;
+            const clips = group.reviews.length - group.reviews.filter(r => r.mode === "game").length;
+            const subtitle = [games && `${games} ${games === 1 ? "game" : "games"}`, clips && `${clips} ${clips === 1 ? "clip" : "clips"}`].filter(Boolean).join(" · ");
             return (
-              <div key={group.key} className="rounded-xl border border-border bg-muted">
+              <section key={group.key} className="border-t border-border pt-2">
                 <TeamSectionHeader
                   name={group.name}
                   initials={group.teamId ? teamInitials(group.name) : "—"}
-                  colorClass={group.teamId ? teamAvatarColor(group.key) : "bg-accent"}
-                  subtitle={`${count} ${count === 1 ? "game" : "games"}`}
+                  colorClass={group.teamId ? teamAvatarColor(group.key) : "bg-muted-foreground"}
+                  subtitle={subtitle}
                   record={record}
                   recordTone={record ? (wins >= losses ? "win" : "loss") : "neutral"}
                   open={!isCollapsed}
                   onToggle={() => toggleTeam(group.key)}
                 />
                 {!isCollapsed && (
-                  <div className="grid gap-3 p-3 pt-0 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {group.jobs.map(job => (
                       <GameCard
                         key={job.id}
@@ -2620,7 +2614,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
                     ))}
                   </div>
                 )}
-              </div>
+              </section>
             );
           })}
         </div>

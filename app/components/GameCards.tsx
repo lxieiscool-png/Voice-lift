@@ -44,15 +44,15 @@ export function TeamSectionHeader({ name, initials, colorClass, badge, subtitle,
     <div className="flex items-center gap-3 px-1 py-2">
       <button onClick={onToggle} className="flex flex-1 items-center gap-3 text-left min-w-0">
         <span className="text-muted-foreground shrink-0">{open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</span>
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black text-foreground ${colorClass}`}>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${colorClass}`}>
           {initials}
         </span>
         <span className="min-w-0">
           <span className="flex items-center gap-2">
-            <span className="truncate text-base font-black text-foreground">{name}</span>
+            <span className="truncate font-display text-base font-bold text-foreground">{name}</span>
             {badge && <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{badge}</span>}
           </span>
-          {subtitle && <span className="block truncate text-xs text-muted-foreground mt-0.5">{subtitle}</span>}
+          {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
         </span>
       </button>
       <div className="flex items-center gap-2 shrink-0">
@@ -94,7 +94,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     // Rounded-corner clipping lives on the thumbnail button instead.
     <div className="rounded-xl border border-border bg-card">
       {/* Thumbnail */}
-      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-muted to-card disabled:cursor-default">
+      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-xl bg-muted disabled:cursor-default">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumbnailUrl} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />

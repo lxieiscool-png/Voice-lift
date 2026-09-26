@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Plus, MapPin, Calendar, ChevronLeft, Loader2, Pencil, Trash2, Settings2, X } from "lucide-react";
+import { Users, Plus, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { createClient } from "../lib/supabase/client";
 import type { Team, TeamMember, Review } from "../lib/types";
-import { formatDate, gameResult } from "../lib/decisioniq-helpers";
-import { TeamSectionHeader, GameCard, teamAvatarColor, teamInitials } from "./GameCards";
+import { formatDate, gameResult, playedAt } from "../lib/decisioniq-helpers";
+import { GameCard, teamAvatarColor, teamInitials } from "./GameCards";
+import { Segmented } from "./ui/segmented";
 import { GameResultsView, PlayerCardList } from "./DecisionIQ";
 import { SeasonStatsPanel, saveReviewTeamColor } from "./SeasonStats";
 import { buildSeasonLedger } from "../lib/analysis/seasonStats";
@@ -56,16 +57,8 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
   const [showEdit, setShowEdit] = useState(false);
   const [openTeam, setOpenTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [teamTab, setTeamTab] = useState<"stats" | "games" | "roster">("stats");
   const [openReview, setOpenReview] = useState<Review | null>(null);
-
-  function toggleTeam(key: string) {
-    setCollapsed(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  }
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -154,196 +147,8 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
     onReviewsChange(reviews.map(r => r.id === review.id ? { ...r, teamColor: color } : r));
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
-  }
-
-  if (openTeam) {
-    const record = computeSeasonRecord(openTeam, reviews);
-    const games = reviews.filter(r => r.teamId === openTeam.id).sort((a, b) => b.timestamp - a.timestamp);
-    const { team: teamTotals, sport: statSport } = buildSeasonLedger(games, members, openTeam.sport);
-    return (
-      <div>
-        <button onClick={() => setOpenTeam(null)} className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ChevronLeft className="h-4 w-4" /> All teams
-        </button>
-
-        <div className="rounded-xl border border-border bg-card p-6 mb-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-foreground">{openTeam.name}</h2>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                {(openTeam.city || openTeam.state) && (
-                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{[openTeam.city, openTeam.state].filter(Boolean).join(", ")}</span>
-                )}
-                {openTeam.season && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{openTeam.season}</span>}
-                {openTeam.gender && <span>{openTeam.gender}</span>}
-                {openTeam.ageGroup && <span>{openTeam.ageGroup}</span>}
-                {openTeam.level && <span>{openTeam.level}</span>}
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => setShowEdit(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring">
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </button>
-              <button onClick={() => deleteTeam(openTeam)}
-                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-red-400 hover:border-red-900">
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-lg border border-border bg-muted px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Record</p>
-              <p className="text-lg font-bold text-foreground">{record.total > 0 ? `${record.wins}-${record.losses}` : "-"}</p>
-              {record.unclear > 0 && <p className="text-[10px] text-muted-foreground mt-0.5">{record.unclear} unclear</p>}
-            </div>
-            <div className="rounded-lg border border-border bg-muted px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Games Tracked</p>
-              <p className="text-lg font-bold text-foreground">{games.length || "-"}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Roster</p>
-              <p className="text-lg font-bold text-foreground">{members.length || "-"}</p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">PPG / Opp PPG</p>
-              {statSport === "basketball" && teamTotals.gp > 0 ? (
-                <>
-                  <p className="text-lg font-bold text-foreground">
-                    {(teamTotals.ptsFor / teamTotals.gp).toFixed(1)} / {teamTotals.gamesWithOpp > 0 ? (teamTotals.ptsAgainst / teamTotals.gamesWithOpp).toFixed(1) : "-"}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">AI estimate</p>
-                </>
-              ) : <p className="text-lg font-bold text-muted-foreground">-</p>}
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <SeasonStatsPanel games={games} roster={members} sport={openTeam.sport} onSetColor={setGameColor} />
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-3 text-sm font-bold text-foreground">Roster</h3>
-            <RosterEditor members={members} onAdd={(m) => addMember(openTeam.id, m)} onRemove={removeMember} />
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-3 text-sm font-bold text-foreground">Games</h3>
-            {games.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No games linked to this team yet. When uploading in DecisionIQ, attach the game to this team to see it here.</p>
-            ) : (
-              <div className="space-y-2">
-                {games.map(g => (
-                  <div key={g.id} className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
-                    <div>
-                      <p className="text-sm text-foreground">{g.opponentName ? `vs ${g.opponentName}` : g.fileName}</p>
-                      <p className="text-xs text-muted-foreground">{g.gameDate ? formatDate(new Date(g.gameDate).getTime()) : formatDate(g.timestamp)}</p>
-                    </div>
-                    <span className="text-sm font-bold text-foreground">{g.grade}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {showEdit && (
-          <CreateTeamModal
-            title="Edit Team"
-            initial={openTeam}
-            onClose={() => setShowEdit(false)}
-            onCreate={updateTeam}
-          />
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">My Teams</h2>
-          <p className="text-sm text-muted-foreground">Track a season, roster, and record across every game you upload.</p>
-        </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4" /> Create Team
-        </button>
-      </div>
-
-      {teams.length === 0 && !showCreate && (
-        <div className="rounded-xl border border-border bg-gradient-to-b from-muted/60 to-card p-10 flex flex-col items-center justify-center text-center gap-3">
-          <Users className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
-          <p className="text-base font-semibold text-foreground">No teams yet</p>
-          <p className="text-sm text-muted-foreground max-w-xs">Create a team to track a season — roster, record, and every game you upload in one place.</p>
-        </div>
-      )}
-
-      {teams.length > 0 && (
-        <div className="space-y-3">
-          {teams.map(t => {
-            const record = computeSeasonRecord(t, reviews);
-            const games = reviews
-              .filter(r => r.teamId === t.id)
-              .sort((a, b) => (b.gameDate ? new Date(b.gameDate).getTime() : b.timestamp) - (a.gameDate ? new Date(a.gameDate).getTime() : a.timestamp));
-            const isCollapsed = collapsed.has(t.id);
-            const subtitle = [[t.ageGroup, t.gender].filter(Boolean).join(" "), t.season, `${games.length} ${games.length === 1 ? "game" : "games"}`]
-              .filter(Boolean).join(" · ");
-            return (
-              <div key={t.id} className="rounded-xl border border-border bg-muted">
-                <TeamSectionHeader
-                  name={t.name}
-                  initials={teamInitials(t.name)}
-                  colorClass={teamAvatarColor(t.id)}
-                  badge={t.level}
-                  subtitle={subtitle}
-                  record={record.total > 0 ? `${record.wins} – ${record.losses}` : null}
-                  recordTone={record.total > 0 ? (record.wins >= record.losses ? "win" : "loss") : "neutral"}
-                  open={!isCollapsed}
-                  onToggle={() => toggleTeam(t.id)}
-                  actions={
-                    <button onClick={() => setOpenTeam(t)}
-                      className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring">
-                      <Settings2 className="h-3.5 w-3.5" /> Manage
-                    </button>
-                  }
-                />
-                {!isCollapsed && (
-                  games.length === 0 ? (
-                    <p className="px-4 pb-4 text-sm text-muted-foreground">No games linked yet. When uploading in DecisionIQ, attach the game to this team — or use a game's ⋮ menu in the Library.</p>
-                  ) : (
-                    <div className="grid gap-3 p-3 pt-0 sm:grid-cols-2 lg:grid-cols-3">
-                      {games.map(g => (
-                        <GameCard
-                          key={g.id}
-                          thumbnailUrl={g.thumbnailUrl}
-                          sport={g.sport}
-                          dateLabel={g.gameDate ? new Date(g.gameDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : formatDate(g.timestamp)}
-                          title={g.opponentName ? `vs ${g.opponentName}` : (g.fileName || g.sport)}
-                          grade={g.grade}
-                          result={gameResult(g, t.name)}
-                          onClick={() => setOpenReview(g)}
-                        />
-                      ))}
-                    </div>
-                  )
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {showCreate && <CreateTeamModal defaultSport={sport} onClose={() => setShowCreate(false)} onCreate={createTeam} />}
-
-      {/* Game report overlay */}
-      {openReview && (
+  const reviewOverlay = (
+    openReview && (
         openReview.mode === "game" && openReview.gameReport
           ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back" />
           : (
@@ -363,7 +168,184 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
               </div>
             </div>
           )
+      )
+  );
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  }
+
+  if (openTeam) {
+    const record = computeSeasonRecord(openTeam, reviews);
+    const games = reviews.filter(r => r.teamId === openTeam.id).sort((a, b) => playedAt(b) - playedAt(a));
+    const { team: teamTotals, sport: statSport } = buildSeasonLedger(games, members, openTeam.sport);
+    const meta = [
+      [openTeam.city, openTeam.state].filter(Boolean).join(", "), openTeam.season,
+      [openTeam.ageGroup, openTeam.gender].filter(Boolean).join(" "), openTeam.level,
+    ].filter(Boolean);
+    const ppg = statSport === "basketball" && teamTotals.gp > 0
+      ? `${(teamTotals.ptsFor / teamTotals.gp).toFixed(1)} / ${teamTotals.gamesWithOpp > 0 ? (teamTotals.ptsAgainst / teamTotals.gamesWithOpp).toFixed(1) : "-"}`
+      : "-";
+    const strip = [
+      { label: "Record", value: record.total > 0 ? `${record.wins}-${record.losses}` : "-", note: record.unclear > 0 ? `${record.unclear} unclear` : null },
+      { label: "Games", value: String(games.length || "-"), note: null },
+      { label: "Roster", value: String(members.length || "-"), note: null },
+      { label: "PPG / Opp", value: ppg, note: ppg !== "-" ? "AI estimate" : null },
+    ];
+    return (
+      <div>
+        <button onClick={() => setOpenTeam(null)} className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="h-4 w-4" /> All teams
+        </button>
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${teamAvatarColor(openTeam.id)}`}>
+              {teamInitials(openTeam.name)}
+            </span>
+            <div className="min-w-0">
+              <h2 className="truncate font-display text-2xl font-bold text-foreground">{openTeam.name}</h2>
+              {meta.length > 0 && <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button onClick={() => setShowEdit(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring">
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </button>
+            <button onClick={() => deleteTeam(openTeam)} aria-label="Delete team"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-red-400 hover:border-red-900">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-y-4 border-y border-border py-4 sm:grid-cols-4">
+          {strip.map(t => (
+            <div key={t.label}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{t.label}</p>
+              <p className="font-display text-xl font-bold text-foreground">{t.value}</p>
+              {t.note && <p className="mt-0.5 text-[10px] text-muted-foreground">{t.note}</p>}
+            </div>
+          ))}
+        </div>
+
+        <Segmented className="my-6" value={teamTab} onChange={setTeamTab} options={[
+          { value: "stats", label: "Stats" },
+          { value: "games", label: "Games", count: games.length },
+          { value: "roster", label: "Roster", count: members.length },
+        ]} />
+
+        {teamTab === "stats" && (
+          <>
+            {members.length === 0 && games.length > 0 && (
+              <p className="mb-4 text-xs text-muted-foreground">
+                Add your roster&apos;s jersey numbers so stats show names and misread numbers get flagged.{" "}
+                <button onClick={() => setTeamTab("roster")} className="font-semibold text-foreground underline underline-offset-2">Add roster</button>
+              </p>
+            )}
+            <SeasonStatsPanel games={games} roster={members} sport={openTeam.sport} onSetColor={setGameColor} />
+          </>
+        )}
+
+        {teamTab === "games" && (
+          games.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No games linked to this team yet. When analyzing in DecisionIQ, attach the game to this team, or use a game&apos;s ⋮ menu in the Library.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {games.map(g => (
+                <GameCard
+                  key={g.id}
+                  thumbnailUrl={g.thumbnailUrl}
+                  sport={g.sport}
+                  dateLabel={formatDate(playedAt(g))}
+                  title={g.opponentName ? `vs ${g.opponentName}` : (g.fileName || g.sport)}
+                  grade={g.grade}
+                  result={gameResult(g, openTeam.name)}
+                  onClick={() => setOpenReview(g)}
+                />
+              ))}
+            </div>
+          )
+        )}
+
+        {teamTab === "roster" && (
+          <div className="max-w-md">
+            <RosterEditor members={members} onAdd={(m) => addMember(openTeam.id, m)} onRemove={removeMember} />
+          </div>
+        )}
+
+        {showEdit && (
+          <CreateTeamModal
+            title="Edit Team"
+            initial={openTeam}
+            onClose={() => setShowEdit(false)}
+            onCreate={updateTeam}
+          />
+        )}
+        {reviewOverlay}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{teams.length} {teams.length === 1 ? "team" : "teams"}</p>
+        <button onClick={() => setShowCreate(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+          <Plus className="h-4 w-4" /> Create Team
+        </button>
+      </div>
+
+      {teams.length === 0 && !showCreate && (
+        <div className="flex flex-col items-center justify-center gap-3 border-t border-border py-12 text-center">
+          <Users className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
+          <p className="text-base font-semibold text-foreground">No teams yet</p>
+          <p className="text-sm text-muted-foreground max-w-xs">Create a team to track a season: roster, record, and season stats from every game you upload.</p>
+        </div>
       )}
+
+      {teams.length > 0 && (
+        <div className="border-b border-border">
+          {teams.map(t => {
+            const record = computeSeasonRecord(t, reviews);
+            const games = reviews.filter(r => r.teamId === t.id);
+            const { team: totals, sport: statSport } = buildSeasonLedger(games, [], t.sport);
+            const subtitle = [[t.ageGroup, t.gender].filter(Boolean).join(" "), t.season, t.level].filter(Boolean).join(" · ");
+            const cells = [
+              { label: "Record", value: record.total > 0 ? `${record.wins}-${record.losses}` : "-" },
+              { label: "Games", value: String(games.filter(g => g.mode === "game").length) },
+              { label: "PPG", value: statSport === "basketball" && totals.gp > 0 ? (totals.ptsFor / totals.gp).toFixed(1) : "-" },
+            ];
+            return (
+              <button key={t.id} onClick={() => { setOpenTeam(t); setTeamTab("stats"); }}
+                className="flex w-full items-center gap-3 border-t border-border px-1 py-4 text-left transition-colors hover:bg-muted/40">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${teamAvatarColor(t.id)}`}>
+                  {teamInitials(t.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-display text-base font-bold text-foreground">{t.name}</span>
+                  {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
+                </span>
+                <span className="hidden gap-8 text-right sm:flex">
+                  {cells.map(c => (
+                    <span key={c.label} className="w-14">
+                      <span className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{c.label}</span>
+                      <span className="block font-display text-sm font-bold text-foreground">{c.value}</span>
+                    </span>
+                  ))}
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {showCreate && <CreateTeamModal defaultSport={sport} onClose={() => setShowCreate(false)} onCreate={createTeam} />}
+
+      {reviewOverlay}
     </div>
   );
 }
@@ -378,11 +360,11 @@ function RosterEditor({ members, onAdd, onRemove }: {
       {members.length === 0 ? (
         <p className="mb-3 text-sm text-muted-foreground">No players added yet. Jersey number is enough — a name is optional.</p>
       ) : (
-        <div className="mb-3 space-y-1.5">
-          {members.map(m => (
-            <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-1.5 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">{m.jerseyNumber ? `#${m.jerseyNumber}` : "—"}</span>
+        <div className="mb-4 divide-y divide-border border-y border-border">
+          {[...members].sort((a, b) => Number(a.jerseyNumber ?? 999) - Number(b.jerseyNumber ?? 999)).map(m => (
+            <div key={m.id} className="flex items-center justify-between gap-2 px-1 py-2 text-sm">
+              <div className="flex items-center gap-3">
+                <span className="w-8 font-mono text-muted-foreground">{m.jerseyNumber ? `#${m.jerseyNumber}` : "—"}</span>
                 <span className="text-muted-foreground">{m.displayName || "Unnamed player"}</span>
               </div>
               <button onClick={() => onRemove(m.id)} className="text-xs font-semibold text-muted-foreground hover:text-red-400">Remove</button>
@@ -397,7 +379,7 @@ function RosterEditor({ members, onAdd, onRemove }: {
           className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
         <button
           onClick={() => { if (!jersey.trim() && !name.trim()) return; onAdd({ displayName: name, jerseyNumber: jersey }); setName(""); setJersey(""); }}
-          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-foreground hover:bg-accent">Add</button>
+          className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add</button>
       </div>
     </div>
   );

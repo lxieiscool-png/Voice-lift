@@ -1,5 +1,6 @@
 import type { PlayerBoxStat, PlayerVolleyStat, Review, TeamMember } from "../types";
 import { parsePlayerLabel, teamKeysFromColor } from "./parsers";
+import { playedAt } from "../decisioniq-helpers";
 
 // Season ledger: per-player totals, averages and game logs, summed in code
 // from each game's box score. Every number here is only as good as the per-game
@@ -49,9 +50,6 @@ export type SeasonLedger = {
 const zeroBox = () => ({ pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, reb: 0, ast: 0, stl: 0, tov: 0, blk: 0, pf: 0 });
 const zeroVolley = () => ({ k: 0, e: 0, ta: 0, sa: 0, se: 0, ast: 0, d: 0, bs: 0, re: 0, faults: 0 });
 
-export function gameDateMs(r: Review): number {
-  return r.gameDate ? new Date(r.gameDate).getTime() : r.timestamp;
-}
 
 function addInto<T extends Record<string, unknown>>(target: Record<string, number>, row: T) {
   for (const k of Object.keys(target)) target[k] += Number(row[k] ?? 0);
@@ -83,7 +81,7 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
   }
   const kept = new Set(newestByFilm.values());
   const superseded = allWithStats.filter(r => !kept.has(r));
-  const withStats = [...kept].sort((a, b) => gameDateMs(a) - gameDateMs(b));
+  const withStats = [...kept].sort((a, b) => playedAt(a) - playedAt(b));
 
   const volleyGames = withStats.filter(r => (r.gameReport?.volleyBox?.length ?? 0) > 0).length;
   const sport: StatSport = /volley/i.test(sportHint || "") || volleyGames > withStats.length / 2 ? "volleyball" : "basketball";
@@ -118,7 +116,7 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
     const lines = new Map<string, GameLine>();
     const line = (jersey: string) => {
       if (!lines.has(jersey)) {
-        lines.set(jersey, { reviewId: r.id, date: gameDateMs(r), opponent: r.opponentName ?? null, decisions: { good: 0, neutral: 0, poor: 0 } });
+        lines.set(jersey, { reviewId: r.id, date: playedAt(r), opponent: r.opponentName ?? null, decisions: { good: 0, neutral: 0, poor: 0 } });
       }
       return lines.get(jersey)!;
     };
