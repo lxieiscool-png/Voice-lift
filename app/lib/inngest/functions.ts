@@ -7,6 +7,7 @@ import { synthesizeGameReport } from "../analysis/synthesize";
 import { parseGameReport, buildBoxScore, buildVolleyBoxScore, buildDecisionTimeline } from "../analysis/parsers";
 import { formatTime } from "../decisioniq-helpers";
 import { refundUsage } from "../usage";
+import { geminiGenerate } from "../ai/gemini";
 
 // Scaffolding check — confirms the Inngest dev server can reach this app and
 // run a step-based function before any real analysis logic is built on top.
@@ -105,9 +106,32 @@ export const analyzeGameJob = inngest.createFunction(
     // into windows — the same shape as the frame-chunk path below.
     const WINDOW_SECONDS = 240;
     const MAX_WINDOWS = 20;
+
+    // YouTube often refuses to tell Vercel's servers how long a video is. The
+    // old fallback of 0 became a single 1-second window — a 40-minute game
+    // "finished" in 14 seconds with nothing in it. Gemini can see the video,
+    // so ask it: a very sparse, low-res look costs ~2¢ and was exact in tests.
+    const videoLength = !videoUrl ? 0 : durationSeconds && durationSeconds > 0 ? durationSeconds
+      : await step.run("resolve-duration", async () => {
+          const text = await geminiGenerate({
+            prompt: "How long is this video in total? Reply with only the total length in seconds as a whole number, nothing else.",
+            videoUrl, videoFps: 0.02, videoResolution: "low", thinking: "low", temperature: 0,
+          });
+          const secs = parseInt(text.match(/\d+/)?.[0] ?? "", 10);
+          if (!Number.isFinite(secs) || secs <= 0) {
+            const reason = "We couldn't read this video's length. Try the link again, or use screen capture.";
+            await supabase.from("analysis_jobs").update({ status: "failed", error: reason }).eq("id", jobId);
+            throw new NonRetriableError(reason);
+          }
+          await supabase.from("analysis_jobs")
+            .update({ progress_total: Math.min(MAX_WINDOWS, Math.ceil(secs / WINDOW_SECONDS)) })
+            .eq("id", jobId);
+          return secs;
+        });
+
     const videoWindows: { start: number; end: number }[] = [];
     if (videoUrl) {
-      const total = Math.max(1, durationSeconds ?? 0);
+      const total = Math.max(1, videoLength);
       const count = Math.min(MAX_WINDOWS, Math.max(1, Math.ceil(total / WINDOW_SECONDS)));
       const span = total / count;
       for (let i = 0; i < count; i++) {
@@ -186,6 +210,13 @@ export const analyzeGameJob = inngest.createFunction(
       report.boxScore = buildBoxScore(chunkTexts);
       report.volleyBox = buildVolleyBoxScore(chunkTexts);
       report.timeline = buildDecisionTimeline(chunkTexts);
+      // No possessions and no stat events means the analysis didn't really run. Fail it
+      // (onFailure refunds the credit) rather than saving a blank "N/A" review.
+      if (report.timeline.length === 0 && report.boxScore.length === 0 && report.volleyBox.length === 0) {
+        const reason = "We couldn't find any plays in this video. Your game credit was refunded — try again, or use screen capture.";
+        await supabase.from("analysis_jobs").update({ status: "failed", error: reason }).eq("id", jobId);
+        throw new NonRetriableError(reason);
+      }
       const myGrade = reportText.match(/Your Grade:\s*([A-F][+-]?)/i)?.[1];
       const id = randomUUID();
       const { error } = await supabase.from("reviews").insert({

@@ -1439,6 +1439,26 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const [analyzeError, setAnalyzeError] = useState("");
   const [pendingRetry, setPendingRetry] = useState<(() => void) | null>(null);
   const [jobStarted,   setJobStarted]   = useState(false);
+  // The background job this screen just queued, polled so the panel shows
+  // real progress and says when it's done instead of "up to 45 minutes".
+  const [activeJobId,  setActiveJobId]  = useState<string | null>(null);
+  const [activeJob,    setActiveJob]    = useState<{ status: string; progress_label: string | null; progress_current: number; progress_total: number; error: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!activeJobId) { setActiveJob(null); return; }
+    const supabase = createClient();
+    let cancelled = false;
+    async function poll() {
+      const { data } = await supabase.from("analysis_jobs")
+        .select("status,progress_label,progress_current,progress_total,error").eq("id", activeJobId).single();
+      if (cancelled || !data) return;
+      setActiveJob(data);
+      if (data.status === "complete" || data.status === "failed") clearInterval(interval);
+    }
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activeJobId]);
 
   function saveReviews(r: Review[]) { onReviewsChange(r); localStorage.setItem("decisioniq-reviews", JSON.stringify(r)); }
   function deleteReview(id: string) { saveReviews(reviews.filter(r => r.id !== id)); setExpandedReview(null); deleteReviewRemote(userId, id); }
@@ -1542,7 +1562,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     if (!ytUrl.trim() || !canAnalyze) return;
     setYtError("");
     setLoading(true);
-    setDecisions([]); setGameReport(null); setResultMode(null);
+    setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false); setActiveJobId(null);
     setProgressLabel("Watching your film… this can take a few minutes for a full game.");
     setProgressTotal(1); setProgressCurrent(0);
 
@@ -1574,6 +1594,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       // drops the finished report into the library on its own.
       if (data.queued) {
         setJobStarted(true);
+        setActiveJobId(data.jobId ?? null);
         setProgressLabel("");
         return;
       }
@@ -1791,12 +1812,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     if (!finalizeRes.ok) throw new Error(`Server error ${finalizeRes.status} queuing analysis`);
 
     setJobStarted(true);
+    setActiveJobId(jobId);
   }
 
   async function analyzeVideo(lenient = false) {
     if (!videoFile) return;
 
-    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false);
+    setLoading(true); setDecisions([]); setGameReport(null); setResultMode(null); setJobStarted(false); setActiveJobId(null);
     setAnalyzeError(""); setPendingRetry(null);
     setProgressCurrent(0); setProgressTotal(0);
     const doAnalyze = async () => {
@@ -2105,10 +2127,25 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           {!loading && jobStarted && (
             <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-8 text-center">
               <Clapperboard className="h-8 w-8 text-emerald-400" strokeWidth={1.5} />
-              <p className="text-base font-semibold text-foreground">Analysis started</p>
-              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                This runs in the background and can take up to 45 minutes for a full game — feel free to close this tab. Check the Library for progress, and it'll show up there as a finished review when it's done.
-              </p>
+              {activeJob?.status === "complete" ? (<>
+                <p className="text-base font-semibold text-foreground">Your game review is ready</p>
+                <button onClick={() => document.querySelector<HTMLButtonElement>("[data-module='library']")?.click()}
+                  className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  Open in Library
+                </button>
+              </>) : activeJob?.status === "failed" ? (<>
+                <p className="text-base font-semibold text-foreground">Analysis failed</p>
+                <p className="text-sm text-red-300 max-w-sm leading-relaxed">{activeJob.error || "Something went wrong. Your game credit was refunded."}</p>
+              </>) : (<>
+                <p className="text-base font-semibold text-foreground">Analyzing your game</p>
+                <p className="flex items-center gap-2 text-sm text-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  {activeJob?.progress_label || (activeJob?.status === "processing" ? "Measuring the video…" : "Starting…")}
+                </p>
+                <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                  A full game usually takes 2–5 minutes. It runs in the background, so you can close this tab. The finished review lands in your Library.
+                </p>
+              </>)}
             </div>
           )}
 
