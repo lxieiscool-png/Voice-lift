@@ -7,6 +7,8 @@ import type { Team, TeamMember, Review } from "../lib/types";
 import { formatDate, gameResult } from "../lib/decisioniq-helpers";
 import { TeamSectionHeader, GameCard, teamAvatarColor, teamInitials } from "./GameCards";
 import { GameResultsView, PlayerCardList } from "./DecisionIQ";
+import { SeasonStatsPanel, saveReviewTeamColor } from "./SeasonStats";
+import { buildSeasonLedger } from "../lib/analysis/seasonStats";
 
 function rowToTeam(r: any): Team {
   return {
@@ -147,6 +149,11 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
     setMembers(members.filter(m => m.id !== id));
   }
 
+  async function setGameColor(review: Review, color: string) {
+    if (!await saveReviewTeamColor(userId, review, color)) { alert("Couldn't save that — try again."); return; }
+    onReviewsChange(reviews.map(r => r.id === review.id ? { ...r, teamColor: color } : r));
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
@@ -154,6 +161,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
   if (openTeam) {
     const record = computeSeasonRecord(openTeam, reviews);
     const games = reviews.filter(r => r.teamId === openTeam.id).sort((a, b) => b.timestamp - a.timestamp);
+    const { team: teamTotals, sport: statSport } = buildSeasonLedger(games, members, openTeam.sport);
     return (
       <div>
         <button onClick={() => setOpenTeam(null)} className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -202,9 +210,20 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
             </div>
             <div className="rounded-lg border border-border bg-muted px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">PPG / Opp PPG</p>
-              <p className="text-lg font-bold text-muted-foreground">Not tracked yet</p>
+              {statSport === "basketball" && teamTotals.gp > 0 ? (
+                <>
+                  <p className="text-lg font-bold text-foreground">
+                    {(teamTotals.ptsFor / teamTotals.gp).toFixed(1)} / {teamTotals.gamesWithOpp > 0 ? (teamTotals.ptsAgainst / teamTotals.gamesWithOpp).toFixed(1) : "-"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">AI estimate</p>
+                </>
+              ) : <p className="text-lg font-bold text-muted-foreground">-</p>}
             </div>
           </div>
+        </div>
+
+        <div className="mb-4">
+          <SeasonStatsPanel games={games} roster={members} sport={openTeam.sport} onSetColor={setGameColor} />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">

@@ -89,6 +89,9 @@ export type Review = {
   decisions?: PlayerDecision[]; gameReport?: GameReport;
   teamId?: string | null; opponentName?: string | null; gameType?: string | null;
   gameDate?: string | null; location?: string | null; thumbnailUrl?: string | null;
+  // Jersey colour the user wore this game. Stored in the review's data JSONB;
+  // the season ledger uses it to know which side of the box score was theirs.
+  teamColor?: string | null;
 };
 
 export type Profile = { name: string; sport: string; team: string; jersey?: string; position?: string; teamColor?: string };

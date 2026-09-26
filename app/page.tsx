@@ -16,6 +16,7 @@ const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: fals
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
 const FilmLibrary = dynamic(() => import("./components/DecisionIQ").then(m => ({ default: m.FilmLibrary })), { ssr: false });
 const Teams       = dynamic(() => import("./components/Teams"),      { ssr: false });
+const MySeasonCard = dynamic(() => import("./components/SeasonStats").then(m => ({ default: m.MySeasonCard })), { ssr: false });
 const SupportWidget = dynamic(() => import("./components/SupportWidget"), { ssr: false });
 
 function fireBurst(e: React.MouseEvent) {
@@ -1159,7 +1160,15 @@ export default function Reel() {
     const { data: profileData } = await supabase
       .from("profiles").select("*").eq("id", userId).single();
     if (profileData) {
-      const p = { name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "", jersey: profileData.jersey || "", position: profileData.position || "", teamColor: profileData.teamColor || "" };
+      // jersey/position/teamColor may not exist as columns yet — fall back to
+      // this browser's copy rather than wiping them on every login.
+      let local: Partial<Profile> = {};
+      try { local = JSON.parse(localStorage.getItem("decisioniq-profile") || "{}"); } catch { /* ignore */ }
+      const p = {
+        name: profileData.name || "", sport: profileData.sport || "", team: profileData.team || "",
+        jersey: profileData.jersey || local.jersey || "", position: profileData.position || local.position || "",
+        teamColor: profileData.teamColor || local.teamColor || "",
+      };
       setProfile(p);
       localStorage.setItem("decisioniq-profile", JSON.stringify(p));
     }
@@ -1218,8 +1227,19 @@ export default function Reel() {
     setProfile(p);
     localStorage.setItem("decisioniq-profile", JSON.stringify(p));
     if (user) {
-      await supabase.from("profiles").upsert({ id: user.id, ...p });
+      const { error } = await supabase.from("profiles").upsert({ id: user.id, ...p });
+      // Older databases lack the jersey/position/teamColor columns; still save
+      // the core fields instead of losing the whole edit.
+      if (error) await supabase.from("profiles").upsert({ id: user.id, name: p.name, sport: p.sport, team: p.team });
     }
+  }
+
+  // Tag an older game with the jersey colour the user wore, so the season
+  // ledger knows which side of its box score was theirs.
+  async function setGameColor(review: Review, color: string) {
+    const { saveReviewTeamColor } = await import("./components/SeasonStats");
+    if (!await saveReviewTeamColor(user?.id, review, color)) return;
+    setReviews(prev => prev.map(r => r.id === review.id ? { ...r, teamColor: color } : r));
   }
 
   function clearHistory() {
@@ -1359,6 +1379,7 @@ export default function Reel() {
             </div>
             <StatsBar reviews={reviews} />
             {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
+            <MySeasonCard reviews={reviews} jersey={profile.jersey} onSetColor={setGameColor} />
             <FilmLibrary reviews={reviews} onReviewsChange={setReviews} userId={user?.id} />
           </>
         ) : activeModule === "teams" ? (

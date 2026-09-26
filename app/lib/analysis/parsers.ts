@@ -110,6 +110,23 @@ export function buildDecisionTally(chunkTexts: string[]): DecisionTally {
   return { good, neutral, poor, total: good + neutral + poor, byPlayer };
 }
 
+// Split a model-written player label like "Blue #12" into a normalized team
+// key and jersey. Team is "unknown" when the label doesn't lead with a colour.
+export function parsePlayerLabel(label: string): { team: string; jersey: string | null } {
+  const jersey = label.match(/#\s*(\d{1,2})/)?.[1] ?? null;
+  const firstWord = label.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
+  const team = firstWord === "grey" ? "gray" : firstWord;
+  return { team: COLOR_WORDS.has(team) ? team : "unknown", jersey };
+}
+
+// Map the jersey colour a user typed ("White", "navy blue") to the team keys
+// the box score uses, so we know which side of a game was theirs. Returns every
+// colour word so "navy blue" matches whether the model wrote Navy or Blue.
+export function teamKeysFromColor(color?: string | null): string[] {
+  return (color || "").toLowerCase().split(/[^a-z]+/)
+    .map(w => w === "grey" ? "gray" : w).filter(w => COLOR_WORDS.has(w));
+}
+
 // One parsed "TEAM #NUM | event" line from a segment's Stat Events section.
 type StatEvent = { event: string; team: string; jersey: string | null; key: string; display: string };
 
@@ -130,9 +147,7 @@ function collectStatEvents(chunkTexts: string[]): StatEvent[] {
       if (!STAT_EVENTS.has(event) && !VOLLEY_EVENTS.has(event)) continue;
 
       const label = m[1].trim();
-      const jersey = label.match(/#\s*(\d{1,2})/)?.[1] ?? null;
-      const firstWord = label.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
-      const team = COLOR_WORDS.has(firstWord) ? firstWord : "unknown";
+      const { team, jersey } = parsePlayerLabel(label);
       const key = `${team}#${jersey ?? label.toLowerCase()}`;
       const display = jersey ? `${team === "unknown" ? "" : team[0].toUpperCase() + team.slice(1) + " "}#${jersey}`.trim() : label;
       out.push({ event, team, jersey, key, display });

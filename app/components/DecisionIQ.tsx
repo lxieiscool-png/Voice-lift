@@ -14,7 +14,7 @@ function persistReview(userId: string | undefined, review: Review) {
   supabase.from("reviews").insert({
     id: review.id, user_id: userId, file_name: review.fileName, sport: review.sport,
     mode: review.mode, grade: review.grade, created_at: new Date(review.timestamp).toISOString(),
-    data: { decisions: review.decisions, gameReport: review.gameReport },
+    data: { decisions: review.decisions, gameReport: review.gameReport, teamColor: review.teamColor ?? null },
     team_id: review.teamId ?? null, opponent_name: review.opponentName ?? null,
     game_type: review.gameType ?? null, game_date: review.gameDate ?? null, location: review.location ?? null,
     thumbnail_url: review.thumbnailUrl ?? null,
@@ -1659,7 +1659,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           grade: myPlayer?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
           teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
           gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
-          thumbnailUrl,
+          thumbnailUrl, teamColor: teamColor.trim() || null,
         };
         saveReviews([clipReview, ...reviews]);
         persistReview(userId, clipReview);
@@ -1668,7 +1668,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const chunkTexts = [data.chunkText ?? ""];
         report.boxScore = buildBoxScore(chunkTexts);
         report.volleyBox = buildVolleyBoxScore(chunkTexts);
-      report.timeline = buildDecisionTimeline(chunkTexts);
+        report.timeline = buildDecisionTimeline(chunkTexts);
         if (isEmptyGameReport(report)) {
           setYtError("We watched the video but couldn't pull a usable game report out of it. Try Start screen capture instead.");
           return;
@@ -1681,7 +1681,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report,
           teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
           gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
-          thumbnailUrl,
+          thumbnailUrl, teamColor: teamColor.trim() || null,
         };
         saveReviews([gameReview, ...reviews]);
         persistReview(userId, gameReview);
@@ -1735,7 +1735,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         grade: myPlayer?.grade ?? "N/A", timestamp: Date.now(), decisions: parsed,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
-        thumbnailUrl,
+        thumbnailUrl, teamColor: teamColor.trim() || null,
       };
       saveReviews([clipReview, ...reviews]);
       persistReview(userId, clipReview);
@@ -1793,6 +1793,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       const chunkTexts = chunkSummaries.map(c => c.text);
       report.boxScore = buildBoxScore(chunkTexts);
       report.volleyBox = buildVolleyBoxScore(chunkTexts);
+      report.timeline = buildDecisionTimeline(chunkTexts);
       const detectedGameSport = sport || profile.sport || "Unknown";
       setGameReport(report); setResultMode("game");
       // Library tracks YOUR grade when the report identified you, not the whole game's
@@ -1802,7 +1803,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         grade: myGrade ?? report.overallGrade, timestamp: Date.now(), gameReport: report,
         teamId: linkedTeamId || null, opponentName: opponentName.trim() || null,
         gameType: linkedTeamId ? gameType : null, gameDate: linkedTeamId && gameDate ? gameDate : null,
-        thumbnailUrl,
+        thumbnailUrl, teamColor: teamColor.trim() || null,
       };
       saveReviews([gameReview, ...reviews]);
       persistReview(userId, gameReview);

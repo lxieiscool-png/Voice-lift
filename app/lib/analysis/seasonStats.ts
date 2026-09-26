@@ -1,0 +1,176 @@
+import type { PlayerBoxStat, PlayerVolleyStat, Review, TeamMember } from "../types";
+import { parsePlayerLabel, teamKeysFromColor } from "./parsers";
+
+// Season ledger: per-player totals, averages and game logs, summed in code
+// from each game's box score. Every number here is only as good as the per-game
+// AI box scores it's built from — the UI labels it an estimate.
+//
+// Identity across games is the jersey number on the user's side of each game.
+// Which side was theirs comes from the jersey colour saved with the review
+// (colours change home/away, so we can't key on colour across games).
+
+export type StatSport = "basketball" | "volleyball";
+
+export type DecisionCounts = { good: number; neutral: number; poor: number };
+
+export type GameLine = {
+  reviewId: string;
+  date: number;
+  opponent: string | null;
+  basketball?: PlayerBoxStat;
+  volleyball?: PlayerVolleyStat;
+  decisions: DecisionCounts;
+};
+
+export type SeasonPlayer = {
+  jersey: string;
+  name: string | null;       // from the roster, when the number is on it
+  onRoster: boolean;
+  gp: number;                // games with at least one logged stat or decision
+  basketball: Omit<PlayerBoxStat, "player" | "team" | "jersey">;
+  volleyball: Omit<PlayerVolleyStat, "player" | "team" | "jersey">;
+  decisions: DecisionCounts;
+  games: GameLine[];         // oldest first
+};
+
+export type SeasonLedger = {
+  sport: StatSport;
+  gamesCounted: Review[];
+  // Games with a box score but no saved jersey colour — we can't tell which
+  // side was the user's, so they're left out until the colour is set.
+  needsColor: { review: Review; colors: string[] }[];
+  players: SeasonPlayer[];
+  team: { gp: number; ptsFor: number; ptsAgainst: number; gamesWithOpp: number };
+};
+
+const zeroBox = () => ({ pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, reb: 0, ast: 0, stl: 0, tov: 0, blk: 0, pf: 0 });
+const zeroVolley = () => ({ k: 0, e: 0, ta: 0, sa: 0, se: 0, ast: 0, d: 0, bs: 0, re: 0, faults: 0 });
+
+export function gameDateMs(r: Review): number {
+  return r.gameDate ? new Date(r.gameDate).getTime() : r.timestamp;
+}
+
+function addInto<T extends Record<string, unknown>>(target: Record<string, number>, row: T) {
+  for (const k of Object.keys(target)) target[k] += Number(row[k] ?? 0);
+}
+
+// Which box-score team keys appear in a game (e.g. ["blue", "white"]).
+export function gameColors(r: Review): string[] {
+  const rows = [...(r.gameReport?.boxScore ?? []), ...(r.gameReport?.volleyBox ?? [])];
+  return [...new Set(rows.map(x => x.team).filter(t => t && t !== "unknown"))];
+}
+
+// The box-score team key that was the user's side, or null if unknown.
+function ourKey(r: Review): string | null {
+  const colors = gameColors(r);
+  return teamKeysFromColor(r.teamColor).find(k => colors.includes(k)) ?? null;
+}
+
+export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sportHint?: string): SeasonLedger {
+  const withStats = games.filter(r =>
+    r.mode === "game" && ((r.gameReport?.boxScore?.length ?? 0) + (r.gameReport?.volleyBox?.length ?? 0)) > 0
+  ).sort((a, b) => gameDateMs(a) - gameDateMs(b));
+
+  const volleyGames = withStats.filter(r => (r.gameReport?.volleyBox?.length ?? 0) > 0).length;
+  const sport: StatSport = /volley/i.test(sportHint || "") || volleyGames > withStats.length / 2 ? "volleyball" : "basketball";
+
+  const nameByJersey = new Map<string, string | null>();
+  for (const m of roster) {
+    const j = m.jerseyNumber?.replace(/\D/g, "");
+    if (j) nameByJersey.set(j, m.displayName || null);
+  }
+
+  const players = new Map<string, SeasonPlayer>();
+  const ensure = (jersey: string) => {
+    if (!players.has(jersey)) {
+      players.set(jersey, {
+        jersey, name: nameByJersey.get(jersey) ?? null, onRoster: nameByJersey.has(jersey),
+        gp: 0, basketball: zeroBox(), volleyball: zeroVolley(),
+        decisions: { good: 0, neutral: 0, poor: 0 }, games: [],
+      });
+    }
+    return players.get(jersey)!;
+  };
+
+  const counted: Review[] = [];
+  const needsColor: SeasonLedger["needsColor"] = [];
+  const team = { gp: 0, ptsFor: 0, ptsAgainst: 0, gamesWithOpp: 0 };
+
+  for (const r of withStats) {
+    const key = ourKey(r);
+    if (!key) { needsColor.push({ review: r, colors: gameColors(r) }); continue; }
+    counted.push(r);
+
+    const lines = new Map<string, GameLine>();
+    const line = (jersey: string) => {
+      if (!lines.has(jersey)) {
+        lines.set(jersey, { reviewId: r.id, date: gameDateMs(r), opponent: r.opponentName ?? null, decisions: { good: 0, neutral: 0, poor: 0 } });
+      }
+      return lines.get(jersey)!;
+    };
+
+    if (sport === "basketball") {
+      const box = r.gameReport?.boxScore ?? [];
+      let ours = 0, theirs = 0, sawOpp = false;
+      for (const row of box) {
+        if (row.team === key) ours += row.pts;
+        else if (row.team !== "unknown") { theirs += row.pts; sawOpp = true; }
+        if (row.team !== key || !row.jersey) continue;
+        line(row.jersey).basketball = row;
+      }
+      team.gp++;
+      team.ptsFor += ours;
+      if (sawOpp) { team.ptsAgainst += theirs; team.gamesWithOpp++; }
+    } else {
+      for (const row of r.gameReport?.volleyBox ?? []) {
+        if (row.team !== key || !row.jersey) continue;
+        line(row.jersey).volleyball = row;
+      }
+      team.gp++;
+    }
+
+    // Decision quality — Reel's own stat. Every logged possession counts
+    // toward the player's good/poor split for the season.
+    for (const ev of r.gameReport?.timeline ?? []) {
+      const { team: t, jersey } = parsePlayerLabel(ev.player);
+      if (t !== key || !jersey) continue;
+      line(jersey).decisions[ev.quality]++;
+    }
+
+    for (const [jersey, gl] of lines) {
+      const p = ensure(jersey);
+      p.gp++;
+      if (gl.basketball) addInto(p.basketball, gl.basketball);
+      if (gl.volleyball) addInto(p.volleyball, gl.volleyball);
+      p.decisions.good += gl.decisions.good;
+      p.decisions.neutral += gl.decisions.neutral;
+      p.decisions.poor += gl.decisions.poor;
+      p.games.push(gl);
+    }
+  }
+
+  const primary = (p: SeasonPlayer) => sport === "basketball" ? p.basketball.pts : p.volleyball.k;
+  const sorted = [...players.values()].sort((a, b) =>
+    Number(b.onRoster) - Number(a.onRoster) || primary(b) / b.gp - primary(a) / a.gp || b.gp - a.gp
+  );
+
+  return { sport, gamesCounted: counted, needsColor, players: sorted, team };
+}
+
+export function perGame(total: number, gp: number): string {
+  return gp > 0 ? (total / gp).toFixed(1) : "—";
+}
+
+export function pct(made: number, att: number): string {
+  return att > 0 ? `${Math.round((made / att) * 100)}%` : "—";
+}
+
+// Share of logged decisions graded good, ignoring neutral ones.
+export function goodDecisionPct(d: DecisionCounts): string {
+  const graded = d.good + d.poor;
+  return graded > 0 ? `${Math.round((d.good / graded) * 100)}%` : "—";
+}
+
+export function hittingPct(k: number, e: number, ta: number): string {
+  return ta > 0 ? ((k - e) / ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
+}

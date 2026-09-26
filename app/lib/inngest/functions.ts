@@ -230,7 +230,7 @@ export const analyzeGameJob = inngest.createFunction(
       const { error } = await supabase.from("reviews").insert({
         id, user_id: userId, file_name: job.file_name, sport: job.sport, mode: "game",
         grade: myGrade ?? report.overallGrade, created_at: new Date().toISOString(),
-        data: { gameReport: report },
+        data: { gameReport: report, teamColor: teamColor?.trim() || null },
         team_id: job.team_id, opponent_name: job.opponent_name, game_type: job.game_type,
         game_date: job.game_date, location: job.location, thumbnail_url: job.thumbnail_url,
       });
