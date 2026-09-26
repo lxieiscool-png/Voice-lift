@@ -155,9 +155,6 @@ export const analyzeGameJob = inngest.createFunction(
             sport: job.sport, frames, mode: "game", chunkIndex: i, chunkStart, chunkEnd,
             jersey, teamColor, teamsNote, lenient, rosterNumbers,
           });
-          await supabase.from("analysis_jobs")
-            .update({ progress_current: end, progress_label: `Segment ${i + 1} of ${chunkRanges.length}` })
-            .eq("id", jobId);
           return { index: i, start: chunkStart, end: chunkEnd, text };
         } catch (e) {
           if (e instanceof SportsCheckError) {
@@ -182,19 +179,30 @@ export const analyzeGameJob = inngest.createFunction(
           jersey, teamColor, teamsNote, lenient, rosterNumbers,
           videoUrl, videoStart: start, videoEnd: end,
         });
-        await supabase.from("analysis_jobs")
-          .update({ progress_current: i + 1, progress_label: `Window ${i + 1} of ${videoWindows.length}` })
-          .eq("id", jobId);
         return { index: i, start: formatTime(start), end: formatTime(end), text };
       });
     }
 
     const units = videoUrl ? videoWindows : chunkRanges;
     const chunkSummaries: { index: number; start: string; end: string; text: string }[] = [];
+    // Progress is written once per batch, not per window: windows run in
+    // parallel and finish out of order, so "window 3 done" said nothing about
+    // how many were actually finished. The client smooths between batches.
+    await step.run("progress-start", async () => {
+      await supabase.from("analysis_jobs")
+        .update({ progress_current: 0, progress_total: units.length, progress_label: "Watching the game…" })
+        .eq("id", jobId);
+    });
     for (let batchStart = 0; batchStart < units.length; batchStart += CONCURRENCY) {
       const batch = units.slice(batchStart, batchStart + CONCURRENCY)
         .map((_, k) => (videoUrl ? runVideoWindow(batchStart + k) : runSegment(batchStart + k)));
       chunkSummaries.push(...(await Promise.all(batch)));
+      const done = chunkSummaries.length;
+      await step.run(`progress-${batchStart}`, async () => {
+        await supabase.from("analysis_jobs")
+          .update({ progress_current: done, progress_label: "Watching the game…" })
+          .eq("id", jobId);
+      });
     }
 
     const reportText = await step.run("synthesize", async () => {
@@ -232,7 +240,7 @@ export const analyzeGameJob = inngest.createFunction(
 
     await step.run("mark-complete", async () => {
       await supabase.from("analysis_jobs")
-        .update({ status: "complete", review_id: reviewId, progress_current: frameCount })
+        .update({ status: "complete", review_id: reviewId, progress_current: units.length })
         .eq("id", jobId);
     });
 

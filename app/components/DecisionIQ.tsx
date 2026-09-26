@@ -1388,6 +1388,52 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// ─── Background job progress ──────────────────────────────────────────────────
+// The server only reports checkpoints (video measured, each batch of windows
+// done, report being written), minutes apart. The bar jumps to each real
+// checkpoint and creeps toward the next one in between, but never past it,
+// so it keeps moving without ever claiming more than has actually happened.
+type JobProgressState = { status: string; progress_label: string | null; progress_current: number; progress_total: number };
+const JOB_BATCH = 5; // matches CONCURRENCY in the Inngest game job
+
+function jobCheckpoints(job: JobProgressState): { target: number; ceiling: number; label: string } {
+  const { status, progress_label, progress_current: cur, progress_total: total } = job;
+  if (status === "complete") return { target: 100, ceiling: 100, label: "Done" };
+  if (status === "queued") return { target: 1, ceiling: 4, label: "Starting…" };
+  if (progress_label?.startsWith("Building")) return { target: 90, ceiling: 99, label: "Writing your game report…" };
+  if (progress_label?.startsWith("Watching") && total > 0) {
+    const at = (n: number) => 8 + 82 * Math.min(n, total) / total;
+    return { target: at(cur), ceiling: at(cur + JOB_BATCH), label: `Watching the game — ${cur} of ${total} segments done` };
+  }
+  return { target: 3, ceiling: 8, label: "Measuring the video…" };
+}
+
+function JobProgressBar({ job, compact = false }: { job: JobProgressState; compact?: boolean }) {
+  const { target, ceiling, label } = jobCheckpoints(job);
+  const [shown, setShown] = useState(target);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setShown(prev => {
+        if (prev < target) return prev + Math.max(0.5, (target - prev) * 0.3);
+        return prev + Math.max(0, (ceiling - 0.5 - prev) * 0.012);
+      });
+    }, 400);
+    return () => clearInterval(id);
+  }, [target, ceiling]);
+  const pct = Math.min(100, Math.floor(Math.max(shown, target)));
+  return (
+    <div className="w-full">
+      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        <span className={`truncate text-muted-foreground ${compact ? "text-xs" : "text-sm"}`}>{label}</span>
+        <span className={`font-mono tabular-nums text-foreground ${compact ? "text-xs" : "text-sm font-semibold"}`}>{pct}%</span>
+      </div>
+      <div className={`w-full overflow-hidden rounded-full bg-border ${compact ? "h-1" : "h-1.5"}`}>
+        <div className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, isPro, onShowUpgrade }: {
   profile: Profile; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
   userId?: string; isPro?: boolean; onShowUpgrade?: () => void;
@@ -1442,7 +1488,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   // The background job this screen just queued, polled so the panel shows
   // real progress and says when it's done instead of "up to 45 minutes".
   const [activeJobId,  setActiveJobId]  = useState<string | null>(null);
-  const [activeJob,    setActiveJob]    = useState<{ status: string; progress_label: string | null; progress_current: number; progress_total: number; error: string | null } | null>(null);
+  const [activeJob,    setActiveJob]    = useState<(JobProgressState & { error: string | null }) | null>(null);
 
   useEffect(() => {
     if (!activeJobId) { setActiveJob(null); return; }
@@ -2138,12 +2184,11 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 <p className="text-sm text-red-300 max-w-sm leading-relaxed">{activeJob.error || "Something went wrong. Your game credit was refunded."}</p>
               </>) : (<>
                 <p className="text-base font-semibold text-foreground">Analyzing your game</p>
-                <p className="flex items-center gap-2 text-sm text-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  {activeJob?.progress_label || (activeJob?.status === "processing" ? "Measuring the video…" : "Starting…")}
-                </p>
+                <div className="w-full max-w-sm">
+                  <JobProgressBar job={activeJob ?? { status: "queued", progress_label: null, progress_current: 0, progress_total: 0 }} />
+                </div>
                 <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                  A full game usually takes 2–5 minutes. It runs in the background, so you can close this tab. The finished review lands in your Library.
+                  A full game takes about 4–5 minutes. It runs in the background, so you can close this tab. The finished review lands in your Library.
                 </p>
               </>)}
             </div>
@@ -2389,10 +2434,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-foreground">{job.file_name || "Untitled game"}</p>
-            <p className="text-xs text-muted-foreground">
-              {job.progress_label || "Starting…"}
-              {job.progress_total > 0 && ` — ${job.progress_current}/${job.progress_total}`}
-            </p>
+            <div className="mt-1.5"><JobProgressBar job={job} compact /></div>
           </div>
         </div>
       ))}
