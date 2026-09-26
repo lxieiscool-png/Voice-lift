@@ -39,6 +39,9 @@ export type SeasonLedger = {
   // Games with a box score but no saved jersey colour — we can't tell which
   // side was the user's, so they're left out until the colour is set.
   needsColor: { review: Review; colors: string[] }[];
+  // Older analyses of a film that was re-analyzed — only the newest counts,
+  // so re-running a game doesn't double its stats.
+  superseded: Review[];
   players: SeasonPlayer[];
   team: { gp: number; ptsFor: number; ptsAgainst: number; gamesWithOpp: number };
 };
@@ -67,9 +70,20 @@ function ourKey(r: Review): string | null {
 }
 
 export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sportHint?: string): SeasonLedger {
-  const withStats = games.filter(r =>
+  const allWithStats = games.filter(r =>
     r.mode === "game" && ((r.gameReport?.boxScore?.length ?? 0) + (r.gameReport?.volleyBox?.length ?? 0)) > 0
-  ).sort((a, b) => gameDateMs(a) - gameDateMs(b));
+  );
+  // Same film (file name / YouTube URL) on the same team = a re-analysis.
+  // Keep the most recent run; its date and colour are the latest the user set.
+  const newestByFilm = new Map<string, Review>();
+  for (const r of allWithStats) {
+    const film = `${r.teamId ?? ""}|${r.fileName.trim().toLowerCase()}`;
+    const prev = newestByFilm.get(film);
+    if (!prev || r.timestamp > prev.timestamp) newestByFilm.set(film, r);
+  }
+  const kept = new Set(newestByFilm.values());
+  const superseded = allWithStats.filter(r => !kept.has(r));
+  const withStats = [...kept].sort((a, b) => gameDateMs(a) - gameDateMs(b));
 
   const volleyGames = withStats.filter(r => (r.gameReport?.volleyBox?.length ?? 0) > 0).length;
   const sport: StatSport = /volley/i.test(sportHint || "") || volleyGames > withStats.length / 2 ? "volleyball" : "basketball";
@@ -154,7 +168,7 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
     Number(b.onRoster) - Number(a.onRoster) || primary(b) / b.gp - primary(a) / a.gp || b.gp - a.gp
   );
 
-  return { sport, gamesCounted: counted, needsColor, players: sorted, team };
+  return { sport, gamesCounted: counted, needsColor, superseded, players: sorted, team };
 }
 
 export function perGame(total: number, gp: number): string {

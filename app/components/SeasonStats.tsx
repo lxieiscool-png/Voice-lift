@@ -55,6 +55,15 @@ function NeedsColor({ items, onSetColor }: { items: SeasonLedger["needsColor"]; 
   );
 }
 
+function SupersededNote({ items }: { items: Review[] }) {
+  if (items.length === 0) return null;
+  return (
+    <p className="mt-3 text-[11px] text-muted-foreground">
+      {items.length} older {items.length === 1 ? "analysis" : "analyses"} of a re-analyzed film left out, so nothing counts twice. Only the newest run of each film is used.
+    </p>
+  );
+}
+
 type Col = { label: string; title: string; get: (p: SeasonPlayer, avg: boolean) => string };
 
 function columns(sport: SeasonLedger["sport"]): Col[] {
@@ -253,6 +262,7 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
       )}
 
       <NeedsColor items={ledger.needsColor} onSetColor={onSetColor} />
+      <SupersededNote items={ledger.superseded} />
     </div>
   );
 }
@@ -307,6 +317,7 @@ export function MySeasonCard({ reviews, jersey, onSetColor }: {
         </>
       )}
       <NeedsColor items={ledger.needsColor} onSetColor={onSetColor} />
+      <SupersededNote items={ledger.superseded} />
     </div>
   );
 }
