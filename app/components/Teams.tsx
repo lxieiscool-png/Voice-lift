@@ -27,24 +27,19 @@ function rowToMember(r: any): TeamMember {
   };
 }
 
-// Best-effort record from linked games — only counts games where the AI clearly
-// identified a winner. We don't fabricate PPG/point differential from data that
-// isn't reliably there (teamComparison.stats are ad-hoc observed counts, not a
-// real box score) — same honesty stance as the grading prompts.
+// Record from linked games. Each result comes from gameResult: the in-video
+// scoreboard when it was read, else the AI's called winner. Games with
+// neither count as unclear rather than guessed.
 function computeSeasonRecord(team: Team, reviews: Review[]) {
-  const games = reviews.filter(r => r.teamId === team.id && r.mode === "game" && r.gameReport?.teamComparison);
+  const games = reviews.filter(r => r.teamId === team.id && r.mode === "game");
   let wins = 0, losses = 0, unclear = 0;
   for (const g of games) {
-    const tc = g.gameReport!.teamComparison!;
-    const winner = (tc.winner || "").toLowerCase().trim();
-    if (!winner || winner === "unclear") { unclear++; continue; }
-    const teamName = team.name.toLowerCase();
-    const oppName  = (g.opponentName || tc.teamB || "").toLowerCase();
-    if (winner && teamName && (winner.includes(teamName) || teamName.includes(winner))) wins++;
-    else if (winner && oppName && (winner.includes(oppName) || oppName.includes(winner))) losses++;
+    const res = gameResult(g, team.name);
+    if (res?.outcome === "W") wins++;
+    else if (res?.outcome === "L") losses++;
     else unclear++;
   }
-  return { wins, losses, unclear, total: games.length };
+  return { wins, losses, unclear, total: wins + losses };
 }
 
 export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, onShowUpgrade }: {
@@ -178,7 +173,8 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
   if (openTeam) {
     const record = computeSeasonRecord(openTeam, reviews);
     const games = reviews.filter(r => r.teamId === openTeam.id).sort((a, b) => playedAt(b) - playedAt(a));
-    const { team: teamTotals, sport: statSport } = buildSeasonLedger(games, members, openTeam.sport);
+    const { team: teamTotals, sport: statSport, results } = buildSeasonLedger(games, members, openTeam.sport);
+    const allScoreboard = results.length > 0 && results.every(r => r.fromScoreboard);
     const meta = [
       [openTeam.city, openTeam.state].filter(Boolean).join(", "), openTeam.season,
       [openTeam.ageGroup, openTeam.gender].filter(Boolean).join(" "), openTeam.level,
@@ -190,7 +186,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
       { label: "Record", value: record.total > 0 ? `${record.wins}-${record.losses}` : "-", note: record.unclear > 0 ? `${record.unclear} unclear` : null },
       { label: "Games", value: String(games.length || "-"), note: null },
       { label: "Roster", value: String(members.length || "-"), note: null },
-      { label: "PPG / Opp", value: ppg, note: ppg !== "-" ? "AI estimate" : null },
+      { label: "PPG / Opp", value: ppg, note: ppg !== "-" ? (allScoreboard ? "From scoreboard" : "AI estimate") : null },
     ];
     return (
       <div>

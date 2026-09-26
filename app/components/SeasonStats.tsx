@@ -65,6 +65,45 @@ function SupersededNote({ items }: { items: Review[] }) {
   );
 }
 
+// Game-by-game results for the team, with how much of the scoring the box
+// score caught when the scoreboard gave us the real number.
+function ResultsList({ ledger }: { ledger: SeasonLedger }) {
+  if (ledger.sport !== "basketball" || ledger.results.length === 0) return null;
+  const { tracked, onFilm } = ledger.team;
+  return (
+    <div className="mb-8">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Results</h3>
+        {onFilm > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            Box scores caught <span className="font-semibold text-foreground">{Math.round((tracked / onFilm) * 100)}%</span> of points scored on film
+          </p>
+        )}
+      </div>
+      <div className="divide-y divide-border border-y border-border">
+        {ledger.results.map(g => (
+          <div key={g.review.id} className="flex items-center gap-3 px-1 py-2 text-xs">
+            <span className="w-14 shrink-0 font-mono text-[11px] text-muted-foreground">{shortDate(g.date)}</span>
+            <span className="min-w-0 flex-1 truncate text-foreground">{g.opponent ? `vs ${g.opponent}` : g.review.fileName}</span>
+            {g.outcome && (
+              <span className={`w-5 text-center font-bold ${g.outcome === "W" ? "text-emerald-400" : g.outcome === "L" ? "text-red-400" : "text-muted-foreground"}`}>{g.outcome}</span>
+            )}
+            <span className="w-16 text-right font-mono text-foreground" title={g.fromScoreboard ? "Final from the scoreboard" : "Summed from the box score — likely low"}>
+              {g.us ?? "—"}–{g.them ?? "—"}{!g.fromScoreboard && <span className="text-muted-foreground">*</span>}
+            </span>
+            <span className="hidden w-28 text-right text-[11px] text-muted-foreground sm:block">
+              {g.onFilm ? `tracked ${Math.min(g.tracked, g.onFilm)} of ${g.onFilm}` : "no scoreboard"}
+            </span>
+          </div>
+        ))}
+      </div>
+      {ledger.results.some(g => !g.fromScoreboard) && (
+        <p className="mt-1.5 text-[10px] text-muted-foreground">* No readable scoreboard; score summed from the box score, so it&apos;s likely low.</p>
+      )}
+    </div>
+  );
+}
+
 type Col = { label: string; title: string; get: (p: SeasonPlayer, avg: boolean) => string };
 
 function columns(sport: SeasonLedger["sport"]): Col[] {
@@ -221,6 +260,8 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
       <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
         Summed from each game&apos;s AI box score across {ledger.gamesCounted.length} {ledger.gamesCounted.length === 1 ? "game" : "games"}. GP counts games where a player had something logged. DEC% is the share of their graded decisions that were good.
       </p>
+
+      <ResultsList ledger={ledger} />
 
       {ledger.players.length === 0 ? (ledger.needsColor.length > 0 ? null :
         <p className="py-4 text-sm text-muted-foreground">

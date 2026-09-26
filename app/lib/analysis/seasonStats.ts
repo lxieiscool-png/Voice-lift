@@ -34,6 +34,21 @@ export type SeasonPlayer = {
   games: GameLine[];         // oldest first
 };
 
+// One counted game from the team's side: the result and how much of the
+// scoring the box score caught. Score comes from the in-video scoreboard when
+// it was readable, otherwise from summing the box score (an undercount).
+export type GameResultLine = {
+  review: Review;
+  date: number;
+  opponent: string | null;
+  us: number | null;
+  them: number | null;
+  fromScoreboard: boolean;
+  outcome: "W" | "L" | "T" | null;   // only with a scoreboard score
+  tracked: number;                    // points our box score logged
+  onFilm: number | null;              // points we scored on film, per the scoreboard
+};
+
 export type SeasonLedger = {
   sport: StatSport;
   gamesCounted: Review[];
@@ -44,7 +59,14 @@ export type SeasonLedger = {
   // so re-running a game doesn't double its stats.
   superseded: Review[];
   players: SeasonPlayer[];
-  team: { gp: number; ptsFor: number; ptsAgainst: number; gamesWithOpp: number };
+  results: GameResultLine[];          // newest first
+  team: {
+    gp: number; ptsFor: number; ptsAgainst: number; gamesWithOpp: number;
+    wins: number; losses: number; ties: number;
+    // Scoreboard-backed coverage across the season: points the box scores
+    // caught vs points actually scored on film.
+    tracked: number; onFilm: number;
+  };
 };
 
 const zeroBox = () => ({ pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, reb: 0, ast: 0, stl: 0, tov: 0, blk: 0, pf: 0 });
@@ -62,9 +84,16 @@ export function gameColors(r: Review): string[] {
 }
 
 // The box-score team key that was the user's side, or null if unknown.
-function ourKey(r: Review): string | null {
+// The saved jersey colour wins; newer analyses also resolve the uploader's
+// team themselves (gameReport.teams[0]), which covers games without one.
+export function ourKey(r: Review): string | null {
   const colors = gameColors(r);
-  return teamKeysFromColor(r.teamColor).find(k => colors.includes(k)) ?? null;
+  const typed = teamKeysFromColor(r.teamColor).find(k => colors.includes(k));
+  if (typed) return typed;
+  // A real colour that isn't in this game's box score: don't guess.
+  if (teamKeysFromColor(r.teamColor).length > 0) return null;
+  const resolved = r.gameReport?.teams?.[0]?.color;
+  return resolved && colors.includes(resolved) ? resolved : null;
 }
 
 export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sportHint?: string): SeasonLedger {
@@ -106,7 +135,8 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
 
   const counted: Review[] = [];
   const needsColor: SeasonLedger["needsColor"] = [];
-  const team = { gp: 0, ptsFor: 0, ptsAgainst: 0, gamesWithOpp: 0 };
+  const team = { gp: 0, ptsFor: 0, ptsAgainst: 0, gamesWithOpp: 0, wins: 0, losses: 0, ties: 0, tracked: 0, onFilm: 0 };
+  const results: GameResultLine[] = [];
 
   for (const r of withStats) {
     const key = ourKey(r);
@@ -123,6 +153,8 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
 
     if (sport === "basketball") {
       const box = r.gameReport?.boxScore ?? [];
+      // Team points include rows with no readable jersey ("Blue Unknown");
+      // only numbered rows become player lines.
       let ours = 0, theirs = 0, sawOpp = false;
       for (const row of box) {
         if (row.team === key) ours += row.pts;
@@ -130,15 +162,29 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
         if (row.team !== key || !row.jersey) continue;
         line(row.jersey).basketball = row;
       }
+      const sb = r.gameReport?.scoreboard?.teams;
+      const sbUs = sb?.find(t => t.color === key);
+      const sbThem = sb?.find(t => t.color !== key);
+      const tracked = r.gameReport?.teamTotals?.find(t => t.color === key)?.pts ?? ours;
+      const us = sbUs ? sbUs.final : ours;
+      const them = sbThem ? sbThem.final : sawOpp ? theirs : null;
+      const fromScoreboard = !!(sbUs && sbThem);
+      const outcome = fromScoreboard ? (us > them! ? "W" : us < them! ? "L" : "T") : null;
+      const onFilm = sbUs ? sbUs.final - sbUs.start : null;
+
       team.gp++;
-      team.ptsFor += ours;
-      if (sawOpp) { team.ptsAgainst += theirs; team.gamesWithOpp++; }
+      team.ptsFor += us;
+      if (them !== null) { team.ptsAgainst += them; team.gamesWithOpp++; }
+      if (outcome === "W") team.wins++; else if (outcome === "L") team.losses++; else if (outcome === "T") team.ties++;
+      if (onFilm !== null && onFilm > 0) { team.tracked += Math.min(tracked, onFilm); team.onFilm += onFilm; }
+      results.push({ review: r, date: playedAt(r), opponent: r.opponentName ?? null, us, them, fromScoreboard, outcome, tracked, onFilm });
     } else {
       for (const row of r.gameReport?.volleyBox ?? []) {
         if (row.team !== key || !row.jersey) continue;
         line(row.jersey).volleyball = row;
       }
       team.gp++;
+      results.push({ review: r, date: playedAt(r), opponent: r.opponentName ?? null, us: null, them: null, fromScoreboard: false, outcome: null, tracked: 0, onFilm: null });
     }
 
     // Decision quality — Reel's own stat. Every logged possession counts
@@ -166,7 +212,8 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
     Number(b.onRoster) - Number(a.onRoster) || primary(b) / b.gp - primary(a) / a.gp || b.gp - a.gp
   );
 
-  return { sport, gamesCounted: counted, needsColor, superseded, players: sorted, team };
+  results.reverse();
+  return { sport, gamesCounted: counted, needsColor, superseded, players: sorted, results, team };
 }
 
 export function perGame(total: number, gp: number): string {

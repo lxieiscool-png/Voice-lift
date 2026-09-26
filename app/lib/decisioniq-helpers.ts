@@ -1,4 +1,5 @@
 import type { PlayerDecision, Review } from "./types";
+import { teamKeysFromColor } from "./analysis/parsers";
 
 // When a game was played, as epoch ms. game_date is a date-only string
 // ("2026-02-06"); new Date() reads that as UTC midnight, which shows as the
@@ -14,6 +15,18 @@ export function playedAt(r: Review): number {
 // show (a clip, no team comparison, or an unclear winner) — same honesty
 // stance as the grading prompts: we don't invent a result that isn't there.
 export function gameResult(review: Review, teamName?: string | null): { outcome: "W" | "L" | "T"; score: string | null } | null {
+  // Scoreboard final (newer analyses) beats the model's winner guess. Our side
+  // is the saved jersey colour, else the uploader's team the analysis resolved.
+  const sb = review.gameReport?.scoreboard?.teams;
+  if (sb && sb.length === 2) {
+    const typed = teamKeysFromColor(review.teamColor);
+    const ours = sb.find(t => typed.includes(t.color)) ?? (typed.length ? undefined : sb.find(t => t.color === review.gameReport?.teams?.[0]?.color));
+    const theirs = ours && sb.find(t => t !== ours);
+    if (ours && theirs) {
+      const outcome = ours.final > theirs.final ? "W" : ours.final < theirs.final ? "L" : "T";
+      return { outcome, score: `${ours.final}–${theirs.final}` };
+    }
+  }
   const tc = review.gameReport?.teamComparison;
   if (!tc) return null;
   const winner = (tc.winner || "").toLowerCase().trim();
