@@ -1689,8 +1689,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
     } catch (err) {
       console.error(err);
       setYtError("Something went wrong analyzing that link. Try Start screen capture instead.");
+    } finally {
+      // Several branches above return early (queued game, limit hit, error) —
+      // without finally they skipped this and left the page stuck on
+      // "Watching your film…" even though the job was running fine.
+      setLoading(false); setProgressLabel("");
     }
-    setLoading(false); setProgressLabel("");
   }
 
   // Returns true if blocked (caller should stop). Non-incrementing courtesy
