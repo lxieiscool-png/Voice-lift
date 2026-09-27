@@ -7,6 +7,7 @@ import {
 } from "framer-motion";
 import { ArrowRight, Menu, X, Play } from "lucide-react";
 import Logo from "./Logo";
+import { FilmStrip, ChalkboardPlay, SeasonScoreboard, GiantGrade } from "./LandingSections";
 
 // The public landing page. Light, quiet and type-led (after spacefs.com):
 // one idea per screen, and the product itself is the illustration — a Reel
@@ -314,37 +315,6 @@ function StageDot({ i, p }: { i: number; p: MotionValue<number> }) {
   return <motion.span style={{ width, opacity }} className="h-1.5 rounded-full bg-foreground" />;
 }
 
-// ─── Numbered features ───────────────────────────────────────────────────────
-
-const FEATURES = [
-  ["Every player, every possession", "Paste a game and Reel logs both teams start to finish: who made the read, what they chose, and whether it was right."],
-  ["Graded on the decision", "A smart read that rims out is still an A. A lucky bucket off a forced drive isn't. Grades follow a coach's rubric, not the score."],
-  ["A box score you can trust", "Stats are counted in code from every logged play, then checked against the scoreboard on your film."],
-  ["Film Room", "Click any moment and the tape jumps there. Filter to your mistakes and watch them back to back."],
-  ["A season that adds up", "Every game rolls into your season: record, points per game, and a game log for every player on your roster."],
-];
-
-function Features() {
-  return (
-    <section className="mx-auto max-w-6xl px-4 py-28 sm:px-6 sm:py-40">
-      <Reveal>
-        <Heading a="Film study that doesn't" b="stop at highlights." className="max-w-3xl text-4xl sm:text-6xl" />
-      </Reveal>
-      <div className="mt-16 border-t border-border">
-        {FEATURES.map(([title, desc], i) => (
-          <Reveal key={title} delay={i * 0.05}>
-            <div className="grid gap-4 border-b border-border py-9 sm:grid-cols-[4rem_1fr_1fr] sm:items-baseline sm:gap-8">
-              <span className="font-mono text-xs text-muted-foreground">0{i + 1}</span>
-              <p className="font-display text-2xl leading-tight sm:text-3xl">{title}</p>
-              <p className="max-w-md text-[15px] leading-relaxed text-muted-foreground">{desc}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 // ─── CoachIQ: a conversation that plays as you scroll ────────────────────────
 
 const CHAT = [
@@ -554,8 +524,11 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
       </section>
 
       <ScrollStory />
-      <Features />
+      <FilmStrip />
+      <ChalkboardPlay />
+      <SeasonScoreboard />
       <CoachSection />
+      <GiantGrade />
       <Mission />
       <Pricing onStart={onStart} />
 
