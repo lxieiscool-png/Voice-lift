@@ -1,15 +1,14 @@
-// Reel mark + wordmark. The mark is a dotted shot arc dropping into a rim —
-// the same dot-matrix motif as the landing hero — in a solid disc. Everything
-// draws in currentColor / theme tokens, so it works in light and dark.
+// Reel mark + wordmark. Three bars that step down into a play button: game
+// film (▶) and the numbers Reel pulls out of it, with the last bar in court
+// orange. Drawn in theme tokens, so it inverts correctly in dark mode.
 
 export function ReelMark({ size = 28, className = "" }: { size?: number; className?: string }) {
-  const dots = [[7, 18.5], [9, 13.8], [12, 10.6], [15.4, 9.3], [18.6, 10.4]];
   return (
-    <svg width={size} height={size} viewBox="0 0 28 28" className={className} aria-hidden>
-      <circle cx="14" cy="14" r="14" className="fill-foreground" />
-      {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.25} className="fill-background" opacity={0.45 + i * 0.13} />)}
-      <path d="M17.6 14.2h4.6" strokeWidth="1.6" strokeLinecap="round" className="stroke-court" />
-      <circle cx="20.6" cy="12.4" r="1.6" className="fill-court" />
+    <svg width={size} height={size} viewBox="0 0 40 40" className={className} aria-hidden>
+      <rect x="1" y="1" width="38" height="38" rx="11" className="fill-foreground" />
+      <rect x="12" y="11" width="4.2" height="18" rx="2.1" className="fill-background" />
+      <rect x="18.6" y="14" width="4.2" height="12" rx="2.1" className="fill-background" opacity={0.8} />
+      <rect x="25.2" y="17" width="4.2" height="6" rx="2.1" className="fill-court" />
     </svg>
   );
 }

@@ -4,8 +4,8 @@
   "description": "Film analysis and personal coaching for every athlete.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#f6f5f1",
+  "theme_color": "#f6f5f1",
   "orientation": "portrait-primary",
   "icons": [
     {

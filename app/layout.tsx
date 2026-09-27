@@ -35,10 +35,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icon-192.png", sizes: "192x192" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   title: "Reel: Your AI Sports Coach",
   description: "Upload your game film and get real coaching, not just stats. Reel grades every decision, tells you what to work on, and checks your form as you drill it. Try it free.",
