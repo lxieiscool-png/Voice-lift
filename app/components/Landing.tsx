@@ -7,6 +7,7 @@ import {
 } from "framer-motion";
 import { ArrowRight, Menu, X, Play } from "lucide-react";
 import Logo from "./Logo";
+import HeroBoard from "./HeroBoard";
 import { FilmStrip, ChalkboardPlay, SeasonScoreboard, GiantGrade } from "./LandingSections";
 
 // The public landing page. Light, quiet and type-led (after spacefs.com):
@@ -433,55 +434,6 @@ function Pricing({ onStart }: { onStart: () => void }) {
   );
 }
 
-// ─── Hero art: a dotted shot arc ─────────────────────────────────────────────
-// The dot-matrix motif the current crop of product sites uses, made ours: a
-// shot's flight drawn in dots over a faint halftone field, dropping through a
-// court-orange rim. Draws once on load; still for reduced motion.
-
-const ARC = Array.from({ length: 34 }, (_, i) => {
-  const t = i / 33;
-  // Quadratic Bézier: release point, apex, rim.
-  const [x0, y0, cx, cy, x1, y1] = [70, 560, 560, -40, 1030, 300];
-  return [(1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t * t * x1, (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t * t * y1];
-});
-
-function HeroArt() {
-  const reduce = useReducedMotion();
-  return (
-    <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full text-foreground">
-      <defs>
-        <pattern id="halftone" width="18" height="18" patternUnits="userSpaceOnUse">
-          <circle cx="9" cy="9" r="1.1" fill="currentColor" />
-        </pattern>
-        <radialGradient id="fade" cx="50%" cy="55%" r="60%">
-          <stop offset="0%" stopColor="white" stopOpacity="0" />
-          <stop offset="55%" stopColor="white" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="white" stopOpacity="1" />
-        </radialGradient>
-        <mask id="fieldMask"><rect width="1200" height="700" fill="url(#fade)" /></mask>
-      </defs>
-      <rect width="1200" height="700" fill="url(#halftone)" opacity="0.09" mask="url(#fieldMask)" />
-      {ARC.map(([x, y], i) => (
-        <motion.circle key={i} cx={x} cy={y} r={2.6 + (i / ARC.length) * 1.4} fill="currentColor"
-          initial={reduce ? false : { opacity: 0, scale: 0 }}
-          animate={{ opacity: 0.12 + (i / ARC.length) * 0.35, scale: 1 }}
-          transition={{ delay: 0.6 + i * 0.035, duration: 0.35, ease: EASE }} />
-      ))}
-      {/* Rim + net */}
-      <motion.g initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8, duration: 0.6 }}>
-        <ellipse cx="1052" cy="312" rx="34" ry="7" fill="none" stroke="var(--court)" strokeWidth="3" />
-        {[0, 1, 2, 3, 4].map(k => (
-          <circle key={k} cx={1026 + k * 13} cy={330 + (k % 2) * 6} r="1.8" fill="var(--court)" opacity="0.55" />
-        ))}
-        {[0, 1, 2].map(k => (
-          <circle key={k} cx={1034 + k * 18} cy={350} r="1.8" fill="var(--court)" opacity="0.35" />
-        ))}
-      </motion.g>
-    </svg>
-  );
-}
-
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, authError }: LandingProps) {
@@ -501,17 +453,17 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
       <Header onStart={onStart} onSignIn={onSignIn} signingIn={signingIn} />
 
       {/* Hero */}
-      <section ref={heroRef} className="relative flex min-h-[92vh] items-center justify-center overflow-hidden px-4 pt-20 sm:px-6">
-        <HeroArt />
-        <motion.div style={reduce ? {} : { y: heroY, opacity: heroOpacity }} className="relative mx-auto max-w-3xl text-center">
-          <motion.p {...rise(0.05)}
-            className="mx-auto mb-7 inline-flex items-center gap-2 rounded-full bg-card px-3.5 py-1.5 text-xs text-muted-foreground shadow-soft">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Basketball and volleyball film, graded
-          </motion.p>
-          <motion.div {...rise(0.15)}>
-            <Heading as="h1" a="Your game film," b="coached like a pro." className="text-5xl sm:text-7xl" />
+      <section ref={heroRef} className="relative flex min-h-[92vh] items-center justify-center overflow-hidden px-4 pb-10 pt-28 sm:px-6">
+        <motion.div style={reduce ? {} : { y: heroY, opacity: heroOpacity }} className="relative mx-auto w-full max-w-3xl text-center">
+          {/* The scoreboard shows the score, then what it never shows:
+              how you played. */}
+          <motion.div {...rise(0.05)}>
+            <HeroBoard />
           </motion.div>
-          <motion.p {...rise(0.3)} className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <motion.div {...rise(0.2)} className="mt-10 sm:mt-12">
+            <Heading as="h1" a="Every game has a score." b="Reel grades how you played." className="text-4xl sm:text-6xl" />
+          </motion.div>
+          <motion.p {...rise(0.3)} className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Paste a YouTube link. Reel grades every decision on the floor, builds the box score, and gives you the drill that fixes what it found.
           </motion.p>
           <motion.div {...rise(0.42)} className="mt-9 flex flex-wrap items-center justify-center gap-3">
