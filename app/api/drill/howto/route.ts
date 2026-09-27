@@ -1,5 +1,6 @@
 import { chatComplete } from "../../../lib/ai/chat";
 import { isRateLimited } from "../../../lib/ratelimit";
+import { publicErrorMessage } from "../../../lib/publicError";
 
 // POST /api/drill/howto { drill, sport }
 // Step-by-step instructions for a prescribed solo drill. Text-only and cheap
@@ -45,6 +46,6 @@ Cue: [the ONE thing to hold in your mind every rep]`,
     return Response.json({ howto: text || "" });
   } catch (error: any) {
     console.error("DRILL HOWTO ERROR:", error);
-    return Response.json({ error: error?.message || "Couldn't build instructions." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Couldn't build instructions.") }, { status: 500 });
   }
 }

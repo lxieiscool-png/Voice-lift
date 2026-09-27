@@ -20,7 +20,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ job
   const { error } = await supabase.from("analysis_jobs")
     .update({ status: "queued", progress_total: frameCount })
     .eq("id", jobId).eq("user_id", userId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("jobs/[jobId]/finalize:", error.message);
+    return NextResponse.json({ error: "Couldn't finish analysis." }, { status: 500 });
+  }
 
   await inngest.send({
     name: "game/analysis.requested",

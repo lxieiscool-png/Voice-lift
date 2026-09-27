@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
   const { error } = await supabase.storage.from("game-thumbnails").upload(path, buffer, {
     contentType, upsert: false,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("thumbnail:", error.message);
+    return NextResponse.json({ error: "Couldn't save thumbnail." }, { status: 500 });
+  }
 
   const { data } = supabase.storage.from("game-thumbnails").getPublicUrl(path);
   return NextResponse.json({ url: data.publicUrl });

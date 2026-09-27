@@ -3,6 +3,7 @@ import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { isRateLimited } from "../../lib/ratelimit";
 import { getSessionUserId } from "../../lib/supabase/server";
 import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
+import { publicErrorMessage } from "../../lib/publicError";
 
 // POST /api/drill { drill, frames, sport }
 // Checks a player's recording of a prescribed solo drill. Metered as a clip
@@ -51,6 +52,6 @@ export async function POST(req: Request) {
       return Response.json({ error: error.message }, { status: 400 });
     }
     console.error("DRILL ANALYSIS ERROR:", error);
-    return Response.json({ error: error?.message || "Drill check failed." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Drill check failed.") }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
+import { publicErrorMessage } from "../../lib/publicError";
 
 export async function POST(req: Request) {
   if (isRateLimited(req, "coach", 40)) {
@@ -68,6 +69,6 @@ How you coach:
     // Don't charge for a reply the user never got.
     if (metered) await refundUsage(metered, "coach");
     console.error("COACH ERROR:", error);
-    return Response.json({ error: error?.message || "Coach failed to respond." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Coach failed to respond.") }, { status: 500 });
   }
 }

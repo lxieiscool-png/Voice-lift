@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
   if (error) {
     // Job never got created — don't charge the game credit.
     await refundUsage(userId, "game");
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("jobs/start:", error.message);
+    return NextResponse.json({ error: "Couldn't start analysis." }, { status: 500 });
   }
   return NextResponse.json({ jobId: data.id });
 }

@@ -1,5 +1,6 @@
 import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
+import { publicErrorMessage } from "../../lib/publicError";
 
 // POST /api/drills { sport, role, focus }
 // Generates short drills to fix a specific player weakness, split into solo and
@@ -44,6 +45,6 @@ With Teammates:
     return Response.json({ drills: text || "" });
   } catch (error: any) {
     console.error("DRILLS ERROR:", error);
-    return Response.json({ error: error?.message || "Couldn't build drills." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Couldn't build drills.") }, { status: 500 });
   }
 }

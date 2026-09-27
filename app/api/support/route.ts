@@ -1,5 +1,6 @@
 import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
+import { publicErrorMessage } from "../../lib/publicError";
 
 // Reel's help knowledge base — kept in sync with the actual app so the support
 // bot never invents features. Update this when features change.
@@ -41,6 +42,6 @@ export async function POST(req: Request) {
     return Response.json({ reply: text || "" });
   } catch (error: any) {
     console.error("SUPPORT ERROR:", error);
-    return Response.json({ error: error?.message || "Support is unavailable right now." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Support is unavailable right now.") }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { synthesizeGameReport } from "../../lib/analysis/synthesize";
 import { isRateLimited } from "../../lib/ratelimit";
+import { publicErrorMessage } from "../../lib/publicError";
 
 export async function POST(req: Request) {
   if (isRateLimited(req, "synthesize", 30)) {
@@ -38,6 +39,6 @@ export async function POST(req: Request) {
     return Response.json({ report });
   } catch (error: any) {
     console.error("SYNTHESIZE ERROR:", error);
-    return Response.json({ error: error?.message || "Synthesis failed." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Synthesis failed.") }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { chatComplete } from "../../lib/ai/chat";
 import { isRateLimited } from "../../lib/ratelimit";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
+import { publicErrorMessage } from "../../lib/publicError";
 
 export async function POST(req: Request) {
   if (isRateLimited(req, "plan", 15)) {
@@ -98,6 +99,6 @@ Keep every line short and punchy — write like a coach handing an athlete a wor
     // Don't charge for a plan the user never got.
     if (metered) await refundUsage(metered, "plan");
     console.error("PLAN ERROR:", error);
-    return Response.json({ error: error?.message || "Plan generation failed." }, { status: 500 });
+    return Response.json({ error: publicErrorMessage(error, "Plan generation failed.") }, { status: 500 });
   }
 }

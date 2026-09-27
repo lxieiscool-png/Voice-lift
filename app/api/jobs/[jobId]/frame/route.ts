@@ -29,6 +29,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ job
     contentType, upsert: true,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+
+    console.error("jobs/[jobId]/frame:", error.message);
+
+    return NextResponse.json({ error: "Couldn't upload frame." }, { status: 500 });
+
+  }
   return NextResponse.json({ ok: true });
 }
