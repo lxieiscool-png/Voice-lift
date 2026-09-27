@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Archivo } from "next/font/google";
+import { Geist, Geist_Mono, Archivo, Google_Sans_Flex } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,6 +14,13 @@ const archivo = Archivo({
   subsets: ["latin"],
 });
 
+// The interface face: soft, round, and legible from a 13px label up to a
+// 72px headline — the same family the design reference is set in.
+const googleSans = Google_Sans_Flex({
+  variable: "--font-google-sans",
+  subsets: ["latin"],
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -23,7 +30,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Reel",
   },
   icons: {
@@ -88,14 +95,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} ${googleSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* Apply the saved theme before paint to avoid a flash. Defaults to dark. */}
+        {/* Apply the saved theme before paint to avoid a flash. Defaults to light. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('reel-theme');var d=t?t==='dark':true;document.documentElement.classList.toggle('dark',d);}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('reel-theme');var d=t==='dark';document.documentElement.classList.toggle('dark',d);}catch(e){}})();`,
           }}
         />
       </head>

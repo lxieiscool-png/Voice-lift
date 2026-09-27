@@ -40,6 +40,7 @@ function renameReviewRemote(userId: string | undefined, id: string, fileName: st
 
 import { parsePlayerBlocks, parseGameReport, isEmptyGameReport, buildBoxScore, buildVolleyBoxScore, buildDecisionTimeline } from "../lib/analysis/parsers";
 import { buildRosterView, type RosterPlayer, type RosterTeam } from "../lib/analysis/gameAccuracy";
+import { StatTable, StatHeader, CoverageMeter, pctText, type StatCol } from "./ui/stat-table";
 import FilmRoom, { youtubeIdFrom } from "./FilmRoom";
 
 // ─── Thumbnail ────────────────────────────────────────────────────────────────
@@ -477,7 +478,7 @@ function GradeBadge({ grade, large }: { grade: string; large?: boolean }) {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{children}</p>;
+  return <p className="mb-1.5 text-[12px] text-muted-foreground">{children}</p>;
 }
 
 function ProgressBar({ current, total, label }: { current: number; total: number; label: string }) {
@@ -584,11 +585,11 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
   const name = decision.player.replace(/\s*\([^)]*\)/, "").trim() || "This player";
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 p-4 sm:p-8" onClick={onClose}>
-      <div className="mx-auto max-w-lg rounded-xl border border-border bg-card p-5 sm:p-6" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/30 backdrop-blur-sm p-4 sm:p-8" onClick={onClose}>
+      <div className="surface mx-auto max-w-lg p-5 sm:p-6" onClick={e => e.stopPropagation()}>
         <div className="mb-1 flex items-start justify-between gap-3">
           <div>
-            <p className="text-lg font-black text-foreground">Drills for {name}</p>
+            <p className="text-lg font-semibold text-foreground">Drills for {name}</p>
             <p className="text-xs text-muted-foreground">To fix: {focus}</p>
           </div>
           <button onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
@@ -599,7 +600,7 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
             <Loader2 className="h-4 w-4 animate-spin" /> Building drills…
           </div>
         )}
-        {error && <p className="py-6 text-sm text-red-400">{error}</p>}
+        {error && <p className="py-6 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
         {!loading && !error && (
           <div className="mt-4 space-y-5">
@@ -666,7 +667,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
   // boxes — eight identical panels read as a debug dump, not a coaching note.
   const Block = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="border-t border-border/60 pt-3.5">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+      <p className="mb-1 text-[12px] text-muted-foreground">{label}</p>
       {children}
     </div>
   );
@@ -692,7 +693,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
             <div role="button" tabIndex={0} onClick={() => setOpen(o => !o)}
               onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
               className="flex cursor-pointer items-start gap-3 px-4 py-3.5">
-              <span className={`mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-black tabular-nums ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
+              <span className={`mt-0.5 shrink-0 rounded-md px-2 py-1 text-xs font-semibold tabular-nums ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
                 {grade}
               </span>
 
@@ -752,7 +753,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
 
                 {decision.practiceFocus && (
                   <div className="rounded-lg bg-muted p-3.5">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Drill it</p>
+                    <p className="mb-1 text-[12px] text-muted-foreground">Drill it</p>
                     <p className="text-sm leading-relaxed text-foreground">{decision.practiceFocus}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button variant="secondary" size="sm"
@@ -828,7 +829,7 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
         <div key={s.label} className="space-y-3">
           <div className="flex items-center gap-2 px-1 pb-1">
             <span className="h-2.5 w-2.5 rounded-full border border-black/20" style={{ backgroundColor: s.hex }} />
-            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{capitalize(s.label)} · {s.decisions.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{capitalize(s.label)} · {s.decisions.length}</p>
           </div>
           {s.decisions.map((d, i) => (
             <PlayerCard key={i} decision={d} defaultOpen={si === 0 && i === 0} />
@@ -849,119 +850,106 @@ const GAME_SECTIONS = [
   { key: "practiceFocus"   as const, label: "Practice This Week"    },
 ];
 
-function VolleyBoxPanel({ rows }: { rows: PlayerVolleyStat[] }) {
-  // Split into two teams by the normalized team key, largest first.
-  const groups = new Map<string, PlayerVolleyStat[]>();
+// Team tabs + one table, instead of two cramped tables stacked. Teams come in
+// the report's own order (uploader's first) when the analysis resolved them.
+function boxTeams<R extends { team: string }>(rows: R[], report?: GameReport) {
+  const order = report?.teams?.map(t => t.color) ?? [];
+  const groups = new Map<string, R[]>();
   for (const r of rows) {
-    const k = r.team || "unknown";
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(r);
+    if (!r.team || r.team === "unknown") continue;
+    if (!groups.has(r.team)) groups.set(r.team, []);
+    groups.get(r.team)!.push(r);
   }
-  const teams = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 2);
-  const cols: { key: keyof PlayerVolleyStat; label: string }[] = [
-    { key: "k", label: "K" }, { key: "e", label: "E" }, { key: "ta", label: "TA" },
-    { key: "sa", label: "SA" }, { key: "se", label: "SE" }, { key: "ast", label: "AST" },
-    { key: "d", label: "DIG" }, { key: "bs", label: "BLK" }, { key: "re", label: "RE" },
-  ];
-  // Standard hitting percentage: (kills - errors) / total attempts, ".385" style.
-  const hitPct = (p: PlayerVolleyStat) =>
-    p.ta > 0 ? ((p.k - p.e) / p.ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
+  const keys = [...groups.keys()].sort((a, b) => {
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    return groups.get(b)!.length - groups.get(a)!.length;
+  }).slice(0, 2);
+  const name = (c: string) => report?.teams?.find(t => t.color === c)?.name ?? c.charAt(0).toUpperCase() + c.slice(1);
+  return keys.map(k => ({ color: k, name: name(k), rows: groups.get(k)! }));
+}
 
+// Named players first by the headline stat; jersey-less "Gray Unknown" rows
+// (baskets whose scorer couldn't be read) last — they count for the team.
+function playerCell(label: string, jersey: string | null) {
+  if (!jersey) return <span className="text-muted-foreground">Unattributed</span>;
+  return <span className="font-mono text-[13px] text-foreground">#{jersey}</span>;
+}
+
+function VolleyBoxPanel({ rows, report }: { rows: PlayerVolleyStat[]; report?: GameReport }) {
+  const teams = boxTeams(rows, report);
+  const [active, setActive] = useState(0);
+  const team = teams[Math.min(active, teams.length - 1)];
+  if (!team) return null;
+  const hit = (k: number, e: number, ta: number) => ta > 0 ? ((k - e) / ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
+  const sorted = [...team.rows].sort((a, b) => (+!!b.jersey - +!!a.jersey) || b.k - a.k || b.ta - a.ta);
+  const sum = (k: keyof PlayerVolleyStat) => team.rows.reduce((n, r) => n + (r[k] as number), 0);
+  const cols: StatCol<PlayerVolleyStat>[] = [
+    { key: "k", label: "K", title: "Kills", value: r => r.k, lead: r => r.k },
+    { key: "hit", label: "HIT%", title: "Hitting percentage", value: r => hit(r.k, r.e, r.ta), muted: true },
+    { key: "e", label: "E", title: "Attack errors", value: r => r.e, muted: true },
+    { key: "ta", label: "TA", title: "Total attacks", value: r => r.ta, muted: true },
+    { key: "ast", label: "AST", title: "Set assists", value: r => r.ast, lead: r => r.ast },
+    { key: "sa", label: "SA", title: "Service aces", value: r => r.sa, lead: r => r.sa },
+    { key: "se", label: "SE", title: "Service errors", value: r => r.se, muted: true },
+    { key: "d", label: "DIG", title: "Digs", value: r => r.d, lead: r => r.d },
+    { key: "bs", label: "BLK", title: "Stuff blocks", value: r => r.bs, lead: r => r.bs },
+    { key: "re", label: "RE", title: "Reception errors", value: r => r.re, muted: true },
+  ];
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="font-display text-sm font-bold text-foreground">Box Score</p>
-        <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
-      </div>
-      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
-        Auto-counted from what the AI could clearly see. Fast rallies between sampled frames get missed, so treat these as approximate — especially digs and touches.
-      </p>
-      <div className="space-y-4">
-        {teams.map(([team, players]) => (
-          <div key={team}>
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">{team === "unknown" ? "Players" : team}</p>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[420px] text-right text-xs">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    <th className="py-1 pr-2 text-left font-semibold">Player</th>
-                    {cols.map(c => <th key={c.key} className="py-1 px-1.5 font-semibold">{c.label}</th>)}
-                    <th className="py-1 px-1.5 font-semibold">HIT%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {players.sort((a, b) => b.k - a.k || b.ta - a.ta).map((p, i) => (
-                    <tr key={i} className="border-t border-border">
-                      <td className="py-1.5 pr-2 text-left font-semibold text-foreground">{p.player}</td>
-                      {cols.map(c => <td key={c.key} className={`py-1.5 px-1.5 ${c.key === "k" ? "font-bold text-foreground" : "text-foreground"}`}>{p[c.key] as number}</td>)}
-                      <td className="py-1.5 px-1.5 text-muted-foreground">{hitPct(p)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <section className="surface p-5 sm:p-6">
+      <StatHeader title="Box score" sub="Counted from every logged rally"
+        right={teams.length > 1 && <Segmented value={String(active)} onChange={v => setActive(+v)} options={teams.map((t, i) => ({ value: String(i), label: t.name }))} />} />
+      <StatTable cols={cols} rows={sorted} rowKey={r => r.player} name={r => playerCell(r.player, r.jersey)}
+        footer={{ name: "Team", cells: [sum("k"), hit(sum("k"), sum("e"), sum("ta")), sum("e"), sum("ta"), sum("ast"), sum("sa"), sum("se"), sum("d"), sum("bs"), sum("re")] }} />
+    </section>
   );
 }
 
-function BoxScorePanel({ rows }: { rows: PlayerBoxStat[] }) {
-  // Split into two teams by the normalized team key, largest first.
-  const groups = new Map<string, PlayerBoxStat[]>();
-  for (const r of rows) {
-    const k = r.team || "unknown";
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k)!.push(r);
-  }
-  const teams = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 2);
-  const cols: { key: keyof PlayerBoxStat; label: string }[] = [
-    { key: "pts", label: "PTS" }, { key: "reb", label: "REB" }, { key: "ast", label: "AST" },
-    { key: "stl", label: "STL" }, { key: "tov", label: "TO" }, { key: "blk", label: "BLK" }, { key: "pf", label: "PF" },
+function BoxScorePanel({ rows, report, roster = [], onPlayer }: { rows: PlayerBoxStat[]; report?: GameReport; roster?: RosterTeam[]; onPlayer?: (p: RosterPlayer) => void }) {
+  const byKey = new Map(roster.flatMap(t => t.players).map(p => [p.key, p]));
+  const who = (r: PlayerBoxStat) => r.jersey ? byKey.get(`${r.team}#${r.jersey}`) : undefined;
+  const teams = boxTeams(rows, report);
+  const [active, setActive] = useState(0);
+  const team = teams[Math.min(active, teams.length - 1)];
+  if (!team) return null;
+  const sorted = [...team.rows].sort((a, b) => (+!!b.jersey - +!!a.jersey) || b.pts - a.pts || b.reb - a.reb);
+  const t = team.rows.reduce((acc, r) => {
+    for (const k of ["pts", "reb", "ast", "stl", "blk", "tov", "pf", "fgm", "fga", "tpm", "tpa", "ftm", "fta"] as const) acc[k] += r[k];
+    return acc;
+  }, { pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0 });
+  const sb = report?.scoreboard?.teams.find(s => s.color === team.color);
+  const shoot = (m: number, a: number) => <span>{m}<span className="text-muted-foreground">–{a}</span></span>;
+  const cols: StatCol<PlayerBoxStat>[] = [
+    { key: "pts", label: "PTS", title: "Points", value: r => r.pts, lead: r => r.pts },
+    { key: "reb", label: "REB", title: "Rebounds", value: r => r.reb, lead: r => r.reb },
+    { key: "ast", label: "AST", title: "Assists", value: r => r.ast, lead: r => r.ast },
+    { key: "stl", label: "STL", title: "Steals", value: r => r.stl, lead: r => r.stl },
+    { key: "blk", label: "BLK", title: "Blocks", value: r => r.blk, lead: r => r.blk },
+    { key: "fg", label: "FG", title: "Field goals made–attempted", value: r => shoot(r.fgm, r.fga) },
+    { key: "3p", label: "3PT", title: "Threes made–attempted", value: r => shoot(r.tpm, r.tpa) },
+    { key: "ft", label: "FT", title: "Free throws made–attempted", value: r => shoot(r.ftm, r.fta) },
+    { key: "tov", label: "TO", title: "Turnovers", value: r => r.tov, muted: true },
+    { key: "pf", label: "PF", title: "Personal fouls", value: r => r.pf, muted: true },
+    { key: "dec", label: "DEC", title: "Good / poor decisions logged", value: r => {
+      const p = who(r);
+      return p && p.good + p.poor > 0
+        ? <span className="inline-flex items-center gap-1.5 text-[12px]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{p.good}<span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />{p.poor}</span>
+        : <span className="text-muted-foreground">—</span>;
+    } },
   ];
-
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="font-display text-sm font-bold text-foreground">Box Score</p>
-        <span className="rounded-full border border-amber-900/60 bg-amber-950/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">AI estimate</span>
-      </div>
-      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
-        Auto-counted from what the AI could clearly see. Fast plays between sampled frames get missed, so treat these as approximate — especially rebounds and steals.
-      </p>
-      <div className="space-y-4">
-        {teams.map(([team, players]) => (
-          <div key={team}>
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">{team === "unknown" ? "Players" : team}</p>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[420px] text-right text-xs">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    <th className="py-1 pr-2 text-left font-semibold">Player</th>
-                    <th className="py-1 px-1.5 font-semibold">FG</th>
-                    <th className="py-1 px-1.5 font-semibold">3P</th>
-                    <th className="py-1 px-1.5 font-semibold">FT</th>
-                    {cols.map(c => <th key={c.key} className="py-1 px-1.5 font-semibold">{c.label}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {players.sort((a, b) => b.pts - a.pts).map((p, i) => (
-                    <tr key={i} className="border-t border-border">
-                      <td className="py-1.5 pr-2 text-left font-semibold text-foreground">{p.player}</td>
-                      <td className="py-1.5 px-1.5 text-muted-foreground">{p.fgm}-{p.fga}</td>
-                      <td className="py-1.5 px-1.5 text-muted-foreground">{p.tpm}-{p.tpa}</td>
-                      <td className="py-1.5 px-1.5 text-muted-foreground">{p.ftm}-{p.fta}</td>
-                      {cols.map(c => <td key={c.key} className={`py-1.5 px-1.5 ${c.key === "pts" ? "font-bold text-foreground" : "text-foreground"}`}>{p[c.key] as number}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <section className="surface p-5 sm:p-6">
+      <StatHeader title="Box score"
+        sub={sb ? <CoverageMeter tracked={t.pts} total={sb.final - sb.start} /> : "Counted from every logged play · tap a player for details"}
+        right={teams.length > 1 && <Segmented value={String(active)} onChange={v => setActive(+v)} options={teams.map((x, i) => ({ value: String(i), label: x.name }))} />} />
+      <StatTable cols={cols} rows={sorted} rowKey={r => r.player} name={r => playerCell(r.player, r.jersey)}
+        onRowClick={onPlayer ? r => { const p = who(r); if (p) onPlayer(p); } : undefined}
+        footer={{ name: "Team", cells: [t.pts, t.reb, t.ast, t.stl, t.blk,
+          ...([[t.fgm, t.fga], [t.tpm, t.tpa], [t.ftm, t.fta]] as const).map(([m, a], i) => (
+            <span key={i} className="inline-flex flex-col items-end leading-tight">{m}–{a}<span className="text-[11px] font-normal text-muted-foreground">{pctText(m, a)}</span></span>
+          )), t.tov, t.pf, ""] }} />
+    </section>
   );
 }
 
@@ -982,184 +970,164 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
     return <FilmRoom videoId={videoId} decisions={report.playerCards ?? []} timeline={report.timeline ?? []} onClose={() => setFilmRoom(false)} />;
   }
 
+  const hasBox = (report.volleyBox?.length ?? 0) > 0 || (report.boxScore?.length ?? 0) > 0;
+  const notes = GAME_SECTIONS.filter(({ key }) => report[key]);
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
-      <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button onClick={onClose}
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
-            {backLabel}
+      {/* Top bar */}
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <button onClick={onClose} className="btn-pill btn-light !py-2 !text-[13px]">
+            <ChevronDown className="h-3.5 w-3.5 rotate-90" /> {backLabel}
           </button>
-          <p className="font-display text-sm font-bold text-foreground">Game Report</p>
-          <div className={`rounded-lg px-3 py-1 text-base font-black ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
-            {report.overallGrade}
+          <p className="hidden text-sm text-muted-foreground sm:block">Game report</p>
+          <div className="flex items-center gap-2">
+            {canWatch && (
+              <button onClick={() => setFilmRoom(true)} className="btn-pill btn-dark !py-2 !text-[13px]">
+                <Video className="h-3.5 w-3.5" /> Watch
+              </button>
+            )}
+            <span title="Overall decision grade"
+              className={`flex h-9 min-w-9 items-center justify-center rounded-full px-2.5 text-sm font-semibold ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
+              {report.overallGrade}
+            </span>
           </div>
         </div>
+      </div>
 
-        {/* What the player actually did — plain-language pros/cons, drawn from
-            the counted decision evidence rather than a vague narrative. */}
-        {((report.didWell?.length ?? 0) > 0 || (report.workOn?.length ?? 0) > 0) && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(report.didWell?.length ?? 0) > 0 && (
-              <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-4">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-emerald-400">Did well</p>
-                <ul className="space-y-1.5">
-                  {report.didWell!.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[15px] leading-snug text-foreground">
-                      <span className="mt-0.5 shrink-0 text-emerald-500">+</span>{s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {(report.workOn?.length ?? 0) > 0 && (
-              <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-4">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-amber-400">Work on</p>
-                <ul className="space-y-1.5">
-                  {report.workOn!.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[15px] leading-snug text-foreground">
-                      <span className="mt-0.5 shrink-0 text-amber-500">→</span>{s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Team comparison chart */}
+      <div className="mx-auto max-w-5xl space-y-5 px-4 pb-24 pt-4 sm:px-6">
+        {/* Scoreboard + why */}
         {tc ? <TeamComparisonPanel tc={tc} hasScoreboard={!!report.scoreboard} teams={teams} /> : (
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Team comparison wasn't possible for this footage — not enough clearly visible team-level data (score, both teams on screen, etc.).</p>
+          <div className="surface p-6">
+            <p className="text-sm text-muted-foreground">No scoreboard or team totals were readable in this footage, so there&apos;s no team comparison for this game.</p>
           </div>
         )}
 
-        {/* Two-team rosters */}
-        {teams.some(t => t.players.length > 0) && (
-          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-            {teams.map(t => (
-              <div key={t.color}>
-                <div className="mb-2 flex items-baseline justify-between gap-3 border-b border-border pb-2">
-                  <p className="font-display text-sm font-bold text-foreground">
-                    {t.name ?? <span className="capitalize">{t.color}</span>}
-                    {t.name && <span className="ml-1.5 font-sans text-xs font-normal capitalize text-muted-foreground">{t.color}</span>}
-                  </p>
-                  <span className="text-xs text-muted-foreground">{t.players.length} players</span>
+        {/* What the player actually did — drawn from the counted decisions. */}
+        {((report.didWell?.length ?? 0) > 0 || (report.workOn?.length ?? 0) > 0) && (
+          <div className="surface grid sm:grid-cols-2">
+            {[["Did well", report.didWell ?? [], "bg-emerald-500"], ["Work on", report.workOn ?? [], "bg-court"]].map(([label, items, dot], i) => (
+              (items as string[]).length > 0 && (
+                <div key={label as string} className={`p-5 sm:p-6 ${i === 1 ? "border-t border-border sm:border-l sm:border-t-0" : ""}`}>
+                  <p className="mb-3 text-[13px] text-muted-foreground">{label as string}</p>
+                  <ul className="space-y-2.5">
+                    {(items as string[]).map((s, k) => (
+                      <li key={k} className="flex items-start gap-3 text-[15px] leading-snug text-foreground">
+                        <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dot as string}`} />{s}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="divide-y divide-border">
-                  {t.players.map(p => {
-                    const b = p.box;
-                    return (
-                      <button key={p.key} onClick={() => setFocus(p)}
-                        className="flex w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-muted/50">
-                        <span className="w-9 shrink-0 font-mono text-sm font-bold tabular-nums text-foreground">#{p.jersey}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm text-foreground">
-                            {b ? <>
-                              <span className="font-semibold tabular-nums">{b.pts}</span> <span className="text-muted-foreground">PTS</span>
-                              <span className="ml-2.5 tabular-nums">{b.reb}</span> <span className="text-muted-foreground">REB</span>
-                              <span className="ml-2.5 tabular-nums">{b.ast}</span> <span className="text-muted-foreground">AST</span>
-                            </> : <span className="text-muted-foreground">{p.label}</span>}
-                          </span>
-                          {(p.good + p.poor) > 0 && (
-                            <span className="block text-[11px] text-muted-foreground">
-                              {p.good > 0 && <span className="text-emerald-500">{p.good} good</span>}
-                              {p.good > 0 && p.poor > 0 && <span> · </span>}
-                              {p.poor > 0 && <span className="text-red-500">{p.poor} poor</span>}
-                              <span> decisions</span>
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-muted-foreground">›</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              )
             ))}
           </div>
         )}
 
-        {/* Coachable moments: the same graded cards clips produce, spread
-            across the game, so a report is more than aggregate numbers. */}
+        {/* Box score — the builders are sport-exclusive, so at most one renders */}
+        {hasBox && (report.volleyBox && report.volleyBox.length > 0
+          ? <VolleyBoxPanel rows={report.volleyBox} report={report} />
+          : <BoxScorePanel rows={report.boxScore!} report={report} roster={teams} onPlayer={setFocus} />)}
+
+        {/* Team stat comparison */}
+        {tc && tc.stats.length > 0 && <TeamStatBars tc={tc} />}
+
+        {/* Players by team — only when there's no box score to carry them
+            (volleyball, or a game where no stat events were logged). */}
+        {!(report.boxScore?.length) && teams.some(t => t.players.length > 0) && (
+          <section className="surface p-5 sm:p-6">
+            <StatHeader title="Players" sub="Tap a player for their full line and decisions" />
+            <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+              {teams.map(t => (
+                <div key={t.color}>
+                  <div className="mb-1 flex items-baseline justify-between gap-3 pb-1">
+                    <p className="text-[15px] text-foreground">{t.name ?? <span className="capitalize">{t.color}</span>}
+                      {t.name && <span className="ml-2 text-[13px] capitalize text-muted-foreground">{t.color}</span>}</p>
+                    <span className="text-[12px] text-muted-foreground">{t.players.length}</span>
+                  </div>
+                  <div className="divide-y divide-border border-t border-border">
+                    {t.players.map(pl => {
+                      const b = pl.box;
+                      return (
+                        <button key={pl.key} onClick={() => setFocus(pl)}
+                          className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted">
+                          <span className="w-9 shrink-0 font-mono text-[13px] text-foreground">#{pl.jersey}</span>
+                          <span className="min-w-0 flex-1 text-[13px] tabular-nums">
+                            {b ? <span className="text-foreground">{b.pts} <span className="text-muted-foreground">pts</span> · {b.reb} <span className="text-muted-foreground">reb</span> · {b.ast} <span className="text-muted-foreground">ast</span></span>
+                              : <span className="text-muted-foreground">No stats logged</span>}
+                          </span>
+                          {(pl.good + pl.poor) > 0 && (
+                            <span className="flex shrink-0 items-center gap-1.5 text-[12px] tabular-nums text-muted-foreground" title="Good / poor decisions">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{pl.good}
+                              <span className="ml-1 h-1.5 w-1.5 rounded-full bg-red-500" />{pl.poor}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Coachable moments */}
         {(report.playerCards?.length ?? 0) > 0 && (
-          <div>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="font-display text-sm font-bold text-foreground">Coachable moments</p>
-                <span className="text-xs text-muted-foreground">{report.playerCards!.length} breakdowns{(report.timeline?.length ?? 0) > 0 ? ` · ${report.timeline!.length} plays logged` : ""}</span>
-              </div>
-              {canWatch && (
-                <button onClick={() => setFilmRoom(true)}
-                  className="shrink-0 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90">
-                  Watch with analysis
+          <section className="pt-4">
+            <StatHeader title="Coachable moments"
+              sub={`${report.playerCards!.length} breakdowns${(report.timeline?.length ?? 0) > 0 ? ` · ${report.timeline!.length} plays logged` : ""}`}
+              right={canWatch && (
+                <button onClick={() => setFilmRoom(true)} className="btn-pill btn-dark !py-2 !text-[13px]">
+                  <Video className="h-3.5 w-3.5" /> Watch with analysis
                 </button>
-              )}
-            </div>
+              )} />
             <PlayerCardList decisions={report.playerCards!} />
-          </div>
+          </section>
         )}
 
-        {/* Auto box score — the builders are sport-exclusive, so at most one renders */}
-        {report.volleyBox && report.volleyBox.length > 0
-          ? <VolleyBoxPanel rows={report.volleyBox} />
-          : report.boxScore && report.boxScore.length > 0 && <BoxScorePanel rows={report.boxScore} />}
-
-        {/* Coaching sections — full width, one per row, so nothing is squeezed */}
-        <div className="space-y-3">
-        {GAME_SECTIONS.map(({ key, label }) => {
-          const val = report[key]; if (!val) return null;
-          return (
-            <div key={key} className="border border-border rounded-lg p-4">
-              <SectionLabel>{label}</SectionLabel>
-              <p className="text-[15px] text-foreground leading-relaxed">{val as string}</p>
-              {key === "practiceFocus" && (
-                <Button variant="secondary" size="sm" className="mt-3"
-                  onClick={() => openDrillCheck(val as string)}>
-                  <Video className="h-3.5 w-3.5" /> Check my drill
-                </Button>
-              )}
-            </div>
-          );
-        })}
-
-        {report.strengths.length > 0 && (
-          <div className="border border-border rounded-lg p-3">
-            <SectionLabel>Strengths</SectionLabel>
-            <ul className="space-y-1.5">
-              {report.strengths.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="text-emerald-600 shrink-0 mt-0.5">+</span>{s}
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Coaching notes */}
+        {(notes.length > 0 || report.strengths.length > 0 || report.improvements.length > 0) && (
+          <section className="surface divide-y divide-border">
+            {notes.map(({ key, label }) => (
+              <div key={key} className="grid gap-2 p-5 sm:grid-cols-[11rem_1fr] sm:gap-6 sm:p-6">
+                <p className="text-[13px] text-muted-foreground">{label}</p>
+                <div>
+                  <p className="text-[15px] leading-relaxed text-foreground">{report[key] as string}</p>
+                  {key === "practiceFocus" && (
+                    <button onClick={() => openDrillCheck(report[key] as string)} className="btn-pill btn-light mt-3 !py-2 !text-[13px]">
+                      <Video className="h-3.5 w-3.5" /> Check my drill
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {[["Strengths", report.strengths, "bg-emerald-500"], ["Areas to improve", report.improvements, "bg-court"]].map(([label, items, dot]) => (
+              (items as string[]).length > 0 && (
+                <div key={label as string} className="grid gap-2 p-5 sm:grid-cols-[11rem_1fr] sm:gap-6 sm:p-6">
+                  <p className="text-[13px] text-muted-foreground">{label as string}</p>
+                  <ul className="space-y-2">
+                    {(items as string[]).map((x, i) => (
+                      <li key={i} className="flex items-start gap-3 text-[15px] leading-snug text-foreground">
+                        <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dot as string}`} />{x}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            ))}
+          </section>
         )}
-
-        {report.improvements.length > 0 && (
-          <div className="border border-border rounded-lg p-3">
-            <SectionLabel>Work On</SectionLabel>
-            <ul className="space-y-1.5">
-              {report.improvements.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="text-orange-600 shrink-0 mt-0.5">→</span>{s}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        </div>
       </div>
 
       {/* Player detail modal */}
       {focus && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={() => setFocus(null)}>
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" onClick={() => setFocus(null)}>
+          <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-lift" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center gap-4">
-              <span className="font-mono text-3xl font-black tabular-nums text-foreground">#{focus.jersey}</span>
+              <span className="font-display text-5xl tabular-nums leading-none text-foreground">#{focus.jersey}</span>
               <div className="min-w-0">
-                <p className="text-base font-bold text-foreground">{focus.label}</p>
+                <p className="text-[15px] text-foreground">{focus.label}</p>
                 <p className="text-xs capitalize text-muted-foreground">
                   {teams.find(t => t.color === focus.color)?.name ?? focus.color}
                 </p>
@@ -1173,8 +1141,8 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
                   ["TOV", focus.box.tov], ["PF", focus.box.pf],
                 ] as [string, string | number][]).map(([k, v]) => (
                   <div key={k}>
-                    <p className="text-lg font-bold tabular-nums text-foreground">{v}</p>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{k}</p>
+                    <p className="text-xl tabular-nums text-foreground">{v}</p>
+                    <p className="text-[11px] text-muted-foreground">{k}</p>
                   </div>
                 ))}
               </div>
@@ -1187,11 +1155,11 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
             </div>
             {focus.standout && (
               <div className="mb-5">
-                <p className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Standout moment</p>
+                <p className="mb-1 text-[12px] text-muted-foreground">Standout moment</p>
                 <p className="text-sm leading-relaxed text-foreground">{focus.standout}</p>
               </div>
             )}
-            <button onClick={() => setFocus(null)} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Close</button>
+            <button onClick={() => setFocus(null)} className="btn-pill btn-dark w-full">Close</button>
           </div>
         </div>
       )}
@@ -1214,99 +1182,77 @@ function TeamComparisonPanel({ tc, hasScoreboard = false, teams = [] }: { tc: Te
   const hasScore = scoreA != null && scoreB != null;
   const aWon = hasScore ? +scoreA! > +scoreB! : false;
   const bWon = hasScore ? +scoreB! > +scoreA! : false;
-  // How much of each team's on-film scoring the box score accounts for.
-  const coverage = teams.filter(t => t.scoredOnFilm != null && t.totals)
-    .map(t => ({ name: t.name ?? t.color, tracked: t.totals!.pts, actual: t.scoredOnFilm! }));
+  const nameOf = (s: string) => s.replace(/\s*\([^)]*\)/, "");
+  const colorOf = (s: string) => s.match(/\(([^)]+)\)/)?.[1] ?? "";
+  // Reviews saved before the parser fix carry this header on the end.
+  const why = tc.why.replace(/\s*COACHABLE MOMENTS:?\s*$/i, "");
+  const tracked = teams.reduce((n, t) => n + (t.totals?.pts ?? 0), 0);
+  const onFilm = teams.reduce((n, t) => n + (t.scoredOnFilm ?? 0), 0);
 
-  return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      {/* Header: teams + score */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground sm:flex">
-            {teamInitials(tc.teamA)}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold leading-tight text-foreground">{tc.teamA}</p>
-            {hasScore && <p className="text-xs text-muted-foreground">{aWon ? "Won" : bWon ? "Lost" : "Tied"}</p>}
-          </div>
-        </div>
-
-        <div className="shrink-0 text-center">
-          {scoreA && scoreB ? (
-            <p className="text-2xl font-black tracking-tight">
-              <span className={aWon ? "text-foreground" : "text-muted-foreground"}>{scoreA}</span>
-              <span className="text-foreground"> – </span>
-              <span className={bWon ? "text-foreground" : "text-muted-foreground"}>{scoreB}</span>
-            </p>
-          ) : (
-            <p className="text-xs font-semibold text-muted-foreground">VS</p>
-          )}
-          {hasScoreboard && hasScore && (
-            <p className="mt-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">Final · scoreboard</p>
-          )}
-          {hasScore && !hasScoreboard && (
-            <div className="mt-0.5 flex justify-center gap-1.5">
-              <span className={`rounded px-1.5 text-[10px] font-bold ${aWon ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500"}`}>{aWon ? "W" : "L"}</span>
-              <span className={`rounded px-1.5 text-[10px] font-bold ${bWon ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-500"}`}>{bWon ? "W" : "L"}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 min-w-0 flex-row-reverse">
-          <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground sm:flex">
-            {teamInitials(tc.teamB)}
-          </div>
-          <div className="min-w-0 text-right">
-            <p className="text-sm font-bold leading-tight text-foreground">{tc.teamB}</p>
-            {hasScore && <p className="text-xs text-muted-foreground">{bWon ? "Won" : aWon ? "Lost" : "Tied"}</p>}
-          </div>
-        </div>
-      </div>
-
-      {/* Stat bars */}
-      {tc.stats.length > 0 && (
-        <div className="mt-5 space-y-4">
-          {tc.stats.map(({ label, a, b }, i) => {
-            const total = a + b;
-            const aPct  = total > 0 ? (a / total) * 100 : 50;
-            return (
-              <div key={i}>
-                <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className="font-bold text-foreground">{a}</span>
-                  <span className="font-semibold text-muted-foreground">{label}</span>
-                  <span className="font-bold text-foreground">{b}</span>
-                </div>
-                {/* Team shades, not green/red: more turnovers isn't "winning" the bar. */}
-                <div className="flex h-1.5 gap-1 overflow-hidden rounded-full">
-                  <div className="rounded-full bg-foreground" style={{ width: `${aPct}%` }} />
-                  <div className="flex-1 rounded-full bg-muted-foreground/40" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {coverage.length > 0 && (
-        <p className="mt-4 text-xs text-muted-foreground">
-          Box score accounts for {coverage.map((c, i) => (
-            <span key={i}>{i > 0 && " and "}<span className={c.tracked === c.actual ? "text-foreground" : "text-amber-500"}>{c.tracked} of {c.actual}</span> {c.name} points</span>
-          ))} scored on film.
-        </p>
-      )}
-
-      {/* Why */}
-      {tc.why && (
-        <div className="mt-5 rounded-lg bg-muted p-4">
-          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
-            {tc.winner ? `Why ${tc.winner.replace(/\s*\([^)]*\)/, "")} won` : "What decided it"}
-          </p>
-          {/* Reviews saved before the parser fix carry this header on the end. */}
-          <p className="text-sm leading-relaxed text-muted-foreground">{tc.why.replace(/\s*COACHABLE MOMENTS:?\s*$/i, "")}</p>
-        </div>
+  const Side = ({ label, score, won, right }: { label: string; score: string | null; won: boolean; right?: boolean }) => (
+    <div className={`min-w-0 ${right ? "text-right" : ""}`}>
+      <p className="truncate text-[15px] text-foreground">{nameOf(label)}</p>
+      <p className="text-[12px] capitalize text-muted-foreground">{colorOf(label)}{hasScore && <span> · {won ? "Won" : bWon || aWon ? "Lost" : "Tied"}</span>}</p>
+      {score != null && (
+        <p className={`mt-3 font-display text-6xl tabular-nums leading-none sm:text-7xl ${won ? "text-foreground" : "text-quiet"}`}>{score}</p>
       )}
     </div>
+  );
+
+  return (
+    <section className="surface p-5 sm:p-7">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-4">
+        <Side label={tc.teamA} score={scoreA} won={aWon} />
+        <p className="pb-2 text-[11px] text-muted-foreground">{hasScore ? (hasScoreboard ? "Final" : "Score") : "vs"}</p>
+        <Side label={tc.teamB} score={scoreB} won={bWon} right />
+      </div>
+      {(hasScoreboard || onFilm > 0) && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <p className="text-[12px] text-muted-foreground">{hasScoreboard ? "Read off the in-game scoreboard" : ""}</p>
+          {onFilm > 0 && <CoverageMeter tracked={tracked} total={onFilm} />}
+        </div>
+      )}
+      {why && (
+        <div className="mt-5 border-t border-border pt-5">
+          <p className="mb-1.5 text-[13px] text-muted-foreground">{tc.winner ? `Why ${nameOf(tc.winner)} won` : "What decided it"}</p>
+          <p className="text-[15px] leading-relaxed text-foreground">{why}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Team stats side by side: numbers either end, a thin two-shade bar between.
+function TeamStatBars({ tc }: { tc: TeamComparison }) {
+  const nameOf = (s: string) => s.replace(/\s*\([^)]*\)/, "");
+  return (
+    <section className="surface p-5 sm:p-6">
+      <div className="mb-4 flex items-baseline justify-between text-[13px] text-muted-foreground">
+        <span className="text-foreground">{nameOf(tc.teamA)}</span>
+        <span>Team stats</span>
+        <span className="text-foreground">{nameOf(tc.teamB)}</span>
+      </div>
+      <div className="space-y-3.5">
+        {tc.stats.map(({ label, a, b }) => {
+          const total = a + b;
+          const aPct = total > 0 ? (a / total) * 100 : 50;
+          return (
+            <div key={label}>
+              <div className="mb-1.5 flex items-baseline justify-between text-[14px] tabular-nums">
+                <span className={a > b ? "font-semibold text-foreground" : "text-foreground/70"}>{a}</span>
+                <span className="text-[13px] text-muted-foreground">{label}</span>
+                <span className={b > a ? "font-semibold text-foreground" : "text-foreground/70"}>{b}</span>
+              </div>
+              {/* Team shades, not green/red: more turnovers isn't "winning" the bar. */}
+              <div className="flex h-1 gap-1">
+                <div className="rounded-full bg-foreground" style={{ width: `${aPct}%` }} />
+                <div className="flex-1 rounded-full bg-foreground/15" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1371,8 +1317,7 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
           const pending = i > stepIndex;
           return (
             <div key={step.key} className={`flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all ${active ? "border border-border bg-muted" : "opacity-30"}`}>
-              <div className={`h-4 w-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
-                done ? "bg-primary text-primary-foreground" : active ? "border border-white" : "border border-border"
+              <div className={`h-4 w-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${ done ? "bg-primary text-primary-foreground" : active ? "border border-white" : "border border-border"
               }`}>
                 {done ? "✓" : active ? <span className="animate-pulse">●</span> : ""}
               </div>
@@ -1448,7 +1393,8 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   profile: Profile; reviews: Review[]; onReviewsChange: (r: Review[]) => void;
   userId?: string; isPro?: boolean; onShowUpgrade?: () => void;
 }) {
-  const [inputTab,   setInputTab]   = useState<"file" | "youtube">("file");
+  // Links first: pasting a public YouTube link is the fastest path to a report.
+  const [inputTab,   setInputTab]   = useState<"file" | "youtube">("youtube");
   const [fileName,   setFileName]   = useState("");
   const [clipTitle,  setClipTitle]  = useState("");
   const [teamColor,  setTeamColor]  = useState(profile.teamColor || "");
@@ -1922,30 +1868,24 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
   const canAnalyze = !needsTeamInfo || (!!linkedTeamId && !!opponentName.trim() && !!teamColor.trim());
 
   const gameFootageToggle = !!userId && (
-    <div className="flex gap-2 rounded-lg border border-border bg-background p-1">
-      {([true, false] as const).map(v => (
-        <button key={String(v)} type="button" onClick={() => setIsGameFootage(v)}
-          className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${isGameFootage === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-          {v ? "Team game footage" : "Just a clip (1v1, drill, etc.)"}
-        </button>
-      ))}
-    </div>
+    <Segmented stretch value={isGameFootage ? "game" : "clip"} onChange={v => setIsGameFootage(v === "game")}
+      options={[{ value: "game", label: "Full game" }, { value: "clip", label: "Just a clip" }]} />
   );
 
   const teamLinkingFields = needsTeamInfo && (
     myTeams.length === 0 ? (
-      <div className="rounded-lg border border-amber-900/60 bg-amber-950/20 p-3 text-center">
+      <div className="rounded-2xl bg-muted p-4 text-center">
         <p className="text-sm text-foreground">You need a team before you can analyze film.</p>
         <button onClick={() => document.querySelector<HTMLButtonElement>("[data-module='teams']")?.click()}
-          className="mt-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90">
+          className="btn-pill btn-dark mt-2 px-4 py-2 text-xs">
           Create a team
         </button>
       </div>
     ) : (
-      <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Team &amp; opponent (required)</p>
+      <div className="space-y-2 rounded-2xl bg-muted p-3">
+        <p className="px-1 text-[12px] text-muted-foreground">Team and opponent (required)</p>
         <select
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
+          className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
           value={linkedTeamId}
           onChange={e => setLinkedTeamId(e.target.value)}>
           <option value="">Select your team…</option>
@@ -1953,13 +1893,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </select>
         <div className="grid grid-cols-2 gap-2">
           <input
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
             placeholder="Opponent"
             value={opponentName}
             onChange={e => setOpponentName(e.target.value)}
           />
           <select
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
+            className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
             value={gameType}
             onChange={e => setGameType(e.target.value)}>
             <option value="Game">Game</option>
@@ -1967,7 +1907,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             <option value="Scrimmage">Scrimmage</option>
           </select>
           <input type="date"
-            className="col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
+            className="col-span-2 rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
             value={gameDate}
             onChange={e => setGameDate(e.target.value)}
           />
@@ -1983,22 +1923,15 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
       <div className="grid gap-5 lg:grid-cols-2">
 
         {/* Upload */}
-        <div className="rounded-lg border border-border bg-card p-5">
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Upload</p>
+        <div className="surface p-5">
+          <p className="mb-4 font-display text-xl">Add film</p>
 
-          {/* Tab switcher */}
-          <div className="mb-4 flex gap-1 rounded-lg border border-border bg-background p-0.5">
-            {(["file", "youtube"] as const).map(tab => (
-              <button key={tab} onClick={() => { setInputTab(tab); setYtError(""); }}
-                className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${inputTab === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                {tab === "file" ? "Upload Video" : "YouTube / Screen"}
-              </button>
-            ))}
-          </div>
+          <Segmented stretch className="mb-5" value={inputTab} onChange={t => { setInputTab(t); setYtError(""); }}
+            options={[{ value: "youtube", label: "Paste a link" }, { value: "file", label: "Upload a file" }]} />
 
           {inputTab === "file" ? (
             <>
-              <label className="group block cursor-pointer rounded-lg border border-dashed border-border p-8 text-center transition-colors hover:border-ring hover:bg-muted/40">
+              <label className="group block cursor-pointer rounded-2xl border border-dashed border-input p-8 text-center transition-colors hover:border-ring hover:bg-muted/40">
                 <input type="file" accept="video/*" className="hidden" onChange={(e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setVideoFile(file); setFileName(file.name); setClipTitle(""); setTeamColor(profile.teamColor || "");
@@ -2019,7 +1952,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           ) : (
             <div className="space-y-3">
               {capturing ? (
-                <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-5 text-center">
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] p-5 text-center">
                   <div className="mb-2 flex items-center justify-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -2027,7 +1960,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     </span>
                     <p className="text-sm font-bold text-foreground">Capturing your film</p>
                   </div>
-                  <p className="text-3xl font-black text-foreground">
+                  <p className="text-3xl font-semibold text-foreground">
                     {captureCount} <span className="text-base font-semibold text-muted-foreground">frames</span>
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -2035,7 +1968,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </p>
                   <button
                     onClick={() => { stopCaptureRef.current = true; }}
-                    className="mt-4 w-full rounded-lg bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                    className="btn-pill btn-dark mt-4 w-full py-3.5 text-base">
                     Stop &amp; analyze
                   </button>
                   <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -2046,13 +1979,13 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 <>
                   {/* Primary: paste a link. Gemini reads public YouTube
                       natively, so this is now the fastest path to a report. */}
-                  <div className="rounded-xl border border-border bg-muted/30 p-5">
-                    <p className="text-sm font-bold text-foreground">Paste your film link</p>
+                  <div>
+                    <p className="text-[15px] text-foreground">Paste your film link</p>
                     <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                       We watch the video and grade it. Nothing to download, record, or upload. Works on <span className="font-semibold text-foreground">public</span> YouTube videos.
                     </p>
                     <input
-                      className="mt-3 w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                      className="mt-3 w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                       placeholder="https://youtube.com/watch?v=..."
                       value={ytUrl}
                       onChange={e => { setYtUrl(e.target.value); setYtError(""); }}
@@ -2060,7 +1993,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </div>
 
                   <input
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                     placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                     value={sport}
                     onChange={e => setSport(e.target.value)}
@@ -2068,7 +2001,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   {gameFootageToggle}
                   {needsTeamInfo && (
                     <input
-                      className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                      className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                       placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
                       value={teamColor}
                       onChange={e => setTeamColor(e.target.value)}
@@ -2079,15 +2012,15 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   <button
                     onClick={() => analyzeYouTube()}
                     disabled={loading || !ytUrl.trim() || !canAnalyze}
-                    className="w-full rounded-lg bg-primary py-3.5 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40">
+                    className="btn-pill btn-dark w-full py-3.5 text-base disabled:opacity-40">
                     {loading ? "Watching your film…" : "Analyze this link"}
                   </button>
 
                   {/* Fallback for film the link path can't reach: unlisted
                       YouTube, HUDL, anything behind a login. */}
                   {screenCaptureSupported() ? (
-                    <details className="rounded-lg border border-border bg-background px-4 py-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+                    <details className="rounded-2xl bg-muted px-4 py-3">
+                      <summary className="cursor-pointer text-[13px] text-muted-foreground">
                         Film not on public YouTube? Capture your screen instead
                       </summary>
                       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -2096,7 +2029,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                       <button
                         onClick={() => startScreenCapture()}
                         disabled={loading || !canAnalyze}
-                        className="mt-2.5 w-full rounded-lg border border-border py-2.5 text-sm font-semibold text-foreground hover:border-ring transition-colors disabled:opacity-40">
+                        className="btn-pill btn-light mt-2.5 w-full py-2.5 text-sm disabled:opacity-40">
                         Start screen capture
                       </button>
                     </details>
@@ -2109,8 +2042,8 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               )}
 
               {ytError && (
-                <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3">
-                  <p className="text-sm text-red-400">{ytError}</p>
+                <div className="rounded-lg border border-red-500/25 bg-red-500/[0.07] px-4 py-3">
+                  <p className="text-sm text-red-600 dark:text-red-400">{ytError}</p>
                   <Button variant="secondary" size="sm" className="mt-2.5"
                     onClick={() => { setInputTab("file"); setYtError(""); }}>
                     <Upload className="h-3.5 w-3.5" /> Switch to file upload
@@ -2125,20 +2058,20 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               {videoFile && (
                 <>
                   <input
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                     placeholder="Name this clip (e.g. Playoff game vs Lincoln)"
                     value={clipTitle}
                     onChange={e => setClipTitle(e.target.value)}
                   />
                   {gameFootageToggle}
                   <input
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                     placeholder={(needsTeamInfo ? "Your jersey color (required) — " : "") + (profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)")}
                     value={teamColor}
                     onChange={e => setTeamColor(e.target.value)}
                   />
                   <input
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                     placeholder="Describe the teams if jerseys are mixed (e.g. 'my team: white + blue pinnies, them: all black')"
                     value={teamsNote}
                     onChange={e => setTeamsNote(e.target.value)}
@@ -2147,7 +2080,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 </>
               )}
               <input
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                 placeholder={profile.sport ? `Sport (${profile.sport})` : "Sport (optional)"}
                 value={sport}
                 onChange={e => setSport(e.target.value)}
@@ -2155,7 +2088,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <button
                 onClick={() => analyzeVideo()}
                 disabled={loading || !videoFile || !canAnalyze}
-                className="w-full rounded-lg bg-primary py-4 text-sm font-bold text-primary-foreground disabled:opacity-30 active:bg-primary/80 transition-colors"
+                className="btn-pill btn-dark w-full py-4 text-sm disabled:opacity-30"
               >
                 {loading ? "Analyzing…" : "Analyze Film"}
               </button>
@@ -2164,11 +2097,11 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         </div>
 
         {/* Results */}
-        <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+        <div className="surface p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                {resultMode === "game" ? "Game Report" : "Player Decisions"}
+              <p className="font-display text-xl text-foreground">
+                {resultMode === "game" ? "Game report" : "Player decisions"}
               </p>
               {resultMode === "clip" && !loading && decisions.length > 0 && !myClipPlayer && (
                 <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
@@ -2186,17 +2119,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && jobStarted && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-8 text-center">
-              <Clapperboard className="h-8 w-8 text-emerald-400" strokeWidth={1.5} />
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] p-8 text-center">
+              <Clapperboard className="h-8 w-8 text-emerald-600 dark:text-emerald-400" strokeWidth={1.5} />
               {activeJob?.status === "complete" ? (<>
                 <p className="text-base font-semibold text-foreground">Your game review is ready</p>
                 <button onClick={() => document.querySelector<HTMLButtonElement>("[data-module='library']")?.click()}
-                  className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  className="btn-pill btn-dark px-6 py-2.5 text-sm">
                   Open in Library
                 </button>
               </>) : activeJob?.status === "failed" ? (<>
                 <p className="text-base font-semibold text-foreground">Analysis failed</p>
-                <p className="text-sm text-red-300 max-w-sm leading-relaxed">{activeJob.error || "Something went wrong. Your game credit was refunded."}</p>
+                <p className="text-sm text-red-600 dark:text-red-400 max-w-sm leading-relaxed">{activeJob.error || "Something went wrong. Your game credit was refunded."}</p>
               </>) : (<>
                 <p className="text-base font-semibold text-foreground">Analyzing your game</p>
                 <div className="w-full max-w-sm">
@@ -2210,12 +2143,12 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && !jobStarted && analyzeError && (
-            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-red-900 bg-red-950/20 p-6 text-center">
-              <AlertTriangle className="h-7 w-7 text-red-400" strokeWidth={1.75} />
-              <p className="text-sm text-red-300">{analyzeError}</p>
+            <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-red-500/25 bg-red-500/[0.07] p-6 text-center">
+              <AlertTriangle className="h-7 w-7 text-red-600 dark:text-red-400" strokeWidth={1.75} />
+              <p className="text-sm text-red-600 dark:text-red-400">{analyzeError}</p>
               {pendingRetry && (
                 <button onClick={pendingRetry}
-                  className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  className="btn-pill btn-dark px-6 py-2.5 text-sm">
                   Try again
                 </button>
               )}
@@ -2229,9 +2162,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </p>
               {/* Ghost preview of a graded player card */}
               <div className="pointer-events-none select-none space-y-2 opacity-60">
-                <div className="rounded-lg border border-border bg-card p-4">
+                <div className="surface p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-lg font-black text-foreground">A-</div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-lg font-semibold text-foreground">A-</div>
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-foreground">White #23 Point Guard</div>
                       <div className="text-xs text-muted-foreground">Drive-and-kick read</div>
@@ -2239,17 +2172,17 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <div className="rounded-lg bg-muted p-2.5">
-                      <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">What Happened</div>
+                      <div className="text-[12px] text-muted-foreground mb-1">What Happened</div>
                       <div className="text-xs text-muted-foreground">Drew two defenders on the drive, kicked to the open corner.</div>
                     </div>
                     <div className="rounded-lg bg-muted p-2.5">
-                      <div className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Next Time</div>
+                      <div className="text-[12px] text-muted-foreground mb-1">Next Time</div>
                       <div className="text-xs text-muted-foreground">Same read, half a beat earlier — before help commits.</div>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-black text-primary-foreground">C+</div>
+                <div className="surface flex items-center gap-3 px-4 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-sm font-semibold text-primary-foreground">C+</div>
                   <div className="text-sm font-semibold text-muted-foreground">Blue #11 Help Defender</div>
                 </div>
               </div>
@@ -2258,7 +2191,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           )}
 
           {!loading && ((resultMode === "clip" && decisions.length === 0) || (resultMode === "game" && isEmptyGameReport(gameReport))) && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card text-center px-6 py-10">
+            <div className="surface flex flex-col items-center justify-center gap-3 text-center px-6 py-10">
               <VideoOff className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
               <p className="text-base font-semibold text-foreground">This clip was a little too unclear to break down</p>
               <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -2269,14 +2202,14 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </p>
               <div className="mt-2 flex flex-wrap justify-center gap-2">
                 <button onClick={() => (videoFile ? analyzeVideo(true) : analyzeYouTube(true))}
-                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  className="btn-pill btn-dark px-5 py-2.5 text-sm">
                   Analyze anyway
                 </button>
                 <button onClick={() => {
                     setVideoFile(null); setVideoUrl(""); setFileName(""); setClipTitle(""); setTeamColor("");
                     setDecisions([]); setGameReport(null); setResultMode(null);
                   }}
-                  className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:text-foreground hover:border-ring transition-colors">
+                  className="btn-pill btn-light px-5 py-2.5 text-sm">
                   Try another clip
                 </button>
               </div>
@@ -2287,7 +2220,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
             <>
               {youtubeIdFrom(ytUrl) && decisions.some(d => d.timestamp) && (
                 <button onClick={() => setClipFilmRoom(true)}
-                  className="mb-3 w-full rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                  className="btn-pill btn-dark mb-3 w-full py-3 text-sm">
                   Watch with analysis
                 </button>
               )}
@@ -2455,9 +2388,9 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
         </div>
       ))}
       {failedJobs.map(job => (
-        <div key={job.id} className="rounded-lg border border-red-900 bg-red-950/20 px-4 py-3">
+        <div key={job.id} className="rounded-lg border border-red-500/25 bg-red-500/[0.07] px-4 py-3">
           <p className="text-sm font-semibold text-foreground">{job.file_name || "Untitled game"} — analysis failed</p>
-          <p className="mt-0.5 text-xs text-red-300">{job.error || "Something went wrong."}</p>
+          <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{job.error || "Something went wrong."}</p>
         </div>
       ))}
     </div>
@@ -2468,7 +2401,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
     return (
       <div>
         {jobsPanel}
-        <div className="rounded-lg border border-border bg-card p-10 flex flex-col items-center justify-center text-center gap-4">
+        <div className="surface p-10 flex flex-col items-center justify-center text-center gap-4">
           <Clapperboard className="h-10 w-10 text-muted-foreground" strokeWidth={1.5} />
           <div>
             <p className="text-base font-semibold text-foreground mb-1">No film yet</p>
@@ -2477,7 +2410,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
             </p>
           </div>
           <a href="#" onClick={e => { e.preventDefault(); document.querySelector<HTMLButtonElement>("[data-module='decision']")?.click(); }}
-            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+            className="btn-pill btn-dark px-6 py-2.5 text-sm">
             Go to DecisionIQ
           </a>
         </div>
@@ -2537,7 +2470,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search team, opponent, or title…"
-          className="min-w-0 flex-1 basis-56 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+          className="min-w-0 flex-1 basis-56 rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
         />
         <Segmented value={modeFilter} onChange={setModeFilter} options={[
           { value: "all", label: "All", count: reviews.length },
@@ -2631,19 +2564,19 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
 
       {/* Rename modal */}
       {renamingId && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" onClick={() => setRenamingId(null)}>
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={() => setRenamingId(null)}>
+          <div className="surface w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
             <p className="mb-3 text-sm font-bold text-foreground">Rename</p>
             <input
               autoFocus
               value={renameValue}
               onChange={e => setRenameValue(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenamingId(null); }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:border-ring"
+              className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
             />
             <div className="mt-4 flex gap-2">
               <button onClick={() => setRenamingId(null)} className="flex-1 rounded-lg border border-border py-2 text-sm font-semibold text-foreground hover:bg-muted">Cancel</button>
-              <button onClick={commitRename} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">Save</button>
+              <button onClick={commitRename} className="btn-pill btn-dark flex-1 py-2 text-sm">Save</button>
             </div>
           </div>
         </div>
@@ -2658,10 +2591,10 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
                 <div className="flex items-center justify-between">
                   <button onClick={() => setOpenReview(null)}
-                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
+                    className="btn-pill btn-light px-3 py-1.5 text-xs">
                     ← Back to library
                   </button>
-                  <p className="truncate px-3 text-sm font-black text-foreground">{openReview.fileName || openReview.sport}</p>
+                  <p className="truncate px-3 text-sm font-semibold text-foreground">{openReview.fileName || openReview.sport}</p>
                   <button onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
                 </div>
                 {openReview.mode === "clip" && openReview.decisions
@@ -2707,7 +2640,7 @@ function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkT
           <button onClick={() => { setOpen(false); onShare(); }} disabled={sharing} className="block w-full px-3 py-2 text-left text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-40">{sharing ? "Sharing…" : "Share"}</button>
           {teams.length > 0 && (
             <div className="border-t border-border">
-              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Move to team</p>
+              <p className="px-3 pb-1 pt-2 text-[12px] text-muted-foreground">Move to team</p>
               <select
                 value={review.teamId || ""}
                 onChange={e => { onLinkTeam(e.target.value); setOpen(false); }}
@@ -2718,7 +2651,7 @@ function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkT
             </div>
           )}
           <div className="border-t border-border">
-            <button onClick={() => { setOpen(false); onDelete(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-red-400 hover:bg-red-950/40">Delete</button>
+            <button onClick={() => { setOpen(false); onDelete(); }} className="block w-full px-3 py-2 text-left text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-950/40">Delete</button>
           </div>
         </div>
       )}

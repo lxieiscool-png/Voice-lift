@@ -11,7 +11,8 @@ import Logo from "./components/Logo";
 import UpgradeModal from "./components/UpgradeModal";
 import ThemeToggle from "./components/ThemeToggle";
 import { Segmented } from "./components/ui/segmented";
-import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, type LucideIcon } from "lucide-react";
+import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, Film, Library as LibraryIcon, Users, Settings, type LucideIcon } from "lucide-react";
+import Landing from "./components/Landing";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
@@ -26,11 +27,26 @@ function fireBurst(e: React.MouseEvent) {
 
 const DEFAULT_PROFILE: Profile = { name: "", sport: "", team: "" };
 const MODULES = [
-  { id: "decision", label: "DecisionIQ", sub: "Film analysis"     },
-  { id: "coach",    label: "CoachIQ",    sub: "Personal coaching" },
-  { id: "library",  label: "Library",    sub: "Past reviews"      },
-  { id: "teams",    label: "Teams",      sub: "Season & roster"   },
+  { id: "decision", label: "DecisionIQ", sub: "Film analysis",     icon: Film },
+  { id: "coach",    label: "CoachIQ",    sub: "Personal coaching", icon: MessageCircle },
+  { id: "library",  label: "Library",    sub: "Past reviews",      icon: LibraryIcon },
+  { id: "teams",    label: "Teams",      sub: "Season & roster",   icon: Users },
 ] as const;
+
+// Two-voice page title: the section in ink, what it's for in grey.
+function PageTitle({ a, b, right }: { a: string; b: string; right?: React.ReactNode }) {
+  return (
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <h1 className="font-display text-4xl font-normal leading-[1.05] sm:text-5xl">
+        <span className="block">{a}</span>
+        <span className="block text-quiet">{b}</span>
+      </h1>
+      {right}
+    </div>
+  );
+}
+
+const INPUT = "rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40";
 type ModuleId = typeof MODULES[number]["id"];
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
@@ -44,37 +60,38 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
     return (
       <button
         onClick={() => { setDraft({ name: "", sport: "", team: "", jersey: "" }); setEditing(true); }}
-        className="mb-6 w-full border border-dashed border-border py-3 text-sm text-muted-foreground hover:border-ring hover:text-muted-foreground transition-colors rounded-xl"
+        className="surface mb-6 flex w-full items-center justify-between px-5 py-4 text-left text-sm text-muted-foreground transition-shadow hover:shadow-lift"
       >
-        Set up your athlete profile
+        <span>Set up your athlete profile so Reel can find you on film</span>
+        <span className="btn-pill btn-dark !py-2 !text-[13px]">Set up</span>
       </button>
     );
   }
 
   if (editing) {
     return (
-      <div className="mb-6 border border-border bg-card rounded-xl p-5">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
+      <div className="surface mb-6 p-5 sm:p-6">
+        <p className="mb-4 font-display text-xl">Your profile</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+          <input className={INPUT}
             placeholder="Your name" value={draft.name ?? ""} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
-          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+          <input className={INPUT}
             placeholder="Primary sport" value={draft.sport ?? ""} onChange={e => setDraft(d => ({ ...d, sport: e.target.value }))} />
-          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+          <input className={INPUT}
             placeholder="Team / school" value={draft.team ?? ""} onChange={e => setDraft(d => ({ ...d, team: e.target.value }))} />
-          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+          <input className={INPUT}
             placeholder="Jersey number (e.g. 23) tracks your grades over time"
             value={draft.jersey ?? ""} onChange={e => setDraft(d => ({ ...d, jersey: e.target.value }))} />
-          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+          <input className={INPUT}
             placeholder="Position (e.g. Point Guard)"
             value={draft.position ?? ""} onChange={e => setDraft(d => ({ ...d, position: e.target.value }))} />
-          <input className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+          <input className={INPUT}
             placeholder="Team jersey colors (e.g. White, or 'mixed white + blue')"
             value={draft.teamColor ?? ""} onChange={e => setDraft(d => ({ ...d, teamColor: e.target.value }))} />
         </div>
-        <div className="mt-3 flex gap-2">
-          <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Save</button>
-          <button onClick={() => setEditing(false)} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+        <div className="mt-4 flex gap-2">
+          <button onClick={save} className="btn-pill btn-dark">Save</button>
+          <button onClick={() => setEditing(false)} className="btn-pill text-muted-foreground hover:text-foreground">Cancel</button>
         </div>
       </div>
     );
@@ -82,38 +99,22 @@ function ProfileCard({ profile, onSave, reviews = [] }: { profile: Profile; onSa
 
   const avg = averageGrade(reviews.map(r => r.grade).filter(g => g && g !== "N/A"));
   return (
-    <div className="mb-6 flex items-center justify-between rounded-2xl border border-border bg-gradient-to-r from-muted/70 to-card px-4 py-3.5">
-      <div className="flex items-center gap-3.5 min-w-0">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-muted-foreground text-primary-foreground text-sm font-black shadow-lg shadow-white/10">
+    <div className="mb-8 flex items-center justify-between gap-4 border-b border-border pb-5">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card font-mono text-[13px] text-foreground shadow-soft">
           {profile.jersey ? `#${profile.jersey}` : profile.name.charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-foreground">{profile.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[15px] text-foreground">{profile.name}</p>
+          <p className="truncate text-[13px] text-muted-foreground">
             {[profile.sport, profile.team].filter(Boolean).join(" · ") || "Athlete"}
+            {reviews.length > 0 && <span className="hidden sm:inline"> · {reviews.length} {reviews.length === 1 ? "review" : "reviews"}{avg !== "N/A" && <> · avg <span className="text-foreground">{avg}</span></>}</span>}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        {reviews.length > 0 && (
-          <>
-            <div className="hidden sm:flex flex-col items-center rounded-xl border border-border bg-muted px-3 py-1.5">
-              <span className="text-sm font-black text-foreground leading-tight">{reviews.length}</span>
-              <span className="text-[9px] uppercase tracking-widest text-muted-foreground">clips</span>
-            </div>
-            {avg !== "N/A" && (
-              <div className="hidden sm:flex flex-col items-center rounded-xl border border-border bg-muted px-3 py-1.5">
-                <span className="text-sm font-black leading-tight text-foreground">{avg}</span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">avg grade</span>
-              </div>
-            )}
-          </>
-        )}
-        <button onClick={() => { setDraft(profile); setEditing(true); }}
-          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
-          Edit
-        </button>
-      </div>
+      <button onClick={() => { setDraft(profile); setEditing(true); }} className="btn-pill btn-light shrink-0 !py-2 !text-[13px]">
+        Edit profile
+      </button>
     </div>
   );
 }
@@ -158,14 +159,14 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-y-4 border-y border-border py-4 sm:grid-cols-4">
+    <div className="surface grid grid-cols-2 gap-y-6 p-5 sm:grid-cols-4 sm:p-6">
       {stats.map(({ label, value, grade, fire }) => (
         <div key={label}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
           {grade
-            ? <span className={`inline-block rounded-md px-2.5 py-0.5 text-lg font-bold ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="flex items-center gap-1 font-display text-xl font-bold text-foreground capitalize">{value}{fire ? <Flame className="h-4 w-4 text-orange-500" /> : null}</p>
+            ? <span className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-lg ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
+            : <p className="flex items-center gap-1.5 font-display text-4xl capitalize leading-none text-foreground">{value}{fire ? <Flame className="h-5 w-5 text-court" /> : null}</p>
           }
+          <p className="mt-2 text-[12px] text-muted-foreground">{label}</p>
         </div>
       ))}
     </div>
@@ -184,14 +185,14 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
   const yp = (v: number) => PT + iH - ((v - 1) / 12) * iH;
   const vals  = recent.map(r => GRADE_VALUE[r.grade] ?? 0);
   const first = vals[0] ?? 0, last = vals[vals.length - 1] ?? 0;
-  const color = last > first ? "#22c55e" : last < first ? "#ef4444" : "#52525b";
+  const color = last > first ? "#10b981" : last < first ? "var(--court)" : "var(--muted-foreground)";
   const pts   = recent.map((r, i) => ({ x: xp(i), y: yp(GRADE_VALUE[r.grade] ?? 0), r }));
   const poly  = pts.map(p => `${p.x},${p.y}`).join(" ");
 
   return (
-    <section>
-      <h2 className="mb-1 font-display text-sm font-bold text-foreground">Grade trend</h2>
-      <p className="mb-3 text-xs text-muted-foreground">Your last {recent.length} reviews, oldest to newest.</p>
+    <section className="surface p-5 sm:p-6">
+      <h2 className="font-display text-xl text-foreground">Grade trend</h2>
+      <p className="mb-4 mt-1 text-[13px] text-muted-foreground">Your last {recent.length} reviews, oldest to newest.</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full">
         {[{ v: 13, l: "A+" }, { v: 9, l: "B" }, { v: 6, l: "C" }, { v: 1, l: "F" }].map(({ v, l }) => (
           <g key={v}>
@@ -199,8 +200,8 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
             <text x={PL - 5} y={yp(v) + 4} textAnchor="end" fill="var(--muted-foreground)" fontSize="9">{l}</text>
           </g>
         ))}
-        <polyline points={poly} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill={color} stroke="var(--background)" strokeWidth="1.5" />)}
+        <polyline points={poly} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} stroke="var(--card)" strokeWidth="2" />)}
         {[0, Math.floor((recent.length - 1) / 2), recent.length - 1].map(i => (
           <text key={i} x={xp(i)} y={H - 4} textAnchor="middle" fill="var(--muted-foreground)" fontSize="9">
             {new Date(recent[i].timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -242,37 +243,35 @@ function HowItWorks({ activeModule }: { activeModule: "decision" | "coach" }) {
   const steps = HOW_STEPS[activeModule];
 
   return (
-    <div className="mb-8 border-b border-border">
+    <div className="mb-8">
       <button onClick={toggle}
-        className="flex w-full items-center justify-between py-4 text-left">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">How it works</p>
-          <p className="text-sm font-semibold text-foreground">
-            {activeModule === "decision" ? "From raw footage to real feedback" : "From questions to a real plan"}
-          </p>
-        </div>
-        <span className="rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">{open ? "HIDE" : "SHOW"}</span>
+        className="flex w-full items-center justify-between gap-3 py-2 text-left">
+        <p className="text-[15px] text-foreground">
+          <span className="text-muted-foreground">How it works · </span>
+          {activeModule === "decision" ? "From raw footage to real feedback" : "From questions to a real plan"}
+        </p>
+        <span className="btn-pill btn-light !px-3.5 !py-1.5 !text-xs">{open ? "Hide" : "Show"}</span>
       </button>
 
       {open && (
-        <div className="space-y-5 pb-6">
-          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-5 pt-3">
+          <div className="grid border-t border-border sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s, i) => (
-              <div key={s.title}>
-                <div className="mb-2.5 flex items-center gap-2">
-                  <s.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-                  <span className="text-[10px] font-semibold tracking-widest text-muted-foreground">0{i + 1}</span>
+              <div key={s.title} className="border-b border-border py-5 sm:pr-6 lg:border-b-0">
+                <div className="mb-3 flex items-center gap-2 text-muted-foreground">
+                  <span className="font-mono text-[11px]">0{i + 1}</span>
+                  <s.icon className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </div>
-                <p className="mb-1 text-sm font-semibold text-foreground">{s.title}</p>
-                <p className="text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
+                <p className="mb-1 text-[15px] text-foreground">{s.title}</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{s.desc}</p>
               </div>
             ))}
           </div>
 
           {activeModule === "decision" && (
-            <p className="text-xs text-muted-foreground leading-relaxed px-1">
-              <span className="font-semibold text-foreground">DecisionIQ</span> is your film room.{" "}
-              <span className="font-semibold text-foreground">CoachIQ</span> is your coach on the sideline. Analyze a clip, then build a plan around what you found.
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              <span className="text-foreground">DecisionIQ</span> is your film room.{" "}
+              <span className="text-foreground">CoachIQ</span> is your coach on the sideline. Analyze a clip, then build a plan around what you found.
             </p>
           )}
         </div>
@@ -335,18 +334,18 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Profile */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Profile</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">Profile</p>
               <div className="space-y-2">
                 {(["name", "sport", "team", "jersey"] as const).map(k => (
                   <input key={k}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring transition-colors"
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
                     placeholder={k === "name" ? "Your name" : k === "sport" ? "Primary sport" : k === "team" ? "Team / school" : "Jersey number (e.g. 23)"}
                     value={draft[k] ?? ""}
                     onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))}
                   />
                 ))}
                 <button onClick={save}
-                  className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                  className="btn-pill btn-dark w-full py-2.5 text-sm">
                   {saved ? "Saved" : "Save Profile"}
                 </button>
               </div>
@@ -354,7 +353,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Stats */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Your Stats</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">Your Stats</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: "Total Reviews", value: reviews.length },
@@ -372,7 +371,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Data */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Data</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">Data</p>
               <div className="space-y-2">
                 <button onClick={exportHistory} disabled={reviews.length === 0}
                   className="w-full rounded-lg border border-border py-2.5 text-sm text-foreground hover:bg-muted disabled:opacity-30 transition-colors">
@@ -383,7 +382,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                       className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 disabled:opacity-30 transition-colors">
                       Clear All History
                     </button>
-                  : <div className="rounded-lg border border-red-900 p-3 space-y-2">
+                  : <div className="rounded-lg border border-red-500/25 p-3 space-y-2">
                       <p className="text-xs text-muted-foreground">Delete all {reviews.length} reviews? This can't be undone.</p>
                       <div className="flex gap-2">
                         <button onClick={() => { onClearHistory(); setConfirmClear(false); onClose(); }}
@@ -402,7 +401,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* Account */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Account</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">Account</p>
               {user ? (
                 <div className="space-y-2">
                   <div className="rounded-lg border border-border p-3">
@@ -423,13 +422,13 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                             if (data.url) window.location.href = data.url;
                           } catch { /* portal unavailable; support email remains the fallback */ }
                         }}
-                        className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:border-ring transition-colors">
+                        className="btn-pill btn-light px-3 py-2 text-xs">
                         Manage subscription
                       </button>
                     ) : (
                       onUpgrade && (
                         <button onClick={onUpgrade}
-                          className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                          className="btn-pill btn-dark px-3 py-2 text-xs">
                           Upgrade
                         </button>
                       )
@@ -444,7 +443,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Sign in to save your history across all devices.</p>
                   <button onClick={onSignIn}
-                    className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+                    className="btn-pill btn-dark w-full py-2.5 text-sm">
                     Sign in with Google
                   </button>
                 </div>
@@ -454,7 +453,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
 
             {/* About */}
             <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">About</p>
+              <p className="mb-3 text-[12px] text-muted-foreground">About</p>
               <div className="rounded-lg border border-border p-4 space-y-1">
                 <Logo size="sm" className="mb-1" />
                 <p className="text-xs text-muted-foreground">Coaching for every athlete. Any sport, any level.</p>
@@ -499,7 +498,7 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
   const isLast = step === slides.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-6">
       <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-8 shadow-2xl">
         {/* Progress */}
         <div className="mb-8 flex gap-1.5">
@@ -508,8 +507,8 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
           ))}
         </div>
 
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{s.eyebrow}</p>
-        <h2 className="mb-3 text-2xl font-black tracking-tight text-foreground">{s.title}</h2>
+        <p className="mb-2 text-[12px] text-muted-foreground">{s.eyebrow}</p>
+        <h2 className="mb-3 text-2xl font-semibold tracking-tight text-foreground">{s.title}</h2>
         <p className="mb-8 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
 
         <div className="flex items-center gap-3">
@@ -553,7 +552,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       content: (
         <input
           autoFocus
-          className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
+          className="w-full rounded-xl border border-input bg-muted px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 text-base"
           placeholder="Your first name"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -583,7 +582,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       content: (
         <input
           autoFocus
-          className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
+          className="w-full rounded-xl border border-input bg-muted px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 text-base"
           placeholder={`e.g. Point guard, Striker, Quarterback…`}
           value={position}
           onChange={e => setPosition(e.target.value)}
@@ -599,14 +598,14 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         <div className="flex flex-col gap-2">
           <input
             autoFocus
-            className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
+            className="w-full rounded-xl border border-input bg-muted px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 text-base"
             placeholder="Jersey number (e.g. 23)"
             value={jersey}
             onChange={e => setJersey(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
             inputMode="numeric"
           />
           <input
-            className="w-full rounded-xl border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring text-base"
+            className="w-full rounded-xl border border-input bg-muted px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 text-base"
             placeholder="Team jersey colors (e.g. White, or 'mixed white + blue pinnies')"
             value={teamColor}
             onChange={e => setTeamColor(e.target.value)}
@@ -655,7 +654,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
   const isLast  = step === steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-4">
       <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Close */}
         <button onClick={onClose} className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
@@ -668,7 +667,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
         </div>
 
         {/* Content */}
-        <h2 className="mb-1 text-xl font-black tracking-tight text-foreground">{current.title}</h2>
+        <h2 className="mb-1 text-xl font-semibold tracking-tight text-foreground">{current.title}</h2>
         <p className="mb-6 text-sm text-muted-foreground">{current.sub}</p>
         {current.content}
 
@@ -694,95 +693,12 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
-function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  return (
-    <motion.div ref={ref} className={className}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay, ease: [0.25, 0.46, 0.45, 0.94] }}>
-      {children}
-    </motion.div>
-  );
-}
-
-function AnalysisDemo() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.7 }}
-      className="relative overflow-hidden rounded-3xl border border-border"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/demo-basketball.jpg" alt="Basketball layup being analyzed by Reel" className="block w-full" />
-
-      {/* contrast vignette */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-
-      {/* live badge */}
-      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-foreground backdrop-blur">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-        </span>
-        Analyzing film
-      </div>
-
-      {/* shooter tracking box */}
-      <motion.div
-        initial={{ scale: 0.7, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }}
-        viewport={{ once: true }} transition={{ delay: 0.4, type: "spring", stiffness: 120 }}
-        className="absolute" style={{ left: "49%", top: "30%", width: "23%", height: "46%" }}
-      >
-        <div className="h-full w-full rounded-xl border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
-        <span className="absolute -top-5 left-0 whitespace-nowrap rounded-md bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-foreground">#30 · Blue</span>
-      </motion.div>
-
-      {/* defender tag */}
-      <motion.div
-        initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}
-        viewport={{ once: true }} transition={{ delay: 0.7 }}
-        className="absolute" style={{ left: "30%", top: "39%" }}
-      >
-        <span className="whitespace-nowrap rounded-md bg-red-500/90 px-2 py-0.5 text-[10px] font-bold text-foreground shadow-lg">Late contest</span>
-      </motion.div>
-
-      {/* grade card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }} transition={{ delay: 0.95 }}
-        className="absolute bottom-3 right-3 w-60 max-w-[72%] rounded-2xl border border-border bg-muted/85 p-4 shadow-2xl backdrop-blur-md sm:bottom-5 sm:right-5"
-      >
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-lg font-black text-foreground">A-</div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground">#30 · Blue</p>
-            <p className="text-xs text-muted-foreground">Basketball · Finish at rim</p>
-          </div>
-        </div>
-        <div className="rounded-lg bg-accent px-3 py-2">
-          <p className="mb-0.5 text-[9px] uppercase tracking-widest text-muted-foreground">The read</p>
-          <p className="text-xs leading-relaxed text-foreground">Rose up through contact and drew the foul. Aggressive, correct call against a late closeout.</p>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
 function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
   const [showSignUp, setShowSignUp] = useState(false);
-  const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroScale   = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
-
-  const microLabel = "text-[10px] font-semibold uppercase tracking-[0.28em]";
-
   return (
-    <div className="overflow-x-hidden bg-black font-sans text-white">
+    <>
       <AnimatePresence>
         {showSignUp && (
           <SignUpModal
@@ -791,261 +707,8 @@ function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: {
           />
         )}
       </AnimatePresence>
-
-      {/* ── Nav: links left, logotype dead-center, actions right ── */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-md">
-        <div className="relative mx-auto flex h-14 max-w-7xl items-center justify-between px-5">
-          <nav className={`hidden items-center gap-8 md:flex ${microLabel} text-white/50`}>
-            <a href="#film" className="transition-colors hover:text-white">Film</a>
-            <a href="#coach" className="transition-colors hover:text-white">Coach</a>
-            <a href="#pricing" className="transition-colors hover:text-white">Pricing</a>
-          </nav>
-          <span className="pointer-events-none font-display text-lg font-black tracking-[0.4em] md:absolute md:left-1/2 md:-translate-x-1/2 md:pl-[0.4em]">REEL</span>
-          <div className="flex items-center gap-5">
-            <button onClick={onSignIn} disabled={signingIn}
-              className={`${microLabel} text-white/50 transition-colors hover:text-white disabled:opacity-50`}>
-              {signingIn ? "…" : "Log in"}
-            </button>
-            <button onClick={() => setShowSignUp(true)} disabled={signingIn}
-              className={`rounded-full bg-white px-4 py-1.5 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
-              Start
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Hero: full-bleed film, editorial type bottom-left ── */}
-      <section ref={heroRef} className="relative h-screen min-h-[640px] overflow-hidden">
-        <motion.div style={{ scale: heroScale }} className="absolute inset-0 origin-center">
-          <video
-            autoPlay muted loop playsInline
-            poster="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600&q=85&fit=crop&crop=center"
-            ref={(el) => { if (el) el.playbackRate = 0.6; }}
-            className="h-full w-full object-cover"
-          >
-            <source src="/hero-basketball.mov" type="video/mp4" />
-          </video>
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/25" />
-
-        {/* Rotated edge caption */}
-        <p className="absolute -right-40 top-1/2 hidden -translate-y-1/2 rotate-90 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.45em] text-white/35 lg:block">
-          Every decision graded A+ to F / basketball and volleyball
-        </p>
-
-        <motion.div style={{ opacity: heroOpacity }}
-          className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-24">
-          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.7 }}
-            className={`mb-5 ${microLabel} text-white/50`}>
-            The AI film room for athletes
-          </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 34 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="font-display uppercase leading-[0.85]">
-            <span className="block text-[15vw] font-black sm:text-[11vw] lg:text-[9.5rem]">Your game.</span>
-            <span className="text-outline block text-[15vw] font-black sm:text-[11vw] lg:text-[9.5rem]">Graded.</span>
-          </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7 }}
-            className="mt-6 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
-            Upload film. Every decision gets graded like a coach would grade it. Then you get the drill that fixes the pattern.
-          </motion.p>
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.7 }}
-            className="mt-8 flex flex-wrap items-center gap-6">
-            <button onClick={() => setShowSignUp(true)} disabled={signingIn}
-              className={`rounded-full bg-white px-8 py-3.5 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
-              Start free
-            </button>
-            <button onClick={onSignIn} disabled={signingIn}
-              className={`${microLabel} text-white/60 underline decoration-white/30 underline-offset-8 transition-colors hover:text-white disabled:opacity-50`}>
-              {signingIn ? "Redirecting…" : "Log in"}
-            </button>
-          </motion.div>
-          {authError && <p className="mt-4 text-sm text-red-400">{authError}</p>}
-        </motion.div>
-
-        <motion.div animate={{ y: [0, 8, 0], opacity: [0.25, 0.7, 0.25] }} transition={{ duration: 2.4, repeat: Infinity }}
-          className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex">
-          <span className="text-[9px] uppercase tracking-[0.4em] text-white/40">Scroll</span>
-          <div className="h-7 w-px bg-white/25" />
-        </motion.div>
-      </section>
-
-      {/* ── Editorial statement ── */}
-      <section className="border-y border-white/10 px-5 py-24 sm:py-32">
-        <FadeUp>
-          <p className="mx-auto max-w-4xl text-center font-display text-sm font-bold uppercase leading-[2.2] tracking-[0.3em] text-white/75 sm:text-lg sm:leading-[2.2]">
-            Reel is an AI film room for athletes who want to get better, not just watch highlights. Upload a game, get graded, fix the pattern.
-          </p>
-        </FadeUp>
-      </section>
-
-      {/* ── #01 DecisionIQ ── */}
-      <section id="film" className="scroll-mt-14 px-5 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl">
-          <FadeUp className="mb-14 flex items-end justify-between gap-6">
-            <div>
-              <p className={`mb-4 ${microLabel} text-white/40`}>01 / Film analysis</p>
-              <h2 className="font-display uppercase leading-[0.9]">
-                <span className="block text-5xl font-black sm:text-7xl">Decision</span>
-                <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
-              </h2>
-            </div>
-            <div className="hidden text-right sm:block">
-              <p className={`${microLabel} text-white/40`}>Grade scale</p>
-              <p className="font-display text-5xl font-black sm:text-6xl">A+ to F</p>
-            </div>
-          </FadeUp>
-
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <FadeUp>
-              <p className="mb-8 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
-                A clip or a full game. Reel watches every player on the floor and grades the decision, not the outcome. A smart read that missed is still a smart read.
-              </p>
-              <div>
-                {[
-                  ["Every player on screen", "graded A+ to F"],
-                  ["Full games", "report + auto box score"],
-                  ["The better read", "explained, every play"],
-                  ["Fix it alone", "one drill per weakness"],
-                ].map(([left, right]) => (
-                  <div key={left} className="flex items-baseline justify-between gap-4 border-t border-white/10 py-4">
-                    <span className={`${microLabel} text-white`}>{left}</span>
-                    <span className={`${microLabel} text-right text-white/40`}>{right}</span>
-                  </div>
-                ))}
-                <div className="border-t border-white/10 pt-8">
-                  <button onClick={() => setShowSignUp(true)}
-                    className={`rounded-full bg-white px-7 py-3 ${microLabel} text-black transition-opacity hover:opacity-85`}>
-                    Analyze your film
-                  </button>
-                </div>
-              </div>
-            </FadeUp>
-            <AnalysisDemo />
-          </div>
-        </div>
-      </section>
-
-      {/* ── #02 CoachIQ ── */}
-      <section id="coach" className="scroll-mt-14 border-t border-white/10 px-5 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl">
-          <FadeUp className="mb-14 flex items-end justify-between gap-6">
-            <div>
-              <p className={`mb-4 ${microLabel} text-white/40`}>02 / Personal coaching</p>
-              <h2 className="font-display uppercase leading-[0.9]">
-                <span className="block text-5xl font-black sm:text-7xl">Coach</span>
-                <span className="text-outline block text-5xl font-black sm:text-7xl">IQ</span>
-              </h2>
-            </div>
-            <div className="hidden text-right sm:block">
-              <p className={`${microLabel} text-white/40`}>In your corner</p>
-              <p className="font-display text-5xl font-black sm:text-6xl">24/7</p>
-            </div>
-          </FadeUp>
-
-          <div>
-            {[
-              ["Ask Coach", "A coach who has seen your film. Blunt answers, real terminology, no essays."],
-              ["Build My Plan", "A weekly practice plan built around your weaknesses. Every drill doable alone, zero equipment."],
-              ["Drill Check", "Record yourself doing the drill. Get a verdict on your form and the one fix that matters."],
-            ].map(([name, desc], i) => (
-              <FadeUp key={name} delay={i * 0.08}>
-                <div className="grid gap-3 border-t border-white/10 py-8 sm:grid-cols-2 sm:items-baseline">
-                  <p className="font-display text-2xl font-black uppercase sm:text-3xl">
-                    <span className="mr-4 text-sm font-bold text-white/30">0{i + 1}</span>{name}
-                  </p>
-                  <p className="max-w-md text-sm leading-relaxed text-white/55 sm:justify-self-end sm:text-right">{desc}</p>
-                </div>
-              </FadeUp>
-            ))}
-            <div className="border-t border-white/10" />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Mission ── */}
-      <section className="border-y border-white/10 px-5 py-28 text-center sm:py-36">
-        <FadeUp>
-          <h2 className="mx-auto font-display uppercase leading-[0.95]">
-            <span className="block text-4xl font-black sm:text-6xl lg:text-7xl">Talent is everywhere.</span>
-            <span className="text-outline block text-4xl font-black sm:text-6xl lg:text-7xl">Opportunity isn&apos;t.</span>
-          </h2>
-          <p className="mx-auto mt-8 max-w-lg text-sm leading-relaxed text-white/60 sm:text-base">
-            A private coach runs $100 to $300 an hour. Most athletes never get that level of feedback. Reel gives every athlete a film room, free to start.
-          </p>
-        </FadeUp>
-      </section>
-
-      {/* ── #03 Pricing ── */}
-      <section id="pricing" className="scroll-mt-14 px-5 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl">
-          <FadeUp className="mb-14">
-            <p className={`mb-4 ${microLabel} text-white/40`}>03 / Pricing</p>
-            <h2 className="font-display text-5xl font-black uppercase leading-[0.9] sm:text-7xl">Two plans.</h2>
-          </FadeUp>
-          <div className="grid gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-2">
-            {[
-              { name: "Free", price: "$0", note: "No card required", rows: [["Full games", "1 / month"], ["Clips", "2 / month"], ["Coach chat", "15 msgs / month"], ["Practice plans", "1 / month"], ["Teams", "1 team"]], cta: "Start free", solid: false },
-              { name: "Reel Pro", price: "$8", note: "per month", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Coach chat", "unlimited"], ["Practice plans", "unlimited"], ["Teams", "unlimited"]], cta: "Go Pro", solid: true },
-            ].map((plan) => (
-              <div key={plan.name} className="bg-black p-8 sm:p-12">
-                <div className="flex items-baseline justify-between">
-                  <p className={`${microLabel} text-white/40`}>{plan.name}</p>
-                  <p className={`${microLabel} text-white/30`}>{plan.note}</p>
-                </div>
-                <p className="mb-8 mt-4 font-display text-7xl font-black sm:text-8xl">{plan.price}</p>
-                <div className="mb-8">
-                  {plan.rows.map(([left, right]) => (
-                    <div key={left} className="flex items-baseline justify-between gap-4 border-t border-white/10 py-3.5">
-                      <span className={`${microLabel} text-white`}>{left}</span>
-                      <span className={`${microLabel} text-right text-white/40`}>{right}</span>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => { if (plan.solid) localStorage.setItem("reel-upgrade-intent", "1"); setShowSignUp(true); }}
-                  className={`w-full rounded-full py-3.5 ${microLabel} transition-opacity hover:opacity-85 ${plan.solid ? "bg-white text-black" : "border border-white/25 text-white"}`}>
-                  {plan.cta}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="relative flex h-[70vh] items-center justify-center overflow-hidden border-t border-white/10">
-        <span aria-hidden className="text-outline pointer-events-none absolute select-none font-display text-[36vw] font-black leading-none opacity-20">
-          REEL
-        </span>
-        <FadeUp className="relative z-10 text-center">
-          <p className={`mb-8 ${microLabel} text-white/50`}>No card, no equipment, free to start</p>
-          <button onClick={() => setShowSignUp(true)} disabled={signingIn}
-            className={`rounded-full bg-white px-10 py-4 ${microLabel} text-black transition-opacity hover:opacity-85 disabled:opacity-50`}>
-            Start free
-          </button>
-          <p className="mt-6">
-            <button onClick={onEnterApp} className={`${microLabel} text-white/40 underline decoration-white/25 underline-offset-8 transition-colors hover:text-white`}>
-              Try without an account
-            </button>
-          </p>
-        </FadeUp>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-black px-6 py-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-4">
-            <span className="font-display text-sm font-black tracking-[0.4em]">REEL</span>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-white/35">The AI film room</p>
-          </div>
-          <nav className={`flex flex-wrap items-center justify-center gap-x-7 gap-y-2 ${microLabel} text-white/40`}>
-            <a href="/privacy" className="transition-colors hover:text-white">Privacy</a>
-            <a href="/terms" className="transition-colors hover:text-white">Terms</a>
-            <a href="/accessibility" className="transition-colors hover:text-white">Accessibility</a>
-            <a href="mailto:support@getreel.org" className="transition-colors hover:text-white">Contact</a>
-          </nav>
-        </div>
-      </footer>
-    </div>
+      <Landing onStart={() => setShowSignUp(true)} onSignIn={onSignIn} onEnterApp={onEnterApp} signingIn={signingIn} authError={authError} />
+    </>
   );
 }
 
@@ -1283,9 +946,9 @@ export default function Reel() {
 
       {/* Upgrade success toast */}
       {upgradeSuccess && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-emerald-800 bg-emerald-950 px-5 py-3 shadow-2xl">
-          <span className="text-emerald-400 text-lg">✓</span>
-          <p className="text-sm font-semibold text-foreground">Welcome to Reel Pro! More film, more feedback, more growth.</p>
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-foreground px-5 py-3 text-background shadow-lift">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          <p className="text-sm">Welcome to Reel Pro. More film, more feedback.</p>
         </div>
       )}
 
@@ -1304,94 +967,74 @@ export default function Reel() {
         onUpgrade={() => setShowUpgrade(true)}
       />
 
-      {/* Nav */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur px-4 sm:px-6">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between h-14">
-
-          <div className="flex items-center gap-3">
+      {/* Header: wordmark left, the four sections as a floating pill in the
+          middle, theme + account right. */}
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex items-center gap-2.5">
             <Logo size="sm" />
-            {isPro && (
-              <span className="rounded-full bg-emerald-500/15 border border-emerald-800 px-2 py-0.5 text-[10px] font-bold text-emerald-400 tracking-wide">PRO</span>
-            )}
+            {isPro && <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium text-background">Pro</span>}
           </div>
 
-          <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-ring transition-colors h-9 px-2"
-            aria-label="Settings">
-            {user?.user_metadata?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.user_metadata.avatar_url} alt="Your avatar"
-                className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
-            ) : user ? (
-              <span className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-500 text-foreground text-[10px] font-bold shrink-0">
-                {(user.email || "?").charAt(0).toUpperCase()}
-              </span>
-            ) : null}
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
-              <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .205 1.251l-1.18 2.044a1 1 0 0 1-1.186.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.113a7.047 7.047 0 0 1 0-2.228L1.821 7.773a1 1 0 0 1-.205-1.251l1.18-2.044a1 1 0 0 1 1.186-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-            </svg>
-          </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Nav rail + body. Sections live on the left so the workspace reads
-          like a tool rather than a page with tabs on top. */}
-      <div className="mx-auto flex max-w-[1400px] gap-8 px-4 sm:px-6">
-        <nav className="hidden w-52 shrink-0 pt-8 lg:block">
-          <div className="sticky top-20 space-y-0.5">
+          <nav className="hidden items-center gap-1 rounded-full bg-card p-1 shadow-soft md:flex">
             {MODULES.map(mod => {
               const active = activeModule === mod.id;
+              const Icon = mod.icon;
               return (
                 <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
-                  className={`block w-full rounded-lg px-3 py-2.5 text-left transition-colors ${
-                    active ? "bg-muted" : "hover:bg-muted/50"
-                  }`}>
-                  <span className={`block font-display text-sm font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}>
-                    {mod.label}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] text-muted-foreground">{mod.sub}</span>
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-all ${active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                  <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}
                 </button>
               );
             })}
-          </div>
-        </nav>
-
-        <div className="min-w-0 flex-1 py-6 sm:py-8">
-          <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto px-4 pb-1 lg:hidden">
-            {MODULES.map(mod => (
-              <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
-                className={`shrink-0 rounded-lg px-3.5 py-2 font-display text-xs font-semibold transition-colors ${
-                  activeModule === mod.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}>
-                {mod.label}
-              </button>
-            ))}
           </nav>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button onClick={() => setSettingsOpen(true)} aria-label="Settings"
+              className="flex h-9 items-center gap-2 rounded-full bg-card px-1.5 pr-3 text-muted-foreground shadow-soft transition-colors hover:text-foreground">
+              {user?.user_metadata?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.user_metadata.avatar_url} alt="Your avatar" className="h-6 w-6 rounded-full object-cover" referrerPolicy="no-referrer" />
+              ) : user ? (
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-medium text-background">
+                  {(user.email || "?").charAt(0).toUpperCase()}
+                </span>
+              ) : <span className="w-1.5" />}
+              <Settings className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+          </div>
+        </div>
+
+        {/* Phones: the same pill nav, scrollable */}
+        <nav className="flex gap-1 overflow-x-auto px-4 pb-3 md:hidden">
+          {MODULES.map(mod => {
+            const Icon = mod.icon;
+            return (
+              <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] transition-colors ${activeModule === mod.id ? "bg-foreground text-background" : "bg-card text-muted-foreground shadow-soft"}`}>
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}
+              </button>
+            );
+          })}
+        </nav>
+      </header>
+
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <motion.div key={activeModule} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="min-w-0 pb-24 pt-8 sm:pt-12">
 
         {activeModule === "library" ? (
           <>
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h1 className="font-display text-2xl font-bold sm:text-3xl">
-                  Library
-                  <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {libraryView === "film" ? "Every game and clip you've analyzed, by team." : "Your season numbers and how your grades are trending."}
-                </p>
-              </div>
-              <Segmented value={libraryView} onChange={setLibraryView}
-                options={[{ value: "film", label: "Film", count: reviews.length }, { value: "stats", label: "Stats" }]} />
-            </div>
+            <PageTitle a="Library." b={libraryView === "film" ? "Every game and clip, by team." : "Your season, in numbers."}
+              right={<Segmented value={libraryView} onChange={setLibraryView}
+                options={[{ value: "film", label: "Film", count: reviews.length }, { value: "stats", label: "Stats" }]} />} />
             {libraryView === "film" ? (
               <FilmLibrary reviews={reviews} onReviewsChange={setReviews} userId={user?.id} />
             ) : reviews.length === 0 ? (
-              <p className="border-t border-border py-10 text-center text-sm text-muted-foreground">Analyze a game or clip and your stats will show up here.</p>
+              <p className="surface py-12 text-center text-sm text-muted-foreground">Analyze a game or clip and your stats will show up here.</p>
             ) : (
-              <div className="space-y-10">
+              <div className="space-y-5">
                 <StatsBar reviews={reviews} />
                 <MySeasonCard reviews={reviews} jersey={profile.jersey} onSetColor={setGameColor} />
                 {reviews.length >= 2 && <GradeTrendChart reviews={reviews} />}
@@ -1400,29 +1043,14 @@ export default function Reel() {
           </>
         ) : activeModule === "teams" ? (
           <>
-            <div className="mb-6">
-              <h1 className="font-display text-2xl font-bold sm:text-3xl">
-                Teams
-                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">Track a season, roster, and record across every game you upload.</p>
-            </div>
+            <PageTitle a="Teams." b="Your season, roster and record." />
             <Teams userId={user?.id} sport={profile.sport} reviews={reviews} onReviewsChange={setReviews} isPro={isPro} onShowUpgrade={() => setShowUpgrade(true)} />
           </>
         ) : (
           <>
-            {/* Module header */}
-            <div className="mb-6">
-              <h1 className="font-display text-2xl font-bold sm:text-3xl">
-                {activeModule === "decision" ? "DecisionIQ" : "CoachIQ"}
-                <span className="ml-2 text-base font-normal text-muted-foreground">by Reel</span>
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {activeModule === "decision"
-                  ? "Upload a clip or full game. Every player gets analyzed: offense, defense, and everything in between."
-                  : "Your personal coach. Ask anything, or build a custom practice plan tailored to your game."}
-              </p>
-            </div>
+            {activeModule === "decision"
+              ? <PageTitle a="Film analysis." b="Paste a game, get it graded." />
+              : <PageTitle a="Your coach." b="Ask anything, build a plan." />}
 
             <HowItWorks activeModule={activeModule as "decision" | "coach"} />
             <ProfileCard profile={profile} onSave={saveProfile} reviews={reviews} />
@@ -1431,7 +1059,7 @@ export default function Reel() {
             {activeModule === "coach"    && <CoachIQ    profile={profile} reviews={reviews} userId={user?.id} onShowUpgrade={() => setShowUpgrade(true)} />}
           </>
         )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Help / support assistant — floating, available across the app */}

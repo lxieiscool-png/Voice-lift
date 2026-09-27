@@ -58,7 +58,7 @@ export default function SupportWidget() {
 
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-5 right-5 z-[80] flex w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+        <div className="surface fixed bottom-5 right-5 z-[80] flex w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden shadow-2xl"
           style={{ height: "min(560px, calc(100dvh - 3rem))" }}>
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export default function SupportWidget() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") send(); }}
                 placeholder="Ask a question…"
-                className="flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+                className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
               <button onClick={send} disabled={loading || !input.trim()}
                 aria-label="Send"

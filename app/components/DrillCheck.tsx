@@ -173,7 +173,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
         onChange={e => setDrill(e.target.value)}
         placeholder="Paste the drill from your report, or describe it — e.g. 'Form shooting: one-hand follow-through, 3 sets of 20, hold the finish.'"
         rows={2}
-        className="mb-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-ring"
+        className="mb-3 w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
       />
 
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -185,7 +185,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
 
       {howto && (
         <div className="mb-3 rounded-lg border border-border bg-muted p-4">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">How to do this drill</p>
+          <p className="mb-2 text-[12px] text-muted-foreground">How to do this drill</p>
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">{howto}</pre>
         </div>
       )}
@@ -194,7 +194,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
         <input type="checkbox" checked={blurFaces} onChange={e => setBlurFaces(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-500" />
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-foreground">Blur faces before analyzing <span className="rounded bg-accent px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Beta</span></span>
+          <span className="block text-sm font-semibold text-foreground">Blur faces before analyzing <span className="rounded bg-accent px-1 py-0.5 text-[12px] text-muted-foreground">Beta</span></span>
           <span className="block text-[11px] leading-relaxed text-muted-foreground">Faces are blurred on your device before anything is sent. Best-effort — works well on close-up clips; verify your first result. If blurring can't run, nothing is sent.</span>
         </span>
       </label>
@@ -210,7 +210,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
       </Button>
 
       {error && (
-        <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/20 px-3 py-2.5 text-sm text-red-300">
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-500/25 bg-red-500/[0.07] px-3 py-2.5 text-sm text-red-600 dark:text-red-400">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
         </div>
       )}
@@ -222,19 +222,19 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
           </div>
           {feedback.didWell && (
             <div className="rounded-lg bg-muted p-3">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-500">What you did well</p>
+              <p className="mb-1 text-[12px] text-emerald-500">What you did well</p>
               <p className="text-sm text-foreground leading-relaxed">{feedback.didWell}</p>
             </div>
           )}
           {feedback.mainFix && (
             <div className="rounded-lg bg-muted p-3">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-500">Fix this</p>
+              <p className="mb-1 text-[12px] text-amber-500">Fix this</p>
               <p className="text-sm text-foreground leading-relaxed">{feedback.mainFix}</p>
             </div>
           )}
           {feedback.focusNext && (
-            <div className="rounded-lg border border-emerald-900/60 bg-emerald-950/20 p-3">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-400">Next rep, focus on</p>
+            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] p-3">
+              <p className="mb-1 text-[12px] text-emerald-600 dark:text-emerald-400">Next rep, focus on</p>
               <p className="text-sm text-foreground leading-relaxed">{feedback.focusNext}</p>
             </div>
           )}
@@ -262,7 +262,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
                     <div className="border-t border-border px-3 py-2.5 space-y-1.5 text-xs">
                       {p.didWell && <p className="text-foreground"><span className="font-semibold text-emerald-500">Did well: </span>{p.didWell}</p>}
                       {p.mainFix && <p className="text-foreground"><span className="font-semibold text-amber-500">Fix: </span>{p.mainFix}</p>}
-                      {p.focusNext && <p className="text-foreground"><span className="font-semibold text-emerald-400">Focus: </span>{p.focusNext}</p>}
+                      {p.focusNext && <p className="text-foreground"><span className="font-semibold text-emerald-600 dark:text-emerald-400">Focus: </span>{p.focusNext}</p>}
                     </div>
                   )}
                 </div>

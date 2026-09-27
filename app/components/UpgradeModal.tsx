@@ -24,15 +24,15 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-6">
       <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
 
         {/* Header */}
         <div className="relative border-b border-border px-8 py-6 text-center">
           <button onClick={onClose}
             className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Reel Pro</p>
-          <h2 className="text-2xl font-black tracking-tight text-foreground">You&apos;ve hit your free limit</h2>
+          <p className="text-[12px] text-muted-foreground mb-2">Reel Pro</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">You&apos;ve hit your free limit</h2>
           <p className="mt-2 text-sm text-muted-foreground">Upgrade to Reel Pro for more games and clips every month.</p>
         </div>
 
@@ -60,11 +60,11 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
               <p className="text-xs text-muted-foreground">Billed monthly</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-black text-foreground">$8<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+              <p className="text-2xl font-semibold text-foreground">$8<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
             </div>
           </div>
 
-          {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+          {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
 
           <button onClick={upgrade} disabled={loading}
             className="w-full rounded-xl bg-primary py-4 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors">

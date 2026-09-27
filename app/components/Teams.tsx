@@ -151,10 +151,10 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
                 <div className="flex items-center justify-between">
                   <button onClick={() => setOpenReview(null)}
-                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring transition-colors">
+                    className="btn-pill btn-light px-3 py-1.5 text-xs">
                     ← Back
                   </button>
-                  <p className="truncate px-3 text-sm font-black text-foreground">{openReview.fileName || openReview.sport}</p>
+                  <p className="truncate px-3 text-sm font-semibold text-foreground">{openReview.fileName || openReview.sport}</p>
                   <button onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
                 </div>
                 {openReview.mode === "clip" && openReview.decisions
@@ -206,7 +206,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <button onClick={() => setShowEdit(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-ring">
+              className="btn-pill btn-light flex items-center gap-1.5 px-2.5 py-1.5 text-xs">
               <Pencil className="h-3.5 w-3.5" /> Edit
             </button>
             <button onClick={() => deleteTeam(openTeam)} aria-label="Delete team"
@@ -219,7 +219,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
         <div className="mt-5 grid grid-cols-2 gap-y-4 border-y border-border py-4 sm:grid-cols-4">
           {strip.map(t => (
             <div key={t.label}>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{t.label}</p>
+              <p className="mb-1 text-[12px] text-muted-foreground">{t.label}</p>
               <p className="font-display text-xl font-bold text-foreground">{t.value}</p>
               {t.note && <p className="mt-0.5 text-[10px] text-muted-foreground">{t.note}</p>}
             </div>
@@ -289,7 +289,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{teams.length} {teams.length === 1 ? "team" : "teams"}</p>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">
+          className="btn-pill btn-dark flex items-center gap-1.5 px-3.5 py-2 text-sm">
           <Plus className="h-4 w-4" /> Create Team
         </button>
       </div>
@@ -327,7 +327,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
                 <span className="hidden gap-8 text-right sm:flex">
                   {cells.map(c => (
                     <span key={c.label} className="w-14">
-                      <span className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{c.label}</span>
+                      <span className="block text-[12px] text-muted-foreground">{c.label}</span>
                       <span className="block font-display text-sm font-bold text-foreground">{c.value}</span>
                     </span>
                   ))}
@@ -372,10 +372,10 @@ function RosterEditor({ members, onAdd, onRemove }: {
         <input value={jersey} onChange={e => setJersey(e.target.value)} placeholder="#"
           className="w-16 rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Name (optional)"
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
+          className="flex-1 rounded-xl border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
         <button
           onClick={() => { if (!jersey.trim() && !name.trim()) return; onAdd({ displayName: name, jerseyNumber: jersey }); setName(""); setJersey(""); }}
-          className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add</button>
+          className="btn-pill btn-dark px-3 py-1.5 text-sm">Add</button>
       </div>
     </div>
   );
@@ -397,33 +397,33 @@ function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
   const [level, setLevel] = useState(initial?.level || "");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="surface w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <h3 className="mb-4 text-lg font-bold text-foreground">{title || "Create Team"}</h3>
         <div className="space-y-3">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Team name — e.g. Titanium 14U"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
+            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           <div className="grid grid-cols-2 gap-3">
             <input value={city} onChange={e => setCity(e.target.value)} placeholder="City"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
             <input value={state} onChange={e => setState(e.target.value)} placeholder="State"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           </div>
           <input value={season} onChange={e => setSeason(e.target.value)} placeholder="Season — e.g. 2025-26"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
+            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           <div className="grid grid-cols-2 gap-3">
             <select value={gender} onChange={e => setGender(e.target.value)}
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring">
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/40">
               <option value="">Gender</option>
               <option value="Boys">Boys</option>
               <option value="Girls">Girls</option>
               <option value="Coed">Coed</option>
             </select>
             <input value={ageGroup} onChange={e => setAgeGroup(e.target.value)} placeholder="Age group — e.g. 14U"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-ring" />
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           </div>
           <select value={level} onChange={e => setLevel(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring">
+            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring/40">
             <option value="">Level of play</option>
             <option value="Club">Club</option>
             <option value="Rec">Rec</option>
@@ -436,7 +436,7 @@ function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
           <button
             onClick={() => name.trim() && onCreate({ name, city, state, season, gender, ageGroup, level })}
             disabled={!name.trim()}
-            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
+            className="btn-pill btn-dark flex-1 py-2.5 text-sm disabled:opacity-40">
             {initial ? "Save" : "Create"}
           </button>
         </div>

@@ -1,38 +1,28 @@
-// Reel wordmark — bold, sleek, minimal
-// Use size="sm" in the nav, size="lg" on the landing hero
+// Reel mark + wordmark. The mark is a dotted shot arc dropping into a rim —
+// the same dot-matrix motif as the landing hero — in a solid disc. Everything
+// draws in currentColor / theme tokens, so it works in light and dark.
+
+export function ReelMark({ size = 28, className = "" }: { size?: number; className?: string }) {
+  const dots = [[7, 18.5], [9, 13.8], [12, 10.6], [15.4, 9.3], [18.6, 10.4]];
+  return (
+    <svg width={size} height={size} viewBox="0 0 28 28" className={className} aria-hidden>
+      <circle cx="14" cy="14" r="14" className="fill-foreground" />
+      {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.25} className="fill-background" opacity={0.45 + i * 0.13} />)}
+      <path d="M17.6 14.2h4.6" strokeWidth="1.6" strokeLinecap="round" className="stroke-court" />
+      <circle cx="20.6" cy="12.4" r="1.6" className="fill-court" />
+    </svg>
+  );
+}
 
 export default function Logo({ size = "md", className = "" }: {
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const configs = {
-    sm: { width: 72,  height: 22, fontSize: 20, ls: 4,  barY: 20, barH: 1.5, barW: 68  },
-    md: { width: 96,  height: 28, fontSize: 26, ls: 5,  barY: 25, barH: 1.5, barW: 90  },
-    lg: { width: 160, height: 46, fontSize: 42, ls: 10, barY: 42, barH: 2,   barW: 152 },
-  };
-  const c = configs[size];
-
+  const s = { sm: [26, "text-[17px]"], md: [30, "text-xl"], lg: [44, "text-3xl"] }[size] as [number, string];
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox={`0 0 ${c.width} ${c.height}`}
-      width={c.width}
-      height={c.height}
-      className={className}
-      aria-label="Reel"
-    >
-      <text
-        x="2"
-        y={c.barY - 2}
-        fontFamily="'Arial Black', 'Helvetica Neue', Impact, sans-serif"
-        fontSize={c.fontSize}
-        fontWeight="900"
-        letterSpacing={c.ls}
-        fill="white"
-      >
-        REEL
-      </text>
-      <rect x="2" y={c.barY} width={c.barW} height={c.barH} fill="white" opacity="0.3" rx={c.barH / 2} />
-    </svg>
+    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="Reel">
+      <ReelMark size={s[0]} />
+      <span className={`font-display font-medium tracking-tight text-foreground ${s[1]}`}>Reel</span>
+    </span>
   );
 }

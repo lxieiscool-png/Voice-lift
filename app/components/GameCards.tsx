@@ -50,7 +50,7 @@ export function TeamSectionHeader({ name, initials, colorClass, badge, subtitle,
         <span className="min-w-0">
           <span className="flex items-center gap-2">
             <span className="truncate font-display text-base font-bold text-foreground">{name}</span>
-            {badge && <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{badge}</span>}
+            {badge && <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[12px] text-muted-foreground">{badge}</span>}
           </span>
           {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
         </span>
@@ -92,7 +92,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     // No overflow-hidden on the root: the card's ⋮ menu is an absolutely
     // positioned dropdown that must be free to extend past the card edge.
     // Rounded-corner clipping lives on the thumbnail button instead.
-    <div className="rounded-xl border border-border bg-card">
+    <div className="surface">
       {/* Thumbnail */}
       <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-xl bg-muted disabled:cursor-default">
         {thumbnailUrl ? (
@@ -109,7 +109,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
               <Loader2 className="h-6 w-6 animate-spin text-foreground" />
             </span>
           ) : grade ? (
-            <span className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-black shadow-lg ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
+            <span className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-semibold shadow-lg ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")}`}>
               {grade}
             </span>
           ) : null}

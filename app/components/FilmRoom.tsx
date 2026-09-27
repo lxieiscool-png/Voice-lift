@@ -87,7 +87,7 @@ export default function FilmRoom({ videoId, decisions, timeline = [], onClose }:
     <div className="fixed inset-0 z-[70] flex flex-col bg-background">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <button onClick={onClose}
-          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-ring hover:text-foreground">
+          className="btn-pill btn-light px-3 py-1.5 text-xs">
           Back to report
         </button>
         <p className="font-display text-sm font-bold text-foreground">Film Room</p>
@@ -124,7 +124,7 @@ export default function FilmRoom({ videoId, decisions, timeline = [], onClose }:
                   <span className="font-mono text-xs font-bold text-foreground">{e.timestamp}</span>
                   <span className="truncate text-xs font-semibold text-foreground">{e.player}</span>
                   {card && (
-                    <span className={`ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-black ${gradeClass(card.grade, "bg")} ${gradeClass(card.grade, "text")}`}>
+                    <span className={`ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${gradeClass(card.grade, "bg")} ${gradeClass(card.grade, "text")}`}>
                       {card.grade}
                     </span>
                   )}
@@ -134,19 +134,19 @@ export default function FilmRoom({ videoId, decisions, timeline = [], onClose }:
                   <div className="mt-3 space-y-2.5 border-t border-border pt-3">
                     {card.decisionRead && (
                       <div>
-                        <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">The read</p>
+                        <p className="mb-0.5 text-[12px] text-muted-foreground">The read</p>
                         <p className="text-xs leading-relaxed text-foreground">{card.decisionRead}</p>
                       </div>
                     )}
                     {card.bestAlternative && (
                       <div>
-                        <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Better option</p>
+                        <p className="mb-0.5 text-[12px] text-muted-foreground">Better option</p>
                         <p className="text-xs leading-relaxed text-foreground">{card.bestAlternative}</p>
                       </div>
                     )}
                     {card.practiceFocus && (
                       <div>
-                        <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Drill it</p>
+                        <p className="mb-0.5 text-[12px] text-muted-foreground">Drill it</p>
                         <p className="text-xs leading-relaxed text-foreground">{card.practiceFocus}</p>
                       </div>
                     )}
