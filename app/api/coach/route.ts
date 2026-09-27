@@ -1,11 +1,11 @@
 import { chatComplete } from "../../lib/ai/chat";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
 import { publicErrorMessage } from "../../lib/publicError";
 
 export async function POST(req: Request) {
-  if (isRateLimited(req, "coach", 40)) {
+  if (await rateLimited(req, "coach", 40)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   let metered: string | null = null;

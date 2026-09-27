@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "../../lib/supabase/admin";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 
 // Uploads a single already-downscaled frame (see captureThumbnail in
 // DecisionIQ.tsx) to the public game-thumbnails bucket, for Library/Teams
@@ -10,7 +10,7 @@ import { isRateLimited } from "../../lib/ratelimit";
 // Rate-limited and size-capped: this writes to a PUBLIC bucket, so without
 // bounds it's free anonymous image hosting on our storage bill.
 export async function POST(req: NextRequest) {
-  if (isRateLimited(req, "thumbnail", 20)) {
+  if (await rateLimited(req, "thumbnail", 20)) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
   const { dataUrl } = await req.json();

@@ -1,12 +1,12 @@
 import { chatComplete } from "../../lib/ai/chat";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 import { publicErrorMessage } from "../../lib/publicError";
 
 // POST /api/drills { sport, role, focus }
 // Generates short drills to fix a specific player weakness, split into solo and
 // with-teammates. Text-only and cheap, so unmetered (rate-limited only).
 export async function POST(req: Request) {
-  if (isRateLimited(req, "drills", 20)) {
+  if (await rateLimited(req, "drills", 20)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   try {

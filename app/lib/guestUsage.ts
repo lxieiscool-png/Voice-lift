@@ -1,6 +1,5 @@
-import { createHash } from "crypto";
 import { createAdminClient } from "./supabase/admin";
-import { clientIp } from "./ratelimit";
+import { clientIp, ipHash } from "./ratelimit";
 
 // Durable per-IP monthly caps for GUEST (signed-out) usage. Guests have no
 // account to meter, so without this one person could burn unlimited free
@@ -15,11 +14,6 @@ const GUEST_LIMITS = { clip: 3, game: 1 } as const;
 export type GuestKind = keyof typeof GUEST_LIMITS;
 
 const monthKey = () => new Date().toISOString().slice(0, 7);
-
-// Store a hash, not the raw IP — we only ever need equality, never the address.
-function ipHash(ip: string): string {
-  return createHash("sha256").update(ip).digest("hex").slice(0, 32);
-}
 
 // Returns true if the guest is allowed (and records the use). Fails OPEN on
 // any error — a metering hiccup must never block a real person; the burst

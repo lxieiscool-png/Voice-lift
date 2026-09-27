@@ -1,12 +1,12 @@
 import { chatComplete } from "../../../lib/ai/chat";
-import { isRateLimited } from "../../../lib/ratelimit";
+import { rateLimited } from "../../../lib/ratelimit";
 import { publicErrorMessage } from "../../../lib/publicError";
 
 // POST /api/drill/howto { drill, sport }
 // Step-by-step instructions for a prescribed solo drill. Text-only and cheap
 // (fractions of a cent), so unmetered — same policy as /api/coach chat.
 export async function POST(req: Request) {
-  if (isRateLimited(req, "howto", 20)) {
+  if (await rateLimited(req, "howto", 20)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   try {

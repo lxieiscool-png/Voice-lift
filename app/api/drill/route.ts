@@ -1,6 +1,6 @@
 import { analyzeDrill, DrillCheckError } from "../../lib/analysis/analyzeDrill";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 import { getSessionUserId } from "../../lib/supabase/server";
 import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
 import { publicErrorMessage } from "../../lib/publicError";
@@ -10,7 +10,7 @@ import { publicErrorMessage } from "../../lib/publicError";
 // (cheap, ~24 frames) for signed-in users; guests are exempt. Identity comes
 // from the session cookie, same as every other metered route.
 export async function POST(req: Request) {
-  if (isRateLimited(req, "drill", 20)) {
+  if (await rateLimited(req, "drill", 20)) {
     return Response.json({ error: "Too many requests — slow down and try again in a minute." }, { status: 429 });
   }
   let metered: string | null = null;

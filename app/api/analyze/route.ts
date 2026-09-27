@@ -1,6 +1,6 @@
 import { analyzeChunk, SportsCheckError } from "../../lib/analysis/analyzeChunk";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 import { getSessionUserId } from "../../lib/supabase/server";
 import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
 import { publicErrorMessage } from "../../lib/publicError";
@@ -8,7 +8,7 @@ import { publicErrorMessage } from "../../lib/publicError";
 export async function POST(req: Request) {
   // Blunt anti-abuse: a normal analysis fans out many chunk calls, so this is
   // generous — only a scripted flood trips it.
-  if (isRateLimited(req, "analyze", 120)) {
+  if (await rateLimited(req, "analyze", 120)) {
     return Response.json({ error: "Too many requests — slow down and try again in a minute." }, { status: 429 });
   }
   let metered: string | null = null;

@@ -1,9 +1,9 @@
 import { synthesizeGameReport } from "../../lib/analysis/synthesize";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 import { publicErrorMessage } from "../../lib/publicError";
 
 export async function POST(req: Request) {
-  if (isRateLimited(req, "synthesize", 30)) {
+  if (await rateLimited(req, "synthesize", 30)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   try {

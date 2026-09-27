@@ -1,5 +1,5 @@
 import { chatComplete } from "../../lib/ai/chat";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 import { publicErrorMessage } from "../../lib/publicError";
 
 // Reel's help knowledge base — kept in sync with the actual app so the support
@@ -21,7 +21,7 @@ HOW REEL WORKS:
 Never make up features that aren't listed here. If asked something outside using Reel, gently steer back or suggest emailing support@getreel.org.`;
 
 export async function POST(req: Request) {
-  if (isRateLimited(req, "support", 30)) {
+  if (await rateLimited(req, "support", 30)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
   try {

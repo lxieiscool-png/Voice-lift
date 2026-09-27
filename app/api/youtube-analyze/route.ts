@@ -5,7 +5,7 @@ import { friendlyGeminiError } from "../../lib/ai/gemini";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
 import { checkAndIncrementGuestUsage } from "../../lib/guestUsage";
-import { isRateLimited } from "../../lib/ratelimit";
+import { rateLimited } from "../../lib/ratelimit";
 
 // POST /api/youtube-analyze { url, sport, jersey, teamColor, teamsNote, lenient }
 //
@@ -83,7 +83,7 @@ async function fetchDurationSeconds(videoId: string): Promise<number | null> {
 }
 
 export async function POST(req: Request) {
-  if (isRateLimited(req, "yt-analyze", 20)) {
+  if (await rateLimited(req, "yt-analyze", 20)) {
     return Response.json({ error: "Too many requests — try again in a minute." }, { status: 429 });
   }
 
