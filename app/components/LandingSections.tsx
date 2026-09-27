@@ -34,15 +34,16 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 
 // ─── 1. Film strip ───────────────────────────────────────────────────────────
 
-// Crops of real game film. Two source photos, framed differently, read as a
-// run of different moments.
+// Stock photos (Unsplash License), all adults. The first three are one game
+// (the Wolves vs Storm film above); the rest cut to other games.
+const u = (id: string) => `https://images.unsplash.com/${id}?w=720&q=70&auto=format&fit=crop`;
 const FRAMES = [
-  { src: "/demo-basketball.jpg", pos: "55% 35%", t: "0:21", who: "White #12", g: "C", tone: "court" },
-  { src: "/grid-basketball.jpg", pos: "57% 42%", t: "0:30", who: "Blue #30", g: "A-", tone: "good" },
-  { src: "/demo-basketball.jpg", pos: "30% 55%", t: "1:37", who: "Blue #4", g: "B+", tone: "good" },
-  { src: "/grid-basketball.jpg", pos: "88% 68%", t: "2:02", who: "White #23", g: "A", tone: "good" },
-  { src: "/demo-basketball.jpg", pos: "70% 40%", t: "2:25", who: "White #7", g: "B-", tone: "mid" },
-  { src: "/grid-basketball.jpg", pos: "60% 72%", t: "3:10", who: "Blue #11", g: "D", tone: "court" },
+  { src: u("photo-1573196444192-cc9f26e94408"), pos: "50% 30%", t: "0:12", who: "White #13", g: "B+", tone: "good" },
+  { src: u("photo-1585032083927-c7b26d6c1d07"), pos: "50% 35%", t: "0:30", who: "Black #21", g: "A-", tone: "good" },
+  { src: u("photo-1571561506106-80e72cbd1154"), pos: "45% 40%", t: "1:37", who: "White #11", g: "C", tone: "court" },
+  { src: u("photo-1550171362-62bca9e5ad4e"), pos: "50% 45%", t: "2:02", who: "White #23", g: "A", tone: "good" },
+  { src: u("photo-1580692516913-0b376a4c1ff6"), pos: "60% 40%", t: "2:25", who: "Maroon #3", g: "B-", tone: "mid" },
+  { src: u("photo-1635209985571-70128050869e"), pos: "50% 30%", t: "3:10", who: "Black #1", g: "A", tone: "good" },
 ] as const;
 
 export function FilmStrip() {

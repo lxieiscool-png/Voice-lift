@@ -108,14 +108,16 @@ const STAGES = [
 
 const PLAYS = [
   { t: "0:21", who: "White #12", q: "poor", what: "Forced a pass into the lane" },
-  { t: "0:30", who: "Blue #30", q: "good", what: "Leaked out, finished the layup" },
-  { t: "1:37", who: "Blue #4", q: "good", what: "Sealed the post, scored through contact" },
+  { t: "0:30", who: "Black #21", q: "good", what: "Stayed vertical, blocked it at the rim" },
+  { t: "1:37", who: "Black #30", q: "good", what: "Sealed the post, scored through contact" },
   { t: "2:02", who: "White #23", q: "good", what: "Drove middle, kicked to the wing" },
   { t: "2:25", who: "White #7", q: "neutral", what: "Open mid-range off the catch" },
 ] as const;
 
+const STORY_PHOTO = "https://images.unsplash.com/photo-1585032083927-c7b26d6c1d07?w=1600&q=75&auto=format&fit=crop";
+
 const BOX = [
-  ["#30", "Storm", 17, 6, 3], ["#12", "Wolves", 15, 4, 5], ["#4", "Storm", 12, 8, 1],
+  ["#30", "Storm", 17, 6, 3], ["#12", "Wolves", 15, 4, 5], ["#21", "Storm", 12, 11, 1],
   ["#23", "Wolves", 11, 9, 2], ["#7", "Wolves", 10, 3, 4],
 ] as const;
 
@@ -176,8 +178,8 @@ function AppWindow({ p, still = false }: { p: MotionValue<number>; still?: boole
   const filmDim = useTransform(boxIn, [0, 1], [1, 0.4]);
 
   const panel = wide
-    ? "absolute inset-y-0 right-0 w-[42%] border-l border-border"
-    : "absolute inset-x-0 bottom-0 h-[48%] border-t border-border";
+    ? "absolute inset-y-0 right-0 w-[42%]"
+    : "absolute inset-x-0 bottom-0 h-[48%]";
 
   return (
     <div className="relative mx-auto w-full overflow-hidden rounded-[22px] bg-card text-left shadow-lift ring-1 ring-black/5">
@@ -197,12 +199,14 @@ function AppWindow({ p, still = false }: { p: MotionValue<number>; still?: boole
           {/* A still from real film with a slow push-in tied to scroll — the
               clip format didn't decode in every browser, a still always does. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <motion.img src="/demo-basketball.jpg" alt="Basketball game film being analyzed"
-            style={{ scale: still ? 1.04 : filmZoom }} className="h-full w-full origin-[62%_45%] object-cover" />
+          {/* Stock photo (Unsplash License): adults, fictional teams — white
+              is the Wolves, black-and-orange is the Storm. */}
+          <motion.img src={STORY_PHOTO} alt="Basketball game film being analyzed"
+            style={{ scale: still ? 1.04 : filmZoom }} className="h-full w-full origin-[48%_50%] object-cover object-[50%_40%]" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-          <motion.div style={{ opacity: still ? 1 : trackIn, left: "50%", top: "28%", width: "23%", height: "48%" }} className="absolute">
+          <motion.div style={{ opacity: still ? 1 : trackIn, left: "41%", top: "22%", width: "14%", height: "64%" }} className="absolute">
             <div className="h-full w-full rounded-xl border-2 border-white/90" />
-            <span className="absolute -top-6 left-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-black">Blue #30</span>
+            <span className="absolute -top-6 left-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-black">Black #21</span>
           </motion.div>
           <div className="absolute inset-x-4 bottom-3 h-1 rounded-full bg-white/30">
             <motion.div style={{ width: still ? "40%" : playhead }} className="h-full rounded-full bg-white" />
@@ -221,12 +225,12 @@ function AppWindow({ p, still = false }: { p: MotionValue<number>; still?: boole
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">A-</span>
               <div className="min-w-0">
-                <p className="text-[15px] text-foreground">Blue #30 · Guard</p>
-                <p className="text-[12px] text-muted-foreground">0:30 · Transition</p>
+                <p className="text-[15px] text-foreground">Black #21 · Center</p>
+                <p className="text-[12px] text-muted-foreground">0:30 · Rim protection</p>
               </div>
             </div>
             <p className="mt-4 text-[12px] text-muted-foreground">The read</p>
-            <p className="mt-1 text-[14px] leading-snug text-foreground">Leaked out the moment the rebound was secured. Right read, on time.</p>
+            <p className="mt-1 text-[14px] leading-snug text-foreground">Stayed home, went straight up instead of reaching. Right read, on time.</p>
             <p className="mt-3 text-[12px] text-muted-foreground">Better option</p>
             <p className="mt-1 text-[14px] leading-snug text-foreground">None. This is the play.</p>
           </motion.div>
