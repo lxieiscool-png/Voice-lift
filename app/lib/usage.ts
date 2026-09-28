@@ -29,7 +29,7 @@ export type UsageStatus = { ok: boolean; count: number; limit: number; isPro: bo
 // unlimited everything and read as Pro across the app (no metering, no upgrade
 // prompts). Kept in env, not code, so no email or ID lives in the repo and
 // adding an owner is a dashboard change, not a deploy.
-function isOwner(userId: string): boolean {
+export function isOwner(userId: string): boolean {
   // Accept either spelling — the plural is the documented name, but the
   // singular is the easy typo and silently disables the bypass otherwise.
   const raw = process.env.OWNER_USER_IDS || process.env.OWNER_USER_ID || "";
