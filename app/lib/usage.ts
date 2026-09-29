@@ -13,6 +13,13 @@ export const USAGE_LIMITS: Record<UsageKind, { free: number; pro: number }> = {
   plan:  { free: 1,  pro: 50 },
 };
 
+// Free-plan caps are OFF unless FREE_LIMITS=on is set in the environment
+// (turned off while Reel is getting its first real users — nobody should hit a
+// wall before they've seen what it does). Usage is still counted either way,
+// and guest caps and IP rate limits stay on as the spend backstop.
+const FREE_LIMITS_ON = process.env.FREE_LIMITS === "on";
+const freeLimit = (kind: UsageKind) => (FREE_LIMITS_ON ? USAGE_LIMITS[kind].free : Infinity);
+
 const monthKey = () => new Date().toISOString().slice(0, 7); // "2026-07"
 const COL: Record<UsageKind, string> = {
   game:  "monthly_games",
@@ -48,7 +55,7 @@ export async function getUsage(userId: string, kind: UsageKind): Promise<UsageSt
     .from("profiles").select(SELECT_COLS).eq("id", userId).single();
   const row = data as Record<string, any> | null;
   const isPro = row?.is_pro ?? false;
-  const limit = isPro ? USAGE_LIMITS[kind].pro : USAGE_LIMITS[kind].free;
+  const limit = isPro ? USAGE_LIMITS[kind].pro : freeLimit(kind);
   const count = row?.month_key === monthKey() ? (row?.[COL[kind]] ?? 0) : 0;
   return { ok: count < limit, count, limit, isPro, kind };
 }
@@ -66,7 +73,7 @@ export async function checkAndIncrementUsage(userId: string, kind: UsageKind): P
   const row = data as Record<string, any> | null;
 
   const isPro = row?.is_pro ?? false;
-  const limit = isPro ? USAGE_LIMITS[kind].pro : USAGE_LIMITS[kind].free;
+  const limit = isPro ? USAGE_LIMITS[kind].pro : freeLimit(kind);
   const mk = monthKey();
   const newMonth = row?.month_key !== mk;
 
