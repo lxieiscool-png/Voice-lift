@@ -14,7 +14,9 @@ const LABEL_LINE = [
   // Player Tracking: "- Blue #12 Guard: ..."
   /^(\s*-\s*)([^:|]+?)(:\s)/,
   // Stat Events: "- Blue #12 | made_2"
-  /^(\s*-\s*)([^:|]+?)(\s*\|\s*[a-z_]+\s*$)/,
+  // (event tokens include digits: made_2, missed_3 — the old [a-z_] class
+  // never matched them, so box-score labels were never cleaned.)
+  /^(\s*-\s*)([^:|]+?)(\s*\|\s*[a-z_0-9]+\s*$)/,
   // Decision Events: "- 3:14 | Blue #12 | good | ..."
   /^(\s*-\s*\d{1,2}:\d{2}(?::\d{2})?\s*\|\s*)([^|]+?)(\s*\|)/,
 ];
@@ -46,7 +48,17 @@ function parseScoreLine(line: string): { side: string; score: number }[] | null 
   ] as { side: string; score: number; name?: string }[];
 }
 
-export type TeamResolution = { colors: string[]; names: Record<string, string> };
+export type TeamResolution = {
+  colors: string[];                 // [ours, theirs], canonical colour keys
+  names: Record<string, string>;
+  aliases: Record<string, string>;  // any colour word -> canonical ("red" -> "black" for a black/red kit)
+};
+
+// The first colour word in a label or scoreboard side, mapped to its team.
+function colorOf(text: string, t: Pick<TeamResolution, "aliases">): string {
+  const c = teamKeysFromColor(text.split("#")[0])[0] ?? parsePlayerLabel(text).team;
+  return t.aliases[c] ?? c;
+}
 
 // Work out the game's two team colours and each one's real name.
 export function resolveTeams(chunkTexts: string[], hint: GameTeamsHint): TeamResolution {
@@ -56,35 +68,41 @@ export function resolveTeams(chunkTexts: string[], hint: GameTeamsHint): TeamRes
       for (const re of LABEL_LINE) {
         const m = line.match(re);
         if (!m) continue;
-        const { team } = parsePlayerLabel(m[2].trim());
-        if (team !== "unknown") counts.set(team, (counts.get(team) ?? 0) + 1);
+        const c = teamKeysFromColor(m[2].split("#")[0])[0];
+        if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
         break;
       }
     }
   }
-  const mine = teamKeysFromColor(hint.teamColor).find(c => counts.has(c)) ?? teamKeysFromColor(hint.teamColor)[0];
-  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
-  const colors = mine ? [mine, ...ranked.filter(c => c !== mine)].slice(0, 2) : ranked.slice(0, 2);
+  // "Black/red" is ONE team in two colours: every colour the uploader typed
+  // belongs to their side, under whichever of them the film used most.
+  const ours = teamKeysFromColor(hint.teamColor);
+  const mine = [...ours].sort((x, y) => (counts.get(y) ?? 0) - (counts.get(x) ?? 0))[0];
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c).filter(c => !ours.includes(c));
+  const colors = mine ? [mine, ...ranked].slice(0, 2) : ranked.slice(0, 2);
+  const aliases: Record<string, string> = {};
+  for (const c of ours) if (mine) aliases[c] = mine;
 
   const names: Record<string, string> = {};
-  // The scoreboard pairs colours with names directly: "Gray 12 – Blue 18 [Titanium – Anaheim Select]".
+  // The names the uploader chose win: the gym scoreboard shows the host
+  // school or HOME/GUEST, not necessarily the teams that are playing.
+  if (colors[0] && hint.teamName) names[colors[0]] = hint.teamName;
+  if (colors[1] && hint.opponentName) names[colors[1]] = hint.opponentName;
+  // "Titanium (Gray) vs Anaheim Select (Blue)" style notes.
+  for (const m of (hint.teamsNote ?? "").matchAll(/([A-Za-z][\w .'&-]*?)\s*\(\s*([A-Za-z /]+)\s*\)/g)) {
+    const c = aliases[teamKeysFromColor(m[2])[0]] ?? teamKeysFromColor(m[2])[0];
+    if (c && colors.includes(c) && !names[c]) names[c] = m[1].trim();
+  }
+  // Last resort: names printed on the scoreboard.
   for (const text of chunkTexts) {
     for (const label of ["Score Start", "Score End"] as const) {
       for (const side of (parseScoreLine(scoreLines(text, label)) ?? []) as { side: string; name?: string }[]) {
-        const c = parsePlayerLabel(side.side).team;
-        if (side.name && colors.includes(c) && !names[c]) names[c] = side.name;
+        const c = colorOf(side.side, { aliases });
+        if (side.name && colors.includes(c) && !names[c] && !/^(home|guest|visitor|away)$/i.test(side.name)) names[c] = side.name;
       }
     }
   }
-  // "Titanium (Gray) vs Anaheim Select (Blue)" style notes.
-  for (const m of (hint.teamsNote ?? "").matchAll(/([A-Za-z][\w .'&-]*?)\s*\(\s*([A-Za-z ]+)\s*\)/g)) {
-    const c = teamKeysFromColor(m[2])[0];
-    if (c && colors.includes(c) && !names[c]) names[c] = m[1].trim();
-  }
-  // The uploader's own team and the opponent they typed in.
-  if (colors[0] && hint.teamName && !names[colors[0]]) names[colors[0]] = hint.teamName;
-  if (colors[1] && hint.opponentName && !names[colors[1]]) names[colors[1]] = hint.opponentName;
-  return { colors, names };
+  return { colors, names, aliases };
 }
 
 // Rewrite every player label to "Colour #N ..." against the game's two teams.
@@ -101,7 +119,7 @@ export function normalizeGameTexts(chunkTexts: string[], teams: TeamResolution):
     const m = label.match(/^(.*?)\s*#\s*(\d{1,2})(.*)$/);
     const prefix = (m ? m[1] : label.split(/\s+/)[0]).trim();
     const rest = m ? `#${m[2]}${m[3]}` : label.slice(prefix.length).trim();
-    let color = parsePlayerLabel(prefix || "x").team;
+    let color = colorOf(prefix || "x", teams);
     if (!colors.includes(color)) color = nameToColor(prefix) ?? color;
     if (!colors.includes(color) && m) {
       const owners = colors.filter(c => jerseys.get(c)!.has(m[2]));
@@ -114,7 +132,8 @@ export function normalizeGameTexts(chunkTexts: string[], teams: TeamResolution):
   // Pass 1: learn jersey sets from labels whose colour is already clean.
   for (const text of chunkTexts) for (const line of text.split("\n")) for (const re of LABEL_LINE) {
     const m = line.match(re); if (!m) continue;
-    const { team, jersey } = parsePlayerLabel(m[2].trim());
+    const { jersey } = parsePlayerLabel(m[2].trim());
+    const team = colorOf(m[2].trim(), teams);
     if (jersey && colors.includes(team)) jerseys.get(team)!.add(jersey);
     break;
   }
@@ -128,10 +147,55 @@ export function normalizeGameTexts(chunkTexts: string[], teams: TeamResolution):
   }
 
   // Pass 2: rewrite.
-  return chunkTexts.map(text => text.split("\n").map(line => {
+  const rewritten = chunkTexts.map(text => text.split("\n").map(line => {
     for (const re of LABEL_LINE) {
       const m = line.match(re);
       if (m) return line.replace(re, `$1${fix(m[2].trim())}$3`);
+    }
+    return line;
+  }).join("\n"));
+  return mergeMisreadJerseys(rewritten, colors);
+}
+
+// Digits the model confuses on real jerseys (folds, motion blur, angle).
+const CONFUSABLE: Record<string, string[]> = {
+  "0": ["8", "6", "9"], "1": ["7", "4"], "3": ["8", "5"], "4": ["1"], "5": ["6", "3"],
+  "6": ["8", "5", "0"], "7": ["1"], "8": ["6", "3", "0", "9"], "9": ["8", "0"],
+};
+const confusable = (a: string, b: string) => {
+  if (a.length !== b.length) return false;
+  const diff = [...a].map((ch, i) => [ch, b[i]]).filter(([x, y]) => x !== y);
+  return diff.length === 1 && (CONFUSABLE[diff[0][0]] ?? []).includes(diff[0][1]);
+};
+
+// A number seen once or twice on a team that is one confusable digit away
+// from a number seen many times on the SAME team is almost always a misread
+// of that player — merge it, so one player isn't split into two box-score
+// rows. Deliberately conservative: needs one unambiguous candidate that was
+// seen at least 5 times and at least 3x as often.
+function mergeMisreadJerseys(texts: string[], colors: string[]): string[] {
+  const seen = new Map<string, number>(); // "gray#8" -> occurrences
+  for (const t of texts) for (const line of t.split("\n")) for (const re of LABEL_LINE) {
+    const m = line.match(re); if (!m) continue;
+    const { team, jersey } = parsePlayerLabel(m[2].trim());
+    if (jersey && colors.includes(team)) seen.set(`${team}#${jersey}`, (seen.get(`${team}#${jersey}`) ?? 0) + 1);
+    break;
+  }
+  const remap = new Map<string, string>();
+  for (const [key, n] of seen) {
+    if (n > 2) continue;
+    const [team, num] = key.split("#");
+    const cands = [...seen].filter(([k, c]) => k.startsWith(`${team}#`) && c >= 5 && c >= n * 3 && confusable(num, k.split("#")[1]));
+    if (cands.length === 1) remap.set(key, cands[0][0].split("#")[1]);
+  }
+  if (remap.size === 0) return texts;
+  return texts.map(t => t.split("\n").map(line => {
+    for (const re of LABEL_LINE) {
+      const m = line.match(re); if (!m) continue;
+      const label = m[2].trim();
+      const { team, jersey } = parsePlayerLabel(label);
+      const to = jersey ? remap.get(`${team}#${jersey}`) : undefined;
+      return to ? line.replace(re, `$1${label.replace(/#\s*\d{1,2}/, `#${to}`)}$3`) : line;
     }
     return line;
   }).join("\n"));
@@ -159,45 +223,57 @@ export function buildScoreboard(chunkTexts: string[], teams: TeamResolution): Ga
     if (!sides) return null;
     const out: Record<string, number> = {};
     for (const s of sides) {
-      let c = parsePlayerLabel(s.side).team;
+      let c = colorOf(s.side, teams);
       if (!colors.includes(c)) c = colors.find(k => names[k] && sameTeamName(s.side, names[k])) ?? c;
       if (colors.includes(c)) out[c] = s.score;
     }
     return Object.keys(out).length === 2 ? out : null;
   };
 
-  const windows = chunkTexts.map((text, index) => {
-    const start = read(scoreLines(text, "Score Start")) ?? null;
-    const end = read(scoreLines(text, "Score End") || scoreLines(text, "Score")) ?? null;
-    const box = buildBoxScore([text]);
-    const tracked: Record<string, number> = {};
-    for (const c of colors) tracked[c] = box.filter(r => r.team === c).reduce((n, r) => n + r.pts, 0);
-    return { index, start, end, tracked };
+  // Every reading with its moment on the film: window i starts at t=i and
+  // ends at t=i+1, so window i's end and window i+1's start are the same
+  // instant and must agree.
+  type R = { t: number; v: Record<string, number>; w: number; at: "start" | "end" };
+  const readings: R[] = [];
+  chunkTexts.forEach((text, i) => {
+    const st = read(scoreLines(text, "Score Start"));
+    const en = read(scoreLines(text, "Score End") || scoreLines(text, "Score"));
+    if (st) readings.push({ t: i, v: st, w: i, at: "start" });
+    if (en) readings.push({ t: i + 1, v: en, w: i, at: "end" });
   });
+  if (readings.length === 0) return null;
 
-  // Scores only go up. A reading lower than one already accepted is a
-  // misread (a glare-washed digit, a replay graphic) — drop it.
-  const best: Record<string, number> = {};
-  let first: Record<string, number> | null = null;
-  let last: Record<string, number> | null = null;
-  for (const w of windows) {
-    for (const r of [w.start, w.end]) {
-      if (!r) continue;
-      if (colors.some(c => r[c] < (best[c] ?? 0))) continue;
-      for (const c of colors) best[c] = r[c];
-      first ??= r;
-      last = r;
-    }
-  }
-  if (!last || !first) return null;
-  const final = last, opening = first;
+  // The model misreads (and sometimes invents) scoreboard digits. Keep only
+  // the longest chain of readings that is physically possible: scores never
+  // go down, can't move more than a few points at the same instant, and can't
+  // move more than ~14 points per team in a two-minute window.
+  const ok = (a: R, b: R) => colors.every(c => {
+    const d = b.v[c] - a.v[c];
+    const limit = b.t === a.t ? 3 : 14 * (b.t - a.t);
+    return d >= 0 && d <= limit;
+  });
+  const len = readings.map(() => 1), prev = readings.map(() => -1);
+  for (let j = 0; j < readings.length; j++)
+    for (let i = 0; i < j; i++)
+      if (readings[i].t <= readings[j].t && ok(readings[i], readings[j]) && len[i] + 1 > len[j]) { len[j] = len[i] + 1; prev[j] = i; }
+  let end = 0;
+  len.forEach((l, i) => { if (l > len[end] || (l === len[end] && readings[i].t >= readings[end].t)) end = i; });
+  // A lone reading proves nothing — need at least three that agree.
+  if (len[end] < 3) return null;
+  const chain = new Set<number>();
+  for (let k = end; k !== -1; k = prev[k]) chain.add(k);
+  const kept = readings.filter((_, i) => chain.has(i));
+  const first = kept[0].v, last = kept[kept.length - 1].v;
+
   return {
-    teams: colors.map(color => ({ color, name: names[color] ?? null, final: final[color], start: opening[color] })),
-    windows: windows.map(w => ({
-      index: w.index,
-      scored: w.start && w.end ? Object.fromEntries(colors.map(c => [c, w.end![c] - w.start![c]])) : null,
-      tracked: w.tracked,
-    })),
+    teams: colors.map(color => ({ color, name: names[color] ?? null, final: last[color], start: first[color] })),
+    windows: chunkTexts.map((text, index) => {
+      const st = kept.find(r => r.w === index && r.at === "start"), en = kept.find(r => r.w === index && r.at === "end");
+      const box = buildBoxScore([text]);
+      const tracked: Record<string, number> = {};
+      for (const c of colors) tracked[c] = box.filter(r => r.team === c).reduce((n, r) => n + r.pts, 0);
+      return { index, scored: st && en ? Object.fromEntries(colors.map(c => [c, en.v[c] - st.v[c]])) : null, tracked };
+    }),
   };
 }
 
