@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getSessionUserId } from "../lib/supabase/server";
 import { isOwner } from "../lib/usage";
 import { loadAdminOverview } from "../lib/admin/users";
+import { geminiHealth } from "../lib/ai/gemini";
 import AdminUsers from "./AdminUsers";
 
 // Owner-only. Anyone else — signed out, or signed in as a normal user — gets
@@ -16,7 +17,7 @@ export default async function AdminPage() {
   const userId = await getSessionUserId();
   if (!userId || !isOwner(userId)) notFound();
 
-  const data = await loadAdminOverview();
+  const [data, gemini] = await Promise.all([loadAdminOverview(), geminiHealth()]);
   const { funnel, lastWeek } = data;
   const pct = (n: number) => funnel.signedUp ? `${Math.round((n / funnel.signedUp) * 100)}%` : "—";
   const steps = [
@@ -31,6 +32,18 @@ export default async function AdminPage() {
       <div className="mb-8 flex items-center justify-between">
         <Link href="/" className="btn-pill btn-light !py-2 !text-[13px]">← Back to Reel</Link>
         <p className="text-[12px] text-muted-foreground">Owner only · loaded {new Date(data.loadedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</p>
+      </div>
+
+      {/* Service health: an empty Gemini balance silently breaks every
+          YouTube-link analysis, so it's the first thing on this page. */}
+      <div className={`surface mb-6 flex flex-wrap items-center gap-3 px-5 py-3.5 text-[14px] ${gemini.status === "ok" ? "" : "ring-2 ring-court"}`}>
+        <span className={`h-2.5 w-2.5 rounded-full ${gemini.status === "ok" ? "bg-emerald-500" : "bg-court"}`} />
+        <span className="text-foreground">Gemini (video analysis):{" "}
+          {gemini.status === "ok" ? "working"
+            : gemini.status === "out_of_credits" ? <b className="text-court">OUT OF CREDITS — link analysis is down for everyone. Top up in Google AI Studio → Billing.</b>
+            : gemini.status === "not_configured" ? "not configured"
+            : <span className="text-court">error: {gemini.detail}</span>}
+        </span>
       </div>
 
       <h1 className="mb-8 font-display text-4xl font-normal leading-[1.05] sm:text-5xl">

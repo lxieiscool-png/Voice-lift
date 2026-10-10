@@ -29,14 +29,15 @@ const MODELS = ["gemini-3.7-flash", "gemini-3.6-flash"];
 function isTransient(e: unknown): boolean {
   const msg = String((e as any)?.message ?? e);
   // Credit exhaustion also returns 429 but retrying never helps.
-  if (/credits? (are )?depleted|prepayment/i.test(msg)) return false;
+  if (/credits? (are )?depleted|prepayment|\b402\b/i.test(msg)) return false;
   return /\b(429|500|503)\b|high demand|overloaded|resource.?exhausted|try again/i.test(msg);
 }
 
 // Turn Gemini's API errors into something an athlete can act on.
 export function friendlyGeminiError(e: unknown): string {
   const msg = String((e as any)?.message ?? e);
-  if (/credits? (are )?depleted|prepayment|billing/i.test(msg)) {
+  // 402 = the prepaid Gemini balance is empty (it arrives with no message).
+  if (/credits? (are )?depleted|prepayment|billing|\b402\b/i.test(msg)) {
     return "Analysis is temporarily unavailable. Please try again later.";
   }
   if (/private|unlisted|not accessible|permission|forbidden|403/i.test(msg)) {
@@ -133,4 +134,18 @@ export function flattenChat(system: string, messages: { role: string; content: s
     .map((m) => `${m.role === "assistant" ? "Coach" : "Athlete"}: ${m.content}`)
     .join("\n\n");
   return `${system}\n\n--- CONVERSATION SO FAR ---\n${transcript}\n\nReply as the Coach. Output only your reply text — no "Coach:" prefix.`;
+}
+
+// Owner health check: one tiny text call. Returns "ok", "out_of_credits",
+// or the error text — shown on /admin so an empty balance can't go unnoticed.
+export async function geminiHealth(): Promise<{ status: "ok" | "out_of_credits" | "error" | "not_configured"; detail?: string }> {
+  if (!process.env.GEMINI_API_KEY) return { status: "not_configured" };
+  try {
+    const r = await (getClient() as any).interactions.create({ model: MODELS[0], input: [{ type: "text", text: "Reply OK" }], generation_config: { thinking_level: "low", max_output_tokens: 5 } });
+    return r ? { status: "ok" } : { status: "error", detail: "empty response" };
+  } catch (e) {
+    const msg = String((e as any)?.message ?? e);
+    if (/\b402\b|credits? (are )?depleted|prepayment|billing/i.test(msg)) return { status: "out_of_credits" };
+    return { status: "error", detail: msg.slice(0, 160) };
+  }
 }
