@@ -6,6 +6,10 @@ import { analyzeChunk, SportsCheckError } from "../analysis/analyzeChunk";
 import { synthesizeGameReport } from "../analysis/synthesize";
 import { parseGameReport } from "../analysis/parsers";
 import { prepareGame, gameFactsForPrompt, finalizeGameReport, mismatchedWindows, acceptSecondLook } from "../analysis/gameAccuracy";
+import {
+  SCOREBOARD_WINDOW, CLIP_BEFORE, CLIP_AFTER, scoreboardPrompt, parseScoreboard, buildTimeline,
+  attributionPrompt, attributionLines, stripMadeLines, sideAliases,
+} from "../analysis/scoreTimeline";
 import { formatTime } from "../decisioniq-helpers";
 import { refundUsage } from "../usage";
 import { geminiGenerate } from "../ai/gemini";
@@ -256,6 +260,57 @@ export const analyzeGameJob = inngest.createFunction(
         });
       }
       game = prepareGame(chunkSummaries.map(c => c.text), hint);
+    }
+
+    // Scoreboard-anchored scoring (ANCHORED_SCORING=on). A scoreboard-only
+    // pass finds every score change; a short zoomed clip per change says who
+    // scored. Points then come only from those events. If the board can't be
+    // read the windows' own scoring stands. Off by default until it has been
+    // measured against real box scores.
+    if (videoUrl && process.env.ANCHORED_SCORING === "on" && game.teams.colors.length === 2) {
+      const sbCount = Math.max(1, Math.ceil(videoLength / SCOREBOARD_WINDOW));
+      const sbSpan = videoLength / sbCount;
+      const sbTexts: string[] = [];
+      for (let b = 0; b < sbCount; b += VIDEO_CONCURRENCY) {
+        sbTexts.push(...await Promise.all(Array.from({ length: Math.min(VIDEO_CONCURRENCY, sbCount - b) }, (_, k) => {
+          const i = b + k, start = Math.floor(i * sbSpan), end = Math.ceil(Math.min(videoLength, (i + 1) * sbSpan));
+          return step.run(`scoreboard-${i}`, async () => {
+            try {
+              return await geminiGenerate({ prompt: scoreboardPrompt(start, end), videoUrl, videoStart: start, videoEnd: end, videoFps: 1, videoResolution: "high", thinking: "low", temperature: 0 });
+            } catch { return ""; }
+          });
+        })));
+      }
+      const [ours, theirs] = game.teams.colors;
+      const readings = sbTexts.flatMap((t, i) => parseScoreboard(t, Math.floor(i * sbSpan)));
+      const timeline = buildTimeline(readings, sideAliases(game.texts, ours, theirs, game.teams.names[ours], game.teams.names[theirs]));
+      if (timeline && timeline.events.length > 0) {
+        const cap = (c: string) => c.charAt(0).toUpperCase() + c.slice(1);
+        const lines: string[] = [];
+        for (let b = 0; b < timeline.events.length; b += VIDEO_CONCURRENCY) {
+          const batch = timeline.events.slice(b, b + VIDEO_CONCURRENCY);
+          const answers = await Promise.all(batch.map((ev, k) => step.run(`attribute-${b + k}`, async () => {
+            const colour = cap(ev.side === 0 ? ours : theirs);
+            const label = `${game.teams.names[ev.side === 0 ? ours : theirs] ?? colour} (${colour.toLowerCase()} jerseys)`;
+            try {
+              return await geminiGenerate({
+                prompt: attributionPrompt(ev, label, colour, ev.side === 0 ? rosterNumbers : []),
+                videoUrl, videoStart: Math.max(0, ev.t - CLIP_BEFORE), videoEnd: Math.min(videoLength, ev.t + CLIP_AFTER),
+                videoFps: 5, videoResolution: "high", thinking: "medium", temperature: 0,
+              });
+            } catch { return ""; }
+          })));
+          batch.forEach((ev, k) => lines.push(...attributionLines(answers[k], ev, cap(ev.side === 0 ? ours : theirs))));
+        }
+        const scoringText = `Scoring (read from the scoreboard, scorer identified per basket):\n\nStat Events:\n${lines.join("\n")}\n`;
+        chunkSummaries.forEach((c, i) => { chunkSummaries[i] = { ...c, text: stripMadeLines(c.text) }; });
+        chunkSummaries.push({ index: chunkSummaries.length, start: formatTime(0), end: formatTime(videoLength), text: scoringText });
+        game = prepareGame(chunkSummaries.map(c => c.text), hint);
+        game.scoreboard = {
+          teams: [ours, theirs].map((color, s) => ({ color, name: game.teams.names[color] ?? null, final: timeline.final[s], start: timeline.start[s] })),
+          windows: [],
+        };
+      }
     }
     const cleanSummaries = chunkSummaries.map((c, i) => ({ ...c, text: game.texts[i] }));
 
