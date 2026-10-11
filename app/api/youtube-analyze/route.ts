@@ -115,6 +115,22 @@ export async function POST(req: Request) {
 
     // Same metering as every other analysis path.
     const userId = await getSessionUserId();
+
+    // Re-submitting a game this user already analyzed (or is analyzing)
+    // reuses that job instead of paying for the whole game again — checked
+    // before metering so it doesn't cost a credit either. The client polls
+    // the returned job exactly as it would a new one. body.reanalyze forces a
+    // fresh run.
+    if (userId && mode === "game" && !body.reanalyze) {
+      const { data: prior } = await createAdminClient().from("analysis_jobs")
+        .select("id,status,review_id").eq("user_id", userId)
+        .like("file_name", `%${videoId}%`).in("status", ["queued", "processing", "complete"])
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (prior && (prior.status !== "complete" || prior.review_id)) {
+        return Response.json({ mode, queued: true, jobId: prior.id, durationSeconds, reused: true });
+      }
+    }
+
     if (userId) {
       const usage = await checkAndIncrementUsage(userId, mode);
       if (!usage.ok) {

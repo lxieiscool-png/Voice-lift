@@ -5,7 +5,7 @@ import { createAdminClient } from "../supabase/admin";
 import { analyzeChunk, SportsCheckError } from "../analysis/analyzeChunk";
 import { synthesizeGameReport } from "../analysis/synthesize";
 import { parseGameReport } from "../analysis/parsers";
-import { prepareGame, gameFactsForPrompt, finalizeGameReport, mismatchedWindows, acceptSecondLook } from "../analysis/gameAccuracy";
+import { prepareGame, gameFactsForPrompt, finalizeGameReport } from "../analysis/gameAccuracy";
 import {
   SCOREBOARD_WINDOW, CLIP_BEFORE, CLIP_AFTER, scoreboardPrompt, parseScoreboard, buildTimeline,
   attributionPrompt, attributionLines, stripMadeLines, sideAliases,
@@ -227,40 +227,8 @@ export const analyzeGameJob = inngest.createFunction(
     const hint = { teamColor, teamsNote, teamName, opponentName: job.opponent_name };
     let game = prepareGame(chunkSummaries.map(c => c.text), hint);
 
-    // Second look at windows whose logged points don't match the scoreboard,
-    // told how many points each team really scored there. Kept only when it
-    // matches the scoreboard without taking a basket away from a player the
-    // first pass named (acceptSecondLook) — otherwise the first pass stands.
-    const recheck = videoUrl ? mismatchedWindows(game) : [];
-    if (recheck.length > 0) {
-      await step.run("progress-recheck", async () => {
-        await supabase.from("analysis_jobs").update({ progress_label: "Double-checking the score…" }).eq("id", jobId);
-      });
-      for (let b = 0; b < recheck.length; b += VIDEO_CONCURRENCY) {
-        const second = await Promise.all(recheck.slice(b, b + VIDEO_CONCURRENCY).map(w =>
-          step.run(`recheck-${w.index}`, async () => {
-            const { start, end } = videoWindows[w.index];
-            try {
-              return await analyzeChunk({
-                sport: job.sport, frames: [], mode: "game", chunkIndex: w.index,
-                chunkStart: formatTime(start), chunkEnd: formatTime(end),
-                jersey, teamColor, teamsNote, lenient, rosterNumbers,
-                videoUrl, videoStart: start, videoEnd: end,
-                scoreCheck: { scored: w.scored, logged: w.logged },
-              });
-            } catch {
-              return null; // a failed second look just keeps the first pass
-            }
-          })));
-        recheck.slice(b, b + VIDEO_CONCURRENCY).forEach((w, k) => {
-          const text = second[k];
-          if (text && acceptSecondLook(chunkSummaries[w.index].text, text, w.index, game)) {
-            chunkSummaries[w.index] = { ...chunkSummaries[w.index], text };
-          }
-        });
-      }
-      game = prepareGame(chunkSummaries.map(c => c.text), hint);
-    }
+    // (The old "second look" re-run of windows that missed the scoreboard was
+    // dropped: it added ~20% to every game's cost and was rarely accepted.)
 
     // Scoreboard-anchored scoring (ANCHORED_SCORING=on). A scoreboard-only
     // pass finds every score change; a short zoomed clip per change says who

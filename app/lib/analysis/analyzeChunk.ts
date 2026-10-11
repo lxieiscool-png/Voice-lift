@@ -286,7 +286,9 @@ Do not add any other text.`;
       prompt, videoUrl, videoStart, videoEnd, videoFps,
       // Jersey legibility is the whole game for per-player grading.
       videoResolution: "high",
-      thinking: isGameMode ? "medium" : "high",
+      // Game windows are logging, not reasoning: "low" thinking costs far
+      // less (thinking is billed as output) for the same event lists.
+      thinking: isGameMode ? "low" : "high",
     });
   }
 
