@@ -286,9 +286,10 @@ Do not add any other text.`;
       prompt, videoUrl, videoStart, videoEnd, videoFps,
       // Jersey legibility is the whole game for per-player grading.
       videoResolution: "high",
-      // Game windows are logging, not reasoning: "low" thinking costs far
-      // less (thinking is billed as output) for the same event lists.
-      thinking: isGameMode ? "low" : "high",
+      // "medium" for game windows. A cost cut to "low" coincided with a much
+      // worse box score on a re-run of a real game (14% vs 64% of points to
+      // the right player); not worth ~15% of cost until measured otherwise.
+      thinking: isGameMode ? "medium" : "high",
     });
   }
 
