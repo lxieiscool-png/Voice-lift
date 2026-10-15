@@ -21,9 +21,19 @@ export async function chatComplete({ messages, maxTokens, temperature }: {
     const prompt = rest.length === 1 && rest[0].role === "user"
       ? `${system}\n\n${rest[0].content}`
       : flattenChat(system, rest);
-    return await geminiGenerate({ prompt, thinking: "low", temperature, maxOutputTokens: maxTokens });
+    return plainText(await geminiGenerate({ prompt, thinking: "low", temperature, maxOutputTokens: maxTokens }));
   }
 
   const response = await fastChat(openai, { messages, maxTokens, temperature });
-  return response.choices[0]?.message?.content ?? "";
+  return plainText(response.choices[0]?.message?.content ?? "");
+}
+
+// Every chat surface renders replies as plain text, so markdown emphasis and
+// headings would show up as literal ** and #. Newer models add them freely.
+// "- " list lines are left alone — the drills parser relies on them.
+function plainText(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "");
 }
