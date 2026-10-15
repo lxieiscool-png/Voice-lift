@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { geminiGenerate, useGemini } from "../ai/gemini";
+import { fastResponse } from "../ai/openaiModels";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -7,17 +8,16 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // worth paying for gpt-5's reasoning. Game-mode segments are mechanical
 // extraction (who's visible, what happened) repeated many times per game;
 // reasoning effort there is pure latency/cost with no quality payoff, so
-// those go straight to gpt-4.1. gpt-5 is a reasoning model — it rejects
-// `temperature`, so params differ per model.
+// those go straight to the fast model (see ai/openaiModels).
 async function createVisionResponse(input: any, useReasoning: boolean) {
   if (!useReasoning) {
-    return await openai.responses.create({ model: "gpt-4.1", temperature: 0, input });
+    return await fastResponse(openai, { input });
   }
   try {
     return await openai.responses.create({ model: "gpt-5", reasoning: { effort: "low" }, input } as any);
   } catch (e) {
-    console.warn("gpt-5 unavailable, falling back to gpt-4.1:", (e as any)?.message);
-    return await openai.responses.create({ model: "gpt-4.1", temperature: 0, input });
+    console.warn("gpt-5 unavailable, falling back to the fast model:", (e as any)?.message);
+    return await fastResponse(openai, { input });
   }
 }
 
@@ -257,8 +257,7 @@ Do not add any other text.`;
         prompt: precheckPrompt, images: frames.slice(0, 3), thinking: "low", temperature: 0,
       })).trim();
     } else {
-      const checkResponse = await openai.responses.create({
-        model: "gpt-4.1",
+      const checkResponse = await fastResponse(openai, {
         input: [
           {
             role: "user",
@@ -268,7 +267,6 @@ Do not add any other text.`;
             ],
           },
         ],
-        temperature: 0,
       });
       checkResult = checkResponse.output_text?.trim() ?? "";
     }

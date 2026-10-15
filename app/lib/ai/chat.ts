@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { geminiGenerate, flattenChat, useGemini } from "./gemini";
+import { fastChat } from "./openaiModels";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -23,11 +24,6 @@ export async function chatComplete({ messages, maxTokens, temperature }: {
     return await geminiGenerate({ prompt, thinking: "low", temperature, maxOutputTokens: maxTokens });
   }
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4.1",
-    max_tokens: maxTokens,
-    temperature,
-    messages,
-  });
+  const response = await fastChat(openai, { messages, maxTokens, temperature });
   return response.choices[0]?.message?.content ?? "";
 }

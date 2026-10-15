@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { geminiGenerate, useGemini } from "../ai/gemini";
 import { buildDecisionTally } from "./parsers";
+import { fastResponse } from "../ai/openaiModels";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -142,9 +143,10 @@ Practice Focus:
     return await geminiGenerate({ prompt: promptText, thinking: "medium", temperature: 0.3 });
   }
 
-  const response = await openai.responses.create({
-    model: "gpt-4.1",
+  // One call per game that writes the whole report — worth a little reasoning.
+  const response = await fastResponse(openai, {
     input: [{ role: "user", content: [{ type: "input_text", text: promptText }] }],
+    effort: "low",
     temperature: 0.3,
   });
 

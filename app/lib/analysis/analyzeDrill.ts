@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { geminiGenerate, useGemini } from "../ai/gemini";
+import { fastResponse } from "../ai/openaiModels";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -29,8 +30,7 @@ export async function analyzeDrill({ drill, frames, sport }: AnalyzeDrillInput):
   if (useGemini("clips")) {
     checkResult = (await geminiGenerate({ prompt: checkPrompt, images: frames.slice(0, 3), thinking: "low", temperature: 0 })).trim();
   } else {
-    const check = await openai.responses.create({
-      model: "gpt-4.1",
+    const check = await fastResponse(openai, {
       input: [{
         role: "user",
         content: [
@@ -38,7 +38,6 @@ export async function analyzeDrill({ drill, frames, sport }: AnalyzeDrillInput):
           ...imageInputs.slice(0, 3),
         ],
       }],
-      temperature: 0,
     });
     checkResult = check.output_text?.trim() ?? "";
   }
@@ -71,8 +70,7 @@ Focus Next: [one concrete cue to hold in their mind on the next rep]`;
     return await geminiGenerate({ prompt, images: frames, thinking: "low", temperature: 0.2 });
   }
 
-  const response = await openai.responses.create({
-    model: "gpt-4.1",
+  const response = await fastResponse(openai, {
     temperature: 0.2,
     input: [{
       role: "user",
