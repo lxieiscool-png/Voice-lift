@@ -22,11 +22,12 @@ function persistReview(userId: string | undefined, review: Review) {
   }).then(({ error }) => { if (error) console.error("Failed to save review to account:", error.message); });
 }
 
+// Server-side so the game's thumbnail image is deleted along with the row.
 function deleteReviewRemote(userId: string | undefined, id: string) {
   if (!userId) return;
-  const supabase = createClient();
-  supabase.from("reviews").delete().eq("id", id).eq("user_id", userId)
-    .then(({ error }) => { if (error) console.error("Failed to delete review from account:", error.message); });
+  fetch("/api/reviews/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
+    .then(r => { if (!r.ok) console.error("Failed to delete review from account:", r.status); })
+    .catch(e => console.error("Failed to delete review from account:", e));
 }
 
 function renameReviewRemote(userId: string | undefined, id: string, fileName: string) {
@@ -592,7 +593,7 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
             <p className="text-lg font-semibold text-foreground">Drills for {name}</p>
             <p className="text-xs text-muted-foreground">To fix: {focus}</p>
           </div>
-          <button onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="shrink-0 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
         </div>
 
         {loading && (
@@ -2595,7 +2596,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
                     ← Back to library
                   </button>
                   <p className="truncate px-3 text-sm font-semibold text-foreground">{openReview.fileName || openReview.sport}</p>
-                  <button onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+                  <button aria-label="Close" onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
                 </div>
                 {openReview.mode === "clip" && openReview.decisions
                   ? <PlayerCardList decisions={openReview.decisions} />
@@ -2628,7 +2629,7 @@ function ReviewMenu({ review, teams, sharing, onOpen, onRename, onShare, onLinkT
   }, [open]);
   return (
     <div className="relative shrink-0">
-      <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+      <button aria-label="Game options" onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
         className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground">
         <MoreVertical className="h-4 w-4" />
       </button>

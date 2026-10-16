@@ -16,7 +16,7 @@
   --card: #ffffff;
   --card-foreground: #0e0f11;
   --muted: #efede7;
-  --muted-foreground: #6f6c66;
+  --muted-foreground: #67645e; /* 4.5:1+ on background, muted and border fills (WCAG AA) */
   --border: #e5e2da;
   --input: #dedad1;
   --accent: #efede7;
@@ -128,4 +128,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Visible keyboard focus everywhere (mouse clicks don't trigger it). */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
 }

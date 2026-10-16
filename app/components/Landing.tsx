@@ -102,9 +102,9 @@ function Header({ onStart, onSignIn, signingIn }: Pick<LandingProps, "onStart" |
 
 const STAGES = [
   { a: "Paste a link.", b: "Reel watches the whole game." },
-  { a: "Every possession, logged.", b: "Both teams, timestamped." },
-  { a: "Every decision, graded.", b: "The way a coach would." },
-  { a: "The box score writes itself.", b: "Checked against the scoreboard." },
+  { a: "Possessions, logged.", b: "Both teams, timestamped." },
+  { a: "Decisions, graded.", b: "The way a coach would." },
+  { a: "The box score writes itself.", b: "Checked against the scoreboard when it's on screen." },
 ];
 
 const PLAYS = [
@@ -190,7 +190,8 @@ function AppWindow({ p, still = false }: { p: MotionValue<number>; still?: boole
           <span className="h-3 w-3 rounded-full bg-[#ff5f57]" /><span className="h-3 w-3 rounded-full bg-[#febc2e]" /><span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </div>
         <p className="truncate text-sm text-foreground">Lakeview Wolves vs Harbor City Storm</p>
-        <span className="ml-auto hidden rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground sm:inline">Game report</span>
+        {/* Fictional teams and numbers — labelled so it never reads as a real result. */}
+        <span className="ml-auto shrink-0 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">Example report</span>
       </div>
 
       <div className={`relative w-full ${wide ? "aspect-[16/9]" : "aspect-[4/5]"}`}>
@@ -371,7 +372,7 @@ function ChatBubble({ on, me, text }: { on: boolean; me: boolean; text: string }
 
 // ─── Mission: words light up as you read ─────────────────────────────────────
 
-const MISSION = "Talent is everywhere. Opportunity isn't. A private coach runs $100 to $300 an hour, so most athletes never get real feedback on their film. Reel gives every athlete a film room, free to start.";
+const MISSION = "Talent is everywhere. Opportunity isn't. A private coach can cost $100 an hour or more, so most athletes never get real feedback on their film. Reel gives every athlete a film room, free to start.";
 
 function Mission() {
   const ref = useRef<HTMLDivElement>(null);
@@ -399,7 +400,7 @@ function Word({ p, range, still, children }: { p: MotionValue<number>; range: [n
 function Pricing({ onStart }: { onStart: () => void }) {
   const plans = [
     { name: "Free", price: "$0", note: "No card required", rows: [["Full games", "1 / month"], ["Clips", "2 / month"], ["Coach messages", "15 / month"], ["Practice plans", "1 / month"], ["Teams", "1"]], cta: "Start free", pro: false },
-    { name: "Pro", price: "$8", note: "per month", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Coach messages", "1,000 / month"], ["Practice plans", "50 / month"], ["Teams", "Unlimited"]], cta: "Go Pro", pro: true },
+    { name: "Pro", price: "$8", note: "per month, USD", rows: [["Full games", "8 / month"], ["Clips", "100 / month"], ["Coach messages", "1,000 / month"], ["Practice plans", "50 / month"], ["Teams", "Unlimited"]], cta: "Go Pro", pro: true },
   ];
   return (
     <section id="pricing" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-28 sm:px-6 sm:py-40">
@@ -426,6 +427,11 @@ function Pricing({ onStart }: { onStart: () => void }) {
                 className={`btn-pill mt-8 w-full ${plan.pro ? "btn-dark" : "btn-light"}`}>
                 {plan.cta}
               </button>
+              {plan.pro && (
+                <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
+                  Renews monthly until you cancel. Cancel anytime in Settings; no partial-month refunds. <a href="/refunds" className="underline underline-offset-2">Refund policy</a>
+                </p>
+              )}
             </div>
           </Reveal>
         ))}
@@ -453,7 +459,7 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
       <Header onStart={onStart} onSignIn={onSignIn} signingIn={signingIn} />
 
       {/* Hero */}
-      <section ref={heroRef} className="relative flex min-h-[92vh] items-center justify-center overflow-hidden px-4 pb-10 pt-28 sm:px-6">
+      <section id="main" tabIndex={-1} ref={heroRef} className="outline-none relative flex min-h-[92vh] items-center justify-center overflow-hidden px-4 pb-10 pt-28 sm:px-6">
         <motion.div style={reduce ? {} : { y: heroY, opacity: heroOpacity }} className="relative mx-auto w-full max-w-3xl text-center">
           {/* The scoreboard shows the score, then what it never shows:
               how you played. */}
@@ -464,7 +470,7 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
             <Heading as="h1" a="Every game has a score." b="Reel grades how you played." className="text-4xl sm:text-6xl" />
           </motion.div>
           <motion.p {...rise(0.3)} className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Paste a YouTube link. Reel grades every decision on the floor, builds the box score, and gives you the drill that fixes what it found.
+            Paste a YouTube link. Reel grades the decisions it sees, builds the box score, and gives you the drill that fixes what it found.
           </motion.p>
           <motion.div {...rise(0.42)} className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <button onClick={onStart} disabled={signingIn} className="btn-pill btn-dark !px-6 !py-3.5">
@@ -474,7 +480,10 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
               <Play className="h-3.5 w-3.5" /> Try without an account
             </button>
           </motion.div>
-          <motion.p {...rise(0.5)} className="mt-5 text-xs text-muted-foreground">Free plan · No card · Works on any public game video</motion.p>
+          <motion.p {...rise(0.5)} className="mt-5 text-xs text-muted-foreground">
+            Free plan · No card · Works with public YouTube game videos
+            <span className="mt-1 block">By using Reel, you agree to our <a href="/terms" className="underline underline-offset-2">Terms</a> and <a href="/privacy" className="underline underline-offset-2">Privacy Policy</a>.</span>
+          </motion.p>
           {authError && <p className="mt-4 text-sm text-destructive">{authError}</p>}
         </motion.div>
       </section>
@@ -505,10 +514,13 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <a href="/privacy" className="hover:text-foreground">Privacy</a>
             <a href="/terms" className="hover:text-foreground">Terms</a>
+            <a href="/refunds" className="hover:text-foreground">Refunds</a>
+            <a href="/cookies" className="hover:text-foreground">Cookies</a>
             <a href="/accessibility" className="hover:text-foreground">Accessibility</a>
             <a href="mailto:support@getreel.org" className="hover:text-foreground">Contact</a>
           </nav>
         </div>
+        <p className="mx-auto mt-6 max-w-6xl text-center text-xs text-muted-foreground sm:text-left">Reel is operated by Lucas Xie, California, USA.</p>
       </footer>
     </div>
   );

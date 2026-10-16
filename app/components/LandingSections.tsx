@@ -57,7 +57,7 @@ export function FilmStrip() {
   return (
     <section ref={ref} className="overflow-hidden py-28 sm:py-36">
       <Reveal className="mx-auto mb-14 max-w-6xl px-4 sm:px-6">
-        <Heading a="Every play, graded." b="Not just the highlights." className="text-4xl sm:text-5xl" />
+        <Heading a="The whole game, graded." b="Not just the highlights." className="text-4xl sm:text-5xl" />
       </Reveal>
       <div className="bg-foreground py-4">
         {/* Sprocket holes */}
@@ -223,7 +223,7 @@ export function GiantGrade() {
           <div>
             <Heading a="Watch yourself improve." b="Every review is saved." className="text-4xl sm:text-5xl" />
             <p className="mt-6 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-              Grades follow your decisions, not your stat line. Fix the habit Reel found, and the next game shows it.
+              Grades follow your decisions, not your stat line. Work on the habit Reel found, and your next game shows whether it stuck.
             </p>
           </div>
           <div className="surface flex flex-col items-center p-6 sm:p-8">
