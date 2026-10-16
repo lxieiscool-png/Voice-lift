@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Archivo, Google_Sans_Flex } from "next/font/google";
 import "./globals.css";
+import CookieNotice from "./components/CookieNotice";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,7 +44,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   title: "Reel: Your AI Sports Coach",
-  description: "Upload your game film and get real coaching, not just stats. Reel grades every decision, tells you what to work on, and checks your form as you drill it. Try it free.",
+  description: "Upload your game film and get real coaching, not just stats. Reel grades the decisions on your film, tells you what to work on, and checks your form as you drill it. Try it free.",
   keywords: [
     "sports coaching app",
     "AI sports coach",
@@ -68,7 +69,7 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://www.getreel.org",
     title: "Reel: Your AI Sports Coach",
-    description: "Upload your game film and get real coaching, not just stats. Reel grades every decision, tells you what to work on, and checks your form as you drill it. Try it free.",
+    description: "Upload your game film and get real coaching, not just stats. Reel grades the decisions on your film, tells you what to work on, and checks your form as you drill it. Try it free.",
     siteName: "Reel",
   },
   twitter: {
@@ -108,7 +109,14 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* First thing a keyboard user tabs to: jump past the navigation. */}
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-foreground focus:px-4 focus:py-2 focus:text-sm focus:text-background">
+          Skip to content
+        </a>
+        {children}
+        <CookieNotice />
+      </body>
     </html>
   );
 }

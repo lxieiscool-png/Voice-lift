@@ -94,7 +94,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     // Rounded-corner clipping lives on the thumbnail button instead.
     <div className="surface">
       {/* Thumbnail */}
-      <button onClick={onClick} disabled={!onClick} className="group relative block aspect-video w-full overflow-hidden rounded-t-xl bg-muted disabled:cursor-default">
+      <button onClick={onClick} disabled={!onClick} aria-label={`Open ${title}`} className="group relative block aspect-video w-full overflow-hidden rounded-t-xl bg-muted disabled:cursor-default">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumbnailUrl} alt="" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" />

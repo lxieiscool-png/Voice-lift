@@ -65,6 +65,11 @@ export function StatTable<R>({
             return (
               <Fragment key={rowKey(r)}>
                 <tr onClick={onRowClick ? () => onRowClick(r) : undefined}
+                  // Keyboard users: Tab to a clickable row, Enter/Space to toggle it.
+                  {...(onRowClick ? {
+                    tabIndex: 0, role: "button", "aria-expanded": renderExpanded ? !!open : undefined,
+                    onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(r); } },
+                  } : {})}
                   className={`group ${onRowClick ? "cursor-pointer" : ""}`}>
                   <td className={`sticky left-0 z-10 border-t border-border py-2.5 pl-5 pr-3 text-left sm:pl-6 ${hi ? "bg-muted" : pin} ${onRowClick ? "group-hover:bg-muted" : ""}`}>
                     {name(r)}

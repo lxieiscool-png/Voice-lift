@@ -155,7 +155,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
                     ← Back
                   </button>
                   <p className="truncate px-3 text-sm font-semibold text-foreground">{openReview.fileName || openReview.sport}</p>
-                  <button onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+                  <button aria-label="Close" onClick={() => setOpenReview(null)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
                 </div>
                 {openReview.mode === "clip" && openReview.decisions
                   ? <PlayerCardList decisions={openReview.decisions} />

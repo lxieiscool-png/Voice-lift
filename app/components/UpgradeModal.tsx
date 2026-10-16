@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Clapperboard, BarChart3, Dumbbell, Share2, TrendingUp } from "lucide-react";
+import { Clapperboard, Dumbbell, MessageCircle, Users } from "lucide-react";
 
-export default function UpgradeModal({ user, onClose }: { user: User | null; onClose: () => void }) {
+export default function UpgradeModal({ user, onClose, hitLimit = true }: { user: User | null; onClose: () => void; hitLimit?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
 
@@ -29,21 +29,20 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
 
         {/* Header */}
         <div className="relative border-b border-border px-8 py-6 text-center">
-          <button onClick={onClose}
+          <button onClick={onClose} aria-label="Close"
             className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
           <p className="text-[12px] text-muted-foreground mb-2">Reel Pro</p>
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">You&apos;ve hit your free limit</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">{hitLimit ? "You've hit your free limit" : "Upgrade to Reel Pro"}</h2>
           <p className="mt-2 text-sm text-muted-foreground">Upgrade to Reel Pro for more games and clips every month.</p>
         </div>
 
         {/* Features */}
         <div className="px-8 py-6 space-y-3">
           {[
-            { icon: Clapperboard, text: "8 full game analyses + 100 clips a month"   },
-            { icon: BarChart3,    text: "Full player breakdowns and grade history"  },
-            { icon: Dumbbell,     text: "Unlimited coach chat, practice plans & teams" },
-            { icon: Share2,       text: "Share grade cards and Stories"             },
-            { icon: TrendingUp,   text: "Grade trend tracking across all sessions"  },
+            { icon: Clapperboard, text: "8 full games + 100 clips a month (free: 1 + 2)" },
+            { icon: MessageCircle, text: "1,000 coach messages a month (free: 15)"       },
+            { icon: Dumbbell,     text: "50 practice plans a month (free: 1)"           },
+            { icon: Users,        text: "Unlimited teams (free: 1)"                     },
           ].map(f => (
             <div key={f.text} className="flex items-center gap-3">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/80"><f.icon className="h-3.5 w-3.5 text-foreground" strokeWidth={1.75} /></span>
@@ -63,6 +62,10 @@ export default function UpgradeModal({ user, onClose }: { user: User | null; onC
               <p className="text-2xl font-semibold text-foreground">$8<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
             </div>
           </div>
+
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
+            $8 a month, renews automatically until you cancel. Cancel anytime in Settings → Manage subscription; Pro stays on until the end of the month you paid for. No partial-month refunds. <a href="/refunds" target="_blank" className="underline underline-offset-2">Refund policy</a>
+          </p>
 
           {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
 

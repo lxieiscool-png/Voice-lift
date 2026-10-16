@@ -50,6 +50,26 @@ export default function FilmRoom({ videoId, decisions, timeline = [], onClose }:
 
   const [filter, setFilter] = useState<"all" | "good" | "poor">("all");
 
+  // Mount the YouTube player. youtube-nocookie.com is YouTube's
+  // privacy-enhanced mode: no YouTube cookies until the viewer presses play.
+  useEffect(() => {
+    let cancelled = false;
+    loadYouTubeApi().then(() => {
+      if (cancelled || !hostRef.current || !window.YT?.Player) return;
+      playerRef.current = new window.YT.Player(hostRef.current, {
+        videoId,
+        host: "https://www.youtube-nocookie.com",
+        playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+        events: { onReady: () => !cancelled && setReady(true) },
+      });
+    });
+    return () => {
+      cancelled = true;
+      try { playerRef.current?.destroy?.(); } catch { /* already gone */ }
+      playerRef.current = null;
+    };
+  }, [videoId]);
+
   // The feed is every logged possession; a coachable card attaches to the one
   // it was written about, matched on timestamp.
   const cardAt = new Map<string, PlayerDecision>();

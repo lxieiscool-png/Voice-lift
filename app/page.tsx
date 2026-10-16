@@ -11,6 +11,7 @@ import Logo from "./components/Logo";
 import UpgradeModal from "./components/UpgradeModal";
 import ThemeToggle from "./components/ThemeToggle";
 import { Segmented } from "./components/ui/segmented";
+import { AgeGate, DeleteAccountSection } from "./components/AccountSafety";
 import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, Film, Library as LibraryIcon, Users, Settings, type LucideIcon } from "lucide-react";
 import Landing from "./components/Landing";
 
@@ -217,7 +218,7 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
 const HOW_STEPS: Record<"decision" | "coach", { icon: LucideIcon; title: string; desc: string }[]> = {
   decision: [
     { icon: Clapperboard, title: "Upload your footage",      desc: "Short clip or full game. Sport, teams, and situation are detected automatically." },
-    { icon: Brain, title: "Every player is reviewed", desc: "Everyone on screen gets a grade, a breakdown, and what they should've done instead." },
+    { icon: Brain, title: "Players are reviewed", desc: "Players Reel can clearly see get a grade, a breakdown, and what they should've done instead." },
     { icon: ClipboardList, title: "See the full picture",     desc: "What happened, the better option, and one thing to work on. Games get full reports." },
     { icon: TrendingUp, title: "Track your progress",      desc: "Every review is saved. Watch your grade trend climb over time." },
   ],
@@ -438,6 +439,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
                     className="w-full rounded-lg border border-border py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:border-red-900 transition-colors">
                     Sign Out
                   </button>
+                  <DeleteAccountSection isPro={isPro} />
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -532,16 +534,12 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
 // ─── Sign Up Modal ────────────────────────────────────────────────────────────
 
 const SPORTS = ["Basketball", "Volleyball", "Soccer", "Football", "Baseball", "Softball", "Lacrosse", "Hockey", "Tennis", "Track & Field", "Swimming", "Wrestling", "Other"];
-const LEVELS = ["Middle school", "High school", "Club / AAU", "College", "Pro / Semi-pro"];
-const GOALS  = ["Improve decision-making", "Better film breakdown", "Personalized drills", "Track my progress", "Get recruited"];
 
-function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onClose: () => void }) {
+function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: string; sport: string; position: string; jersey: string; teamColor: string }) => void; onClose: () => void }) {
   const [step,     setStep]     = useState(0);
   const [name,     setName]     = useState("");
   const [sport,    setSport]    = useState("");
   const [position, setPosition] = useState("");
-  const [level,    setLevel]    = useState("");
-  const [goals,    setGoals]    = useState<string[]>([]);
   const [jersey,   setJersey]   = useState("");
   const [teamColor, setTeamColor] = useState("");
 
@@ -614,40 +612,6 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
       ),
       canNext: true, // optional
     },
-    {
-      title: "What level do you compete at?",
-      sub: "We'll calibrate feedback to your experience.",
-      content: (
-        <div className="flex flex-col gap-2">
-          {LEVELS.map(l => (
-            <button key={l} onClick={() => setLevel(l)}
-              className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors ${level === l ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
-              {l}
-            </button>
-          ))}
-        </div>
-      ),
-      canNext: level.length > 0,
-    },
-    {
-      title: "What are you most looking to improve?",
-      sub: "Pick everything that applies.",
-      content: (
-        <div className="flex flex-col gap-2">
-          {GOALS.map(g => {
-            const on = goals.includes(g);
-            return (
-              <button key={g} onClick={() => setGoals(on ? goals.filter(x => x !== g) : [...goals, g])}
-                className={`rounded-xl border px-4 py-3 text-sm font-medium text-left transition-colors flex items-center gap-3 ${on ? "border-white bg-primary text-primary-foreground" : "border-border text-foreground hover:border-ring"}`}>
-                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${on ? "border-black bg-background text-foreground" : "border-ring"}`}>{on ? "✓" : ""}</span>
-                {g}
-              </button>
-            );
-          })}
-        </div>
-      ),
-      canNext: goals.length > 0,
-    },
   ];
 
   const current = steps[step];
@@ -657,7 +621,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-4">
       <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Close */}
-        <button onClick={onClose} className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
+        <button onClick={onClose} aria-label="Close" className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
 
         {/* Progress dots */}
         <div className="mb-8 flex gap-1.5">
@@ -680,12 +644,17 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
             </button>
           )}
           <button
-            onClick={() => isLast ? onContinue({ name, sport, position, level, goals, jersey, teamColor }) : setStep(s => s + 1)}
+            onClick={() => isLast ? onContinue({ name, sport, position, jersey, teamColor }) : setStep(s => s + 1)}
             disabled={!current.canNext}
             className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-30 hover:bg-primary/90 transition-colors">
             {isLast ? "Create my account →" : step === 2 ? "Skip" : "Continue"}
           </button>
         </div>
+        {isLast && (
+          <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+            By creating an account, you agree to the <a href="/terms" target="_blank" className="underline underline-offset-2">Terms</a> and <a href="/privacy" target="_blank" className="underline underline-offset-2">Privacy Policy</a>.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -695,7 +664,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
-function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
+function LandingPage({ onSignIn, onSignUp, onEnterApp, signingIn, authError }: { onSignIn: () => void; onSignUp: (data: { name: string; sport: string; position: string; jersey: string; teamColor: string }) => void; onEnterApp: () => void; signingIn?: boolean; authError?: string }) {
   const [showSignUp, setShowSignUp] = useState(false);
   return (
     <>
@@ -719,6 +688,9 @@ export default function Reel() {
   const [profile,       setProfile]       = useState<Profile>(DEFAULT_PROFILE);
   const [reviews,       setReviews]       = useState<Review[]>([]);
   const [libraryView,   setLibraryView]   = useState<"film" | "stats">("film");
+  const [ageChecked,    setAgeChecked]    = useState(false);
+  // The upgrade modal says "you've hit your free limit" only when one was hit.
+  const [upgradeHitLimit, setUpgradeHitLimit] = useState(true);
   const [settingsOpen,  setSettingsOpen]  = useState(false);
   const [user,          setUser]          = useState<User | null>(null);
   const [authLoading,   setAuthLoading]   = useState(true);
@@ -786,9 +758,9 @@ export default function Reel() {
             .then(d => {
               const pro = d.is_pro ?? false;
               setIsPro(pro);
-              if (wantsUpgrade && !pro) setShowUpgrade(true);
+              if (wantsUpgrade && !pro) { setUpgradeHitLimit(false); setShowUpgrade(true); }
             })
-            .catch(() => { if (wantsUpgrade) setShowUpgrade(true); });
+            .catch(() => { if (wantsUpgrade) { setUpgradeHitLimit(false); setShowUpgrade(true); } });
         }
       }
       if (event === "SIGNED_OUT") {
@@ -873,7 +845,7 @@ export default function Reel() {
     if (error) { setAuthError("Couldn't connect to Google. Try again."); setSigningIn(false); }
   }
 
-  async function signUpWithGoogle(data: { name: string; sport: string; position: string; level: string; goals: string[]; jersey: string; teamColor: string }) {
+  async function signUpWithGoogle(data: { name: string; sport: string; position: string; jersey: string; teamColor: string }) {
     setSigningIn(true);
     setAuthError("");
     localStorage.setItem("reel-signup-data", JSON.stringify(data));
@@ -911,7 +883,11 @@ export default function Reel() {
   function clearHistory() {
     setReviews([]);
     localStorage.removeItem("decisioniq-reviews");
-    if (user) supabase.from("reviews").delete().eq("user_id", user.id);
+    // Per review, server-side, so each game's thumbnail image goes too.
+    if (user) for (const r of reviews) {
+      fetch("/api/reviews/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: r.id }) })
+        .catch(() => { /* row stays; deleting the account removes everything */ });
+    }
   }
 
   // Show loading spinner briefly
@@ -936,12 +912,16 @@ export default function Reel() {
   return (
     <main className="min-h-screen bg-background text-foreground">
 
+      {user && !user.user_metadata?.age_13_plus && !ageChecked && (
+        <AgeGate onPassed={() => setAgeChecked(true)} />
+      )}
+
       {showOnboarding && (
         <OnboardingOverlay name={profile.name} onDone={dismissOnboarding} />
       )}
 
       {showUpgrade && (
-        <UpgradeModal user={user} onClose={() => setShowUpgrade(false)} />
+        <UpgradeModal user={user} hitLimit={upgradeHitLimit} onClose={() => { setShowUpgrade(false); setUpgradeHitLimit(true); }} />
       )}
 
       {/* Upgrade success toast */}
@@ -964,7 +944,7 @@ export default function Reel() {
         onSignIn={signInWithGoogle}
         onSignOut={signOut}
         isPro={isPro}
-        onUpgrade={() => setShowUpgrade(true)}
+        onUpgrade={() => { setUpgradeHitLimit(false); setShowUpgrade(true); }}
       />
 
       {/* Header: wordmark left, the four sections as a floating pill in the
@@ -1020,7 +1000,7 @@ export default function Reel() {
         </nav>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div id="main" tabIndex={-1} className="mx-auto max-w-6xl px-4 outline-none sm:px-6">
         <motion.div key={activeModule} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="min-w-0 pb-24 pt-8 sm:pt-12">
 
