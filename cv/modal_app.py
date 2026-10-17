@@ -33,7 +33,7 @@ image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("ffmpeg", "libgl1", "libglib2.0-0", "nodejs", "curl")
     .pip_install("torch==2.8.0", "torchvision==0.23.0", "ultralytics", "supervision", "transformers", "opencv-python-headless",
-                 "google-genai", "yt-dlp[default]", "pillow", "numpy", "lap", "clip-anytorch", "setuptools<80")
+                 "google-genai", "yt-dlp[default]", "deno", "pillow", "numpy", "lap", "clip-anytorch", "setuptools<80")
     .run_commands("mkdir -p /weights")
     .run_function(_bake_weights)
     .add_local_python_source("engine")
@@ -49,7 +49,10 @@ def _download(url: str, out: str) -> str:
     (YTDLP_COOKIES_B64), then a residential proxy (YTDLP_PROXY). Without
     either, YouTube's bot check blocks datacenter servers."""
     import base64, subprocess
-    base = ["yt-dlp", "-q", "--no-warnings", "--js-runtimes", "node", "--retries", "10", "--fragment-retries", "10",
+    # yt-dlp solves YouTube's JS challenges with Deno (Debian's Node 18 is too old)
+    import shutil
+    deno = shutil.which("deno") or __import__("deno").find_deno_bin()
+    base = ["yt-dlp", "-q", "--no-warnings", "--js-runtimes", f"deno:{deno}", "--retries", "10", "--fragment-retries", "10",
             "-f", "bv*[ext=mp4][height<=1080]/b[ext=mp4]/bv*+ba/b", "-o", out]
     attempts = []
     if os.environ.get("YTDLP_COOKIES_B64"):
