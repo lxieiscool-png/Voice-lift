@@ -28,20 +28,61 @@ class Models:
     gd_proc: object
     gd: object
     dev: str
+    trained: object = None  # Reel's RF-DETR ball/rim model, when loaded
+    rfdetr_people: bool = False
 
 
-def load_models(size: str = "x") -> Models:
-    """size "x" on a datacenter GPU; "m" fits a laptop."""
-    from ultralytics import YOLO, YOLOWorld
+def load_models(size: str = "x", trained_weights: str | None = None) -> Models:
+    """With `trained_weights`: Reel's own RF-DETR (ball, rim) plus stock
+    RF-DETR for people, both Apache-2.0. Without: the open-vocabulary
+    stack the prototype used (size "x" on a datacenter GPU, "m" on a laptop).
+    Grounding DINO stays either way, for the scoreboard."""
     from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
     dev = device()
-    people = YOLO(f"yolo11{size}.pt")
-    ball = YOLOWorld(f"yolov8{'x' if size == 'x' else 'm'}-worldv2.pt")
-    ball.set_classes(["basketball"])
     gd_id = "IDEA-Research/grounding-dino-base" if size == "x" else "IDEA-Research/grounding-dino-tiny"
     gd_proc = AutoProcessor.from_pretrained(gd_id)
     gd = AutoModelForZeroShotObjectDetection.from_pretrained(gd_id).to(dev)
+    if trained_weights:
+        from rfdetr import RFDETRMedium
+        trained = RFDETRMedium(pretrain_weights=trained_weights)
+        people = RFDETRMedium()  # stock COCO weights
+        return Models(people, None, gd_proc, gd, dev, trained=trained, rfdetr_people=True)
+    from ultralytics import YOLO, YOLOWorld
+    people = YOLO(f"yolo11{size}.pt")
+    ball = YOLOWorld(f"yolov8{'x' if size == 'x' else 'm'}-worldv2.pt")
+    ball.set_classes(["basketball"])
     return Models(people, ball, gd_proc, gd, dev)
+
+
+BALL, RIM = 0, 1  # class ids in Reel's trained model
+COCO_PERSON = 1
+
+
+def _trained(m: Models, frame, threshold: float = 0.3):
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return m.trained.predict(rgb, threshold=threshold)
+
+
+def ball_and_rims(m: Models, frame):
+    """One trained-model pass: ([cx, cy, size, conf] | None, [rim boxes + score])."""
+    d = _trained(m, frame, 0.25)
+    ball, rims = None, []
+    for (x1, y1, x2, y2), c, k in zip(d.xyxy.tolist(), d.confidence.tolist(), d.class_id.tolist()):
+        if k == BALL and (x2 - x1) < frame.shape[1] * 0.06 and (not ball or c > ball[3]):
+            ball = [round((x1 + x2) / 2), round((y1 + y2) / 2), round(x2 - x1), round(c, 2)]
+        elif k == RIM and c >= 0.35:
+            rims.append([round(x1), round(y1), round(x2), round(y2), round(c, 2)])
+    return ball, rims
+
+
+def detect_people(m: Models, frame):
+    """supervision Detections of people."""
+    import supervision as sv
+    if m.rfdetr_people:
+        d = m.people.predict(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), threshold=0.4)
+        return d[d.class_id == COCO_PERSON]
+    r = m.people(frame, classes=[0], conf=0.3, verbose=False, device=m.dev)[0]
+    return sv.Detections.from_ultralytics(r)
 
 
 def grounded(m: Models, frame, text: str, threshold: float = 0.2):
@@ -59,6 +100,8 @@ def grounded(m: Models, frame, text: str, threshold: float = 0.2):
 
 def detect_ball(m: Models, frame, imgsz: int = 1280):
     """[cx, cy, size, conf] of the most confident basketball, or None."""
+    if m.trained:
+        return ball_and_rims(m, frame)[0]
     r = m.ball(frame, conf=0.15, verbose=False, device=m.dev, imgsz=imgsz)[0]
     if not len(r.boxes):
         return None
@@ -72,8 +115,14 @@ def detect_ball(m: Models, frame, imgsz: int = 1280):
 def detect_rims(m: Models, frame, with_board: bool = False):
     """Rim candidates (events.pick_rim chooses; the detector sometimes boxes
     the ball), plus the scoreboard box when asked, from one detector call."""
-    found = grounded(m, frame, "basketball rim. basketball hoop." + (" scoreboard." if with_board else ""))
-    rims = [b[:5] for b in found if "score" not in b[5] and 0 < b[2] - b[0] < frame.shape[1] * 0.2]
+    if m.trained:
+        rims = ball_and_rims(m, frame)[1]
+        if not with_board:
+            return rims
+        found = grounded(m, frame, "scoreboard.")
+    else:
+        found = grounded(m, frame, "basketball rim. basketball hoop." + (" scoreboard." if with_board else ""))
+        rims = [b[:5] for b in found if "score" not in b[5] and 0 < b[2] - b[0] < frame.shape[1] * 0.2]
     if not with_board:
         return rims
     boards = [b for b in found if "score" in b[5] and b[4] >= 0.35 and (b[2] - b[0]) < frame.shape[1] * 0.6 and (b[3] - b[1]) > 30]
@@ -129,10 +178,18 @@ def find_shot_windows(m: Models, video: Video, start: float = 0, end: float | No
         frame = video.at(t)
         if frame is None:
             break
-        ball = detect_ball(m, frame, imgsz=960)
+        if m.trained:
+            ball, cands = ball_and_rims(m, frame)
+            rim = pick_rim(cands, ball) or rim
+        else:
+            ball = detect_ball(m, frame, imgsz=960)
         if t - rim_t >= rim_every:
-            cands, bd = detect_rims(m, frame, with_board=True)
-            rim, rim_t = pick_rim(cands, ball), t
+            if m.trained:
+                bd = detect_rims(m, frame, with_board=True)[1]
+            else:
+                cands, bd = detect_rims(m, frame, with_board=True)
+                rim = pick_rim(cands, ball)
+            rim_t = t
             if bd and t - board_t >= board_every:
                 x1, y1, x2, y2 = bd
                 px, py = int((x2 - x1) * 0.08), int((y2 - y1) * 0.08)
@@ -172,8 +229,7 @@ def scan(m: Models, video: Video, windows, fps: float = 15, rim_every: float = 0
             if frame is None:
                 break
             H, W = frame.shape[:2]
-            r = m.people(frame, classes=[0], conf=0.3, verbose=False, device=m.dev)[0]
-            det = sv.Detections.from_ultralytics(r)
+            det = detect_people(m, frame)
             det = det[(det.xyxy[:, 3] - det.xyxy[:, 1]) > H * 0.08]
             det = tracker.update_with_detections(det)
             ps = []
@@ -187,9 +243,12 @@ def scan(m: Models, video: Video, windows, fps: float = 15, rim_every: float = 0
                 if seen[tid] % 3 == 1:
                     p["c"] = lab_color(crop)
                 ps.append(p)
-            rims = None
-            if t - rim_t >= rim_every:
-                rims, rim_t = detect_rims(m, frame), t
-            frames.append({"t": round(t, 2), "p": ps, "ball": detect_ball(m, frame), "rim": rims, "W": W, "H": H})
+            if m.trained:  # one cheap pass gives ball and rim on every frame
+                ball, rims = ball_and_rims(m, frame)
+            else:
+                ball, rims = detect_ball(m, frame), None
+                if t - rim_t >= rim_every:
+                    rims, rim_t = detect_rims(m, frame), t
+            frames.append({"t": round(t, 2), "p": ps, "ball": ball, "rim": rims, "W": W, "H": H})
             t += 1 / fps
     return frames
