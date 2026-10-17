@@ -166,7 +166,7 @@ class Video:
 
 
 def find_shot_windows(m: Models, video: Video, start: float = 0, end: float | None = None,
-                      fps: float = 4, rim_every: float = 1.0, before: float = 5, after: float = 2, board_every: float = 4):
+                      fps: float = 6, rim_every: float = 1.0, before: float = 5, after: float = 2, board_every: float = 4):
     """Cheap pass. Returns (windows, board_crops): merged [start, end] windows
     around every moment the ball is seen near and above a rim, padded so the
     full pass sees the release and the drop; and [(t, crop)] of the

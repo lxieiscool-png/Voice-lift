@@ -8,7 +8,7 @@ minutes of video and guessing who scored is what it was bad at.
 Images are built in order from the video (*_job), then asked in parallel
 (ask_all), so a game's few hundred reads take about a minute.
 """
-import json, os, threading
+import json, os, re, threading
 
 import cv2
 import numpy as np
@@ -182,3 +182,90 @@ def board(rd: Reader, key: str, crops):
             out.append({"t": batch[int(m[1]) - 1][0], "left_label": m[2].strip(), "left": None if m[3] == "?" else int(m[3]),
                         "right_label": m[4].strip(), "right": None if m[5] == "?" else int(m[5])})
     return sorted(out, key=lambda o: o["t"])
+
+
+def _iou(a, b):
+    ix = max(0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    return inter / max(1, (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter)
+
+
+def _box_near(F, tid, t, within: float = 0.35):
+    best = None
+    for f in F:
+        if abs(f["t"] - t) > within:
+            continue
+        for p in f["p"]:
+            if p["id"] == tid and (best is None or abs(f["t"] - t) < best[0]):
+                best = (abs(f["t"] - t), f["t"], p["b"])
+    return best[1:] if best else None
+
+
+def candidates_job(video, key: str, F, shot, release, cands, looks: dict, roster: dict | None = None):
+    """(cache key, images, prompt) for: which of these tracked players released
+    the shot? Image 1 is the release frame with candidates boxed A/B/C;
+    image 2 has a row of sharp close-ups per candidate. Choosing among a few
+    labelled, zoomed-in players is far easier than finding one in a wide shot."""
+    if not cands or release is None:
+        return None
+    letters = "ABC"
+    frame = video.at(release)
+    if frame is None:
+        return None
+    frame = frame.copy()
+    rows = []
+    for L, tid in zip(letters, cands):
+        nb = _box_near(F, tid, release)
+        if nb:
+            x1, y1, x2, y2 = nb[1]
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 4)
+            cv2.putText(frame, L, (x1, max(40, y1 - 10)), 0, 1.6, (0, 255, 255), 4)
+        if not nb:
+            continue
+        rb = nb[1]
+        crops = []
+        # Stay close to the release and follow the player's position, not the
+        # tracker id: ids swap when players overlap, which mixed people up.
+        for dt in (-0.3, -0.15, 0.0, 0.15):
+            got = _box_near(F, tid, release + dt, 0.1)
+            box = got[1] if got and _iou(got[1], rb) > 0.3 else rb
+            img = video.at(release + dt)
+            if img is None:
+                continue
+            x1, y1, x2, y2 = box
+            pw, ph = int((x2 - x1) * 0.2), int((y2 - y1) * 0.06)
+            crops.append(img[max(0, y1 - ph):y2 + ph, max(0, x1 - pw):x2 + pw].copy())
+        strip = _strip(crops, 260)
+        if strip is None:
+            continue
+        strip = cv2.copyMakeBorder(strip, 0, 0, 70, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
+        cv2.putText(strip, L, (12, 150), 0, 2.2, (0, 0, 255), 5)
+        rows.append(strip)
+    if not rows:
+        return None
+    w = max(r.shape[1] for r in rows)
+    sheet = np.vstack([cv2.copyMakeBorder(r, 6, 6, 0, w - r.shape[1], cv2.BORDER_CONSTANT, value=(255, 255, 255)) for r in rows])
+    if frame.shape[1] > 1600:
+        frame = cv2.resize(frame, (1600, int(frame.shape[0] * 1600 / frame.shape[1])))
+    hint = "".join(f" {looks[lab]} team's numbers: {', '.join(sorted(ns, key=lambda n: int(n) if n.isdigit() else 999))}."
+                   for lab, ns in (roster or {}).items() if ns and lab in looks)
+    shown = letters[:len(rows)]
+    return (f"cands:{key}:{shot['t']}", [frame, sheet],
+            f"Basketball ({' vs '.join(f'{v} jerseys' for v in looks.values())}). Image 1 is the moment a shot leaves a player's hands; "
+            f"the players who could have shot it are boxed {', '.join(shown)}. Image 2 shows close-ups of each of them over about a second "
+            f"(one row per letter, taken just around the release).{hint}\n"
+            "Which boxed player released the shot? Read that player's jersey number from the close-ups.\n"
+            "Answer exactly five lines:\n"
+            f"SHOOTER: <{' | '.join(shown)} | none>\n"
+            f"TEAM: <{' | '.join(looks.values())} | unknown>\n"
+            "NUMBER: <jersey number, or unknown>\n"
+            "SHOT: <ft | 3 | 2>\n"
+            "SURE: <high if you can see this player release the ball AND clearly read the number; otherwise low>")
+
+
+def parse_candidates(ans, looks: dict, roster: dict | None = None):
+    """Like parse_shooter; (None, None, None) when the model picked nobody."""
+    if not ans or re.search(r"SHOOTER:\s*none", ans, re.I):
+        return None, None, None
+    return parse_shooter(ans, looks, roster)

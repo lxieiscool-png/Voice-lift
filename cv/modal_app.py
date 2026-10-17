@@ -14,6 +14,8 @@ import modal
 
 app = modal.App("reel-engine")
 videos = modal.Volume.from_name("reel-videos", create_if_missing=True)
+trained = modal.Volume.from_name("reel-train", create_if_missing=True)
+BALLRIM = "/train/runs/medium/checkpoint_best_total.pth"  # Reel's own ball/rim detector
 
 
 def _bake_weights():
@@ -32,8 +34,8 @@ def _bake_weights():
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("ffmpeg", "libgl1", "libglib2.0-0", "nodejs", "curl")
-    .pip_install("torch==2.8.0", "torchvision==0.23.0", "ultralytics", "supervision", "transformers", "opencv-python-headless",
-                 "google-genai", "yt-dlp[default]", "deno", "pillow", "numpy", "lap", "clip-anytorch", "setuptools<80")
+    .pip_install("torch==2.8.0", "torchvision==0.23.0", "ultralytics", "supervision>=0.26,<0.31", "transformers", "opencv-python-headless",
+                 "google-genai", "yt-dlp[default]", "deno", "rfdetr", "pillow", "numpy", "lap", "clip-anytorch", "setuptools<80")
     .run_commands("mkdir -p /weights")
     .run_function(_bake_weights)
     .add_local_python_source("engine")
@@ -75,7 +77,8 @@ def _download(url: str, out: str) -> str:
     raise RuntimeError(f"download failed: {msg}")
 
 
-@app.function(image=image, gpu="L40S", timeout=3 * 3600, secrets=[modal.Secret.from_name("reel-engine")])
+@app.function(image=image, gpu="L40S", timeout=3 * 3600, secrets=[modal.Secret.from_name("reel-engine")],
+              volumes={"/train": trained})
 def analyze(url: str, hints: dict, key: str = "game") -> dict:
     import time
     os.chdir("/weights")
@@ -84,14 +87,14 @@ def analyze(url: str, hints: dict, key: str = "game") -> dict:
     path = _download(url, f"/tmp/{key}.mp4")
     dl = time.time() - t0
     reader = CU.Reader(os.environ["GEMINI_API_KEY"], cache={})
-    rep = pipeline.run(path, hints, reader, V.load_models("x"), key=key)
+    rep = pipeline.run(path, hints, reader, V.load_models("x", trained_weights=BALLRIM), key=key)
     rep["meta"]["timings"]["download"] = round(dl, 1)
     return rep
 
 
 @app.function(image=image, gpu="L40S", timeout=3 * 3600, secrets=[modal.Secret.from_name("reel-engine")],
-              volumes={"/videos": videos})
-def analyze_file(name: str, hints: dict) -> dict:
+              volumes={"/videos": videos, "/train": trained})
+def analyze_file(name: str, hints: dict, tag: str = "report") -> dict:
     """Same as analyze, for a video already in the reel-videos volume."""
     os.chdir("/weights")
     from engine import closeups as CU, pipeline, vision as V
@@ -99,19 +102,38 @@ def analyze_file(name: str, hints: dict) -> dict:
     key = name.split(".")[0]
     # cache close-up answers on the volume so a re-run never pays twice
     reader = CU.Reader(os.environ["GEMINI_API_KEY"], cache_file=f"/videos/{key}-closeups.json")
-    rep = pipeline.run(f"/videos/{name}", hints, reader, V.load_models("x"), key=key)
-    json.dump(rep, open(f"/videos/{key}-report.json", "w"), indent=1)
+    rep = pipeline.run(f"/videos/{name}", hints, reader, V.load_models("x", trained_weights=BALLRIM), key=key,
+                       work_dir="/videos")
+    json.dump(rep, open(f"/videos/{key}-{tag}.json", "w"), indent=1)
+    videos.commit()
+    return rep
+
+
+@app.function(image=image, timeout=3 * 3600, cpu=4, memory=16384, secrets=[modal.Secret.from_name("reel-engine")],
+              volumes={"/videos": videos})
+def rescore_file(name: str, hints: dict, tag: str = "report") -> dict:
+    """CPU only: re-run close-ups + scoring on a game whose GPU passes are
+    already saved in the volume (pennies instead of a GPU run)."""
+    os.chdir("/weights")
+    import json
+    from engine import closeups as CU, pipeline
+    key = name.split(".")[0]
+    assert os.path.exists(f"/videos/{key}-passes.json"), "no saved passes; run analyze_file first"
+    reader = CU.Reader(os.environ["GEMINI_API_KEY"], cache_file=f"/videos/{key}-closeups.json")
+    rep = pipeline.run(f"/videos/{name}", hints, reader, None, key=key, work_dir="/videos")
+    json.dump(rep, open(f"/videos/{key}-{tag}.json", "w"), indent=1)
     videos.commit()
     return rep
 
 
 @app.local_entrypoint()
-def start_file(name: str, our_colour: str = "", our_name: str = "", opp_colour: str = "", opp_name: str = "", roster: str = ""):
+def start_file(name: str, our_colour: str = "", our_name: str = "", opp_colour: str = "", opp_name: str = "", roster: str = "",
+               tag: str = "report", cpu_only: bool = False):
     """Hand the job to Modal and return immediately; the report lands in the
     reel-videos volume as <name>-report.json (fetch with: modal volume get)."""
     hints = {"our_colour": our_colour or None, "our_name": our_name or None, "opp_colour": opp_colour or None,
              "opp_name": opp_name or None, "roster": [r for r in roster.split(",") if r]}
-    call = analyze_file.spawn(name, hints)
+    call = (rescore_file if cpu_only else analyze_file).spawn(name, hints, tag)
     print("spawned", call.object_id)
 
 

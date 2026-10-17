@@ -137,3 +137,43 @@ def match_team(label_colours: dict, wanted: str) -> str | None:
                 if lab.startswith(fam):
                     return lab
     return None
+
+
+def holders(f, slack: float = 0.35):
+    """Players whose hands could hold the ball in this frame, nearest first:
+    [(distance, track id)]."""
+    b = f["ball"]
+    if not b:
+        return []
+    out = []
+    for p in f["p"]:
+        x1, y1, x2, y2 = p["b"]
+        w, h = x2 - x1, y2 - y1
+        if x1 - slack * w <= b[0] <= x2 + slack * w and y1 - 0.4 * h <= b[1] <= y1 + 0.65 * h:
+            out.append((abs(b[0] - (x1 + x2) / 2) / w + abs(b[1] - y1) / h, p["id"]))
+    return sorted(out)
+
+
+def shooter_candidates(F, shot, k: int = 3):
+    """Walk back from the ball's arrival at the rim while it is in flight; at
+    the first frames where it is in someone's hands (the release), rank the
+    players closest to it. Returns (release time, [track ids, best first]).
+    Falls back to the players nearest the ball's earliest seen position."""
+    score = {}
+    release = None
+    in_flight = 0
+    for i in range(shot["i"], -1, -1):
+        f = F[i]
+        if shot["t"] - f["t"] > 4:
+            break
+        hs = holders(f)
+        if not hs:
+            in_flight += 1
+            continue
+        if in_flight >= 2 or shot["t"] - f["t"] > 0.6:
+            release = release or f["t"]
+            for rank, (d, tid) in enumerate(hs[:k]):
+                score[tid] = score.get(tid, 0) + 1 / (1 + d + rank)
+            if f["t"] < release - 0.6:
+                break
+    return release, [t for t, _ in sorted(score.items(), key=lambda kv: -kv[1])[:k]]
