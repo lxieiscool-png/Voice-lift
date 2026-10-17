@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LegalShell, Section } from "../components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — Reel",
+  title: "Cookie Policy | Reel",
   description: "The cookies and browser storage Reel uses.",
 };
 

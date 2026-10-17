@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LegalShell, Section, OPERATOR, LOCATION, PRIVACY_EMAIL } from "../components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Reel",
+  title: "Privacy Policy | Reel",
   description: "How Reel collects, uses, and protects your data.",
 };
 

@@ -9,7 +9,7 @@ import { Segmented } from "../components/ui/segmented";
 type Filter = "all" | "never" | "active" | "failed" | "pro";
 
 const ago = (iso: string | null) => {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = (Date.now() - new Date(iso).getTime()) / 86_400_000;
   if (d < 1 / 24) return "just now";
   if (d < 1) return `${Math.round(d * 24)}h ago`;
@@ -108,7 +108,7 @@ function UserDetail({ u }: { u: AdminUser }) {
                 <span className="w-12 shrink-0 text-muted-foreground">{day(r.created_at)}</span>
                 <span className="w-10 shrink-0 text-muted-foreground">{r.mode}</span>
                 <span className="min-w-0 flex-1 truncate text-foreground">{r.file_name || "Untitled"}</span>
-                <span className="shrink-0 tabular-nums text-foreground">{r.grade || "—"}</span>
+                <span className="shrink-0 tabular-nums text-foreground">{r.grade || "-"}</span>
               </li>
             ))}
           </ul>

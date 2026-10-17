@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalShell, Section, SUPPORT_EMAIL } from "../components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Accessibility — Reel",
+  title: "Accessibility | Reel",
   description: "Reel's commitment to an accessible experience.",
 };
 

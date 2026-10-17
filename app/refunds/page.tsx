@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LegalShell, Section, SUPPORT_EMAIL } from "../components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Refund Policy — Reel",
+  title: "Refund Policy | Reel",
   description: "How cancellations and refunds work for Reel Pro.",
 };
 

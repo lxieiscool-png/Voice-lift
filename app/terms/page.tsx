@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LegalShell, Section, OPERATOR, LOCATION, SUPPORT_EMAIL } from "../components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Reel",
+  title: "Terms of Service | Reel",
   description: "The terms for using Reel.",
 };
 

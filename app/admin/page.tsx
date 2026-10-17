@@ -11,7 +11,7 @@ import AdminUsers from "./AdminUsers";
 // a plain 404, so the page's existence isn't advertised. Identity comes from
 // the session cookie (never a query param), checked against OWNER_USER_IDS.
 
-export const metadata: Metadata = { title: "Users — Reel admin", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Users | Reel admin", robots: { index: false, follow: false } };
 
 export default async function AdminPage() {
   const userId = await getSessionUserId();
@@ -19,7 +19,7 @@ export default async function AdminPage() {
 
   const [data, gemini] = await Promise.all([loadAdminOverview(), geminiHealth()]);
   const { funnel, lastWeek } = data;
-  const pct = (n: number) => funnel.signedUp ? `${Math.round((n / funnel.signedUp) * 100)}%` : "—";
+  const pct = (n: number) => funnel.signedUp ? `${Math.round((n / funnel.signedUp) * 100)}%` : "-";
   const steps = [
     { label: "Signed up", value: funnel.signedUp, sub: "all time" },
     { label: "Analyzed anything", value: funnel.analyzed, sub: pct(funnel.analyzed) },
@@ -40,7 +40,7 @@ export default async function AdminPage() {
         <span className={`h-2.5 w-2.5 rounded-full ${gemini.status === "ok" ? "bg-emerald-500" : "bg-court"}`} />
         <span className="text-foreground">Gemini (video analysis):{" "}
           {gemini.status === "ok" ? "working"
-            : gemini.status === "out_of_credits" ? <b className="text-court">OUT OF CREDITS — link analysis is down for everyone. Top up in Google AI Studio → Billing.</b>
+            : gemini.status === "out_of_credits" ? <b className="text-court">OUT OF CREDITS. Link analysis is down for everyone. Top up in Google AI Studio → Billing.</b>
             : gemini.status === "not_configured" ? "not configured"
             : <span className="text-court">error: {gemini.detail}</span>}
         </span>
