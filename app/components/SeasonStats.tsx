@@ -5,6 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { StatTable, StatHeader, CoverageMeter, type StatCol } from "./ui/stat-table";
 import type { Review, TeamMember } from "../lib/types";
 import { Segmented } from "./ui/segmented";
+import { CountUpText, Reveal } from "./ui/motion";
 import { createClient } from "../lib/supabase/client";
 import {
   buildSeasonLedger, goodDecisionPct, hittingPct, perGame, pct,
@@ -37,7 +38,7 @@ function NeedsColor({ items, onSetColor }: { items: SeasonLedger["needsColor"]; 
   return (
     <div className="mt-4 border-t border-border pt-3">
       <p className="text-xs text-muted-foreground">
-        {items.length} {items.length === 1 ? "game isn't" : "games aren't"} counted yet — pick the colour you wore so we know which side was yours.
+        {items.length} {items.length === 1 ? "game isn't" : "games aren't"} counted yet. Pick the colour you wore so we know which side was yours.
       </p>
       <div className="mt-2 space-y-1.5">
         {items.map(({ review, colors }) => (
@@ -88,8 +89,8 @@ function ResultsList({ ledger }: { ledger: SeasonLedger }) {
             <span className="hidden text-[12px] text-muted-foreground sm:block">
               {g.onFilm ? `${Math.min(g.tracked, g.onFilm)} of ${g.onFilm} pts tracked` : "No scoreboard"}
             </span>
-            <span className="w-16 text-right tabular-nums text-foreground" title={g.fromScoreboard ? "Final from the scoreboard" : "Summed from the box score — likely low"}>
-              {g.us ?? "—"}–{g.them ?? "—"}{!g.fromScoreboard && <span className="text-muted-foreground">*</span>}
+            <span className="w-16 text-right tabular-nums text-foreground" title={g.fromScoreboard ? "Final from the scoreboard" : "Summed from the box score, likely low"}>
+              {g.us ?? "-"}-{g.them ?? "-"}{!g.fromScoreboard && <span className="text-muted-foreground">*</span>}
             </span>
             <span className="w-12 shrink-0 text-right text-[12px] text-muted-foreground">{shortDate(g.date)}</span>
           </div>
@@ -131,12 +132,12 @@ function columns(sport: SeasonLedger["sport"]): Col[] {
 function gameLineCells(sport: SeasonLedger["sport"], g: GameLine): string[] {
   if (sport === "volleyball") {
     const s = g.volleyball;
-    return s ? [s.k, hittingPct(s.k, s.e, s.ta), s.ast, s.d, s.sa, s.se, s.bs].map(String) : Array(7).fill("—");
+    return s ? [s.k, hittingPct(s.k, s.e, s.ta), s.ast, s.d, s.sa, s.se, s.bs].map(String) : Array(7).fill("-");
   }
   const s = g.basketball;
   return s
     ? [s.pts, s.reb, s.ast, s.stl, s.blk, s.tov, `${s.fgm}-${s.fga}`, `${s.tpm}-${s.tpa}`, `${s.ftm}-${s.fta}`].map(String)
-    : Array(9).fill("—");
+    : Array(9).fill("-");
 }
 
 // Small per-game trend of the headline stat (points or kills), oldest → newest.
@@ -235,7 +236,7 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
       {ledger.players.length === 0 ? (ledger.needsColor.length > 0 ? null :
         <p className="py-4 text-sm text-muted-foreground">
           {games.some(g => g.mode === "game")
-            ? "No player stats yet. Stats come from full games analyzed with \"Team game footage\" — clips don't produce a box score."
+            ? "No player stats yet. Stats come from full games analyzed with \"Team game footage\". Clips don't produce a box score."
             : "Link full games to this team and season stats will build up here, game by game."}
         </p>
       ) : (
@@ -243,7 +244,7 @@ export function SeasonStatsPanel({ games, roster, sport, onSetColor, highlightJe
           <LedgerTable ledger={ledger} rows={rostered} cols={cols} avg={avg} open={open} onToggle={toggle} highlightJersey={highlightJersey} />
           {offRoster.length > 0 && (
             <div className="mt-6">
-              <p className="mb-1 text-[13px] text-muted-foreground">Not on your roster — often a misread jersey number</p>
+              <p className="mb-1 text-[13px] text-muted-foreground">Not on your roster, often a misread jersey number</p>
               <LedgerTable ledger={ledger} rows={offRoster} cols={cols} avg={avg} open={open} onToggle={toggle} highlightJersey={highlightJersey} />
             </div>
           )}
@@ -289,11 +290,13 @@ export function MySeasonCard({ reviews, jersey, onSetColor }: {
       ) : (
         <>
           <div className="grid grid-cols-3 gap-x-4 gap-y-6 sm:grid-cols-6">
-            {tiles.map(t => (
-              <div key={t.label}>
-                <p className="font-display text-4xl tabular-nums leading-none text-foreground">{t.value}</p>
+            {tiles.map((t, i) => (
+              <Reveal key={t.label} index={i} step={0.06}>
+                <p className="font-display text-4xl tabular-nums leading-none text-foreground">
+                  <CountUpText text={t.value} />
+                </p>
                 <p className="mt-2 text-[12px] text-muted-foreground">{t.label}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
           <div className="-mx-5 mt-6 border-t border-border sm:-mx-6"><GameLog sport={ledger.sport} player={me} cols={cols} tone="card" /></div>

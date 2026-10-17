@@ -6,6 +6,7 @@ import type { ChatMessage, DrillDay, PracticePlan, Profile, Review } from "../li
 import { sportIcon, sportSuggestions } from "../lib/shared";
 import { takeDrillPrefill, OPEN_DRILL_EVENT } from "../lib/decisioniq-helpers";
 import DrillCheck from "./DrillCheck";
+import { motion, useReducedMotion } from "framer-motion";
 
 // ─── Plan Parser ──────────────────────────────────────────────────────────────
 
@@ -34,15 +35,22 @@ function parsePlan(rawText: string): PracticePlan {
 
 function ChatBubble({ msg }: { msg: ChatMessage }) {
   const isCoach = msg.role === "coach";
+  const reduce = useReducedMotion();
   return (
-    <div className={`flex gap-3 ${isCoach ? "" : "flex-row-reverse"}`}>
+    // Each message arrives from its own side, the way a chat should read.
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 12, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+      style={{ transformOrigin: isCoach ? "left bottom" : "right bottom" }}
+      className={`flex gap-3 ${isCoach ? "" : "flex-row-reverse"}`}>
       <div className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${isCoach ? "bg-primary text-primary-foreground" : "bg-accent text-foreground"}`}>
         {isCoach ? "C" : "Y"}
       </div>
       <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${isCoach ? "bg-accent text-accent-foreground rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"}`}>
         {msg.content}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -155,8 +163,8 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
   // Greeting on first load
   useEffect(() => {
     const greeting = profile.name
-      ? `Hey ${profile.name.split(" ")[0]}! I'm CoachIQ — your personal coach. Ask me anything about ${profile.sport || "your sport"}: technique, strategy, drills, mindset — whatever you need. I'm here to help.`
-      : "Hey! I'm CoachIQ — your personal coach. Ask me anything: drills, strategy, technique, mindset. Set up your profile to get more personalized coaching.";
+      ? `Hey ${profile.name.split(" ")[0]}! I'm CoachIQ, your personal coach. Ask me anything about ${profile.sport || "your sport"}: technique, strategy, drills, mindset, whatever you need. I'm here to help.`
+      : "Hey! I'm CoachIQ, your personal coach. Ask me anything: drills, strategy, technique, mindset. Set up your profile to get more personalized coaching.";
     setMessages([{ role: "coach", content: greeting }]);
   }, []);
 
@@ -187,7 +195,7 @@ export default function CoachIQ({ profile, reviews, userId, onShowUpgrade }: { p
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       const isRateLimit = msg.includes("429") || msg.toLowerCase().includes("rate");
-      setMessages(prev => [...prev, { role: "coach", content: isRateLimit ? "Too many requests right now — give it a moment and try again." : "Something went wrong reaching your coach. Try again." }]);
+      setMessages(prev => [...prev, { role: "coach", content: isRateLimit ? "Too many requests right now. Give it a moment and try again." : "Something went wrong reaching your coach. Try again." }]);
     }
     setChatLoading(false);
   }

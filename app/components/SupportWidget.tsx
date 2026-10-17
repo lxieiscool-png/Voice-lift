@@ -7,7 +7,7 @@ type Msg = { role: "bot" | "user"; content: string };
 
 const GREETING: Msg = {
   role: "bot",
-  content: "Hey! I'm Reel's help assistant. Ask me anything about using the app — uploading film, drills, plans, teams. What do you need?",
+  content: "Hey! I'm Reel's help assistant. Ask me anything about using the app, uploading film, drills, plans, teams. What do you need?",
 };
 
 export default function SupportWidget() {
@@ -33,11 +33,11 @@ export default function SupportWidget() {
       });
       const data = await res.json().catch(() => ({}));
       const reply = data.reply || (res.status === 429
-        ? "I'm getting a lot of questions right now — give it a moment and try again."
+        ? "I'm getting a lot of questions right now. Give it a moment and try again."
         : "Sorry, I couldn't answer that. For account or billing help, email support@getreel.org.");
       setMessages(m => [...m, { role: "bot", content: reply }]);
     } catch {
-      setMessages(m => [...m, { role: "bot", content: "Connection issue — try again, or email support@getreel.org." }]);
+      setMessages(m => [...m, { role: "bot", content: "Connection issue. Try again, or email support@getreel.org." }]);
     } finally {
       setLoading(false);
     }

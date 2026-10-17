@@ -9,6 +9,7 @@ import { ArrowRight, Menu, X, Play } from "lucide-react";
 import Logo from "./Logo";
 import HeroBoard from "./HeroBoard";
 import { FilmStrip, ChalkboardPlay, SeasonScoreboard, GiantGrade } from "./LandingSections";
+import { GradientMesh, Kinetic } from "./ui/motion";
 
 // The public landing page. Light, quiet and type-led (after spacefs.com):
 // one idea per screen, and the product itself is the illustration — a Reel
@@ -39,7 +40,18 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 }
 
 // Two-voice heading: the statement in ink, the payoff in grey.
-function Heading({ a, b, className = "", as: Tag = "h2" }: { a: string; b: string; className?: string; as?: "h1" | "h2" }) {
+function Heading({ a, b, className = "", as: Tag = "h2", kinetic = false }: { a: string; b: string; className?: string; as?: "h1" | "h2"; kinetic?: boolean }) {
+  // Kinetic is reserved for the two headlines that carry the page — the hero
+  // and the close. Everywhere else the words just sit there, which is what
+  // makes those two land.
+  if (kinetic) {
+    return (
+      <Tag className={`font-display font-normal leading-[1.04] ${className}`}>
+        <Kinetic text={a} className="block" />
+        <Kinetic text={b} className="block text-quiet" delay={0.12} />
+      </Tag>
+    );
+  }
   return (
     <Tag className={`font-display font-normal leading-[1.04] ${className}`}>
       <span className="block">{a}</span>
@@ -190,7 +202,7 @@ function AppWindow({ p, still = false }: { p: MotionValue<number>; still?: boole
           <span className="h-3 w-3 rounded-full bg-[#ff5f57]" /><span className="h-3 w-3 rounded-full bg-[#febc2e]" /><span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </div>
         <p className="truncate text-sm text-foreground">Lakeview Wolves vs Harbor City Storm</p>
-        {/* Fictional teams and numbers — labelled so it never reads as a real result. */}
+        {/* Fictional teams and numbers, labelled so it never reads as a real result. */}
         <span className="ml-auto shrink-0 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">Example report</span>
       </div>
 
@@ -198,10 +210,10 @@ function AppWindow({ p, still = false }: { p: MotionValue<number>; still?: boole
         {/* Film */}
         <motion.div style={wide ? { width: still ? "58%" : filmW, opacity: still ? 1 : filmDim } : { height: still ? "52%" : filmH, opacity: still ? 1 : filmDim }}
           className="absolute left-0 top-0 h-full w-full overflow-hidden bg-muted">
-          {/* A still from real film with a slow push-in tied to scroll — the
+          {/* A still from real film with a slow push-in tied to scroll, the
               clip format didn't decode in every browser, a still always does. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {/* Stock photo (Unsplash License): adults, fictional teams — white
+          {/* Stock photo (Unsplash License): adults, fictional teams, white
               is the Wolves, black-and-orange is the Storm. */}
           <motion.img src={STORY_PHOTO} alt="Basketball game film being analyzed"
             style={{ scale: still ? 1.04 : filmZoom }} className="h-full w-full origin-[48%_50%] object-cover object-[50%_40%]" />
@@ -328,7 +340,7 @@ const CHAT = [
   { me: false, text: "You're picking up your dribble at the dotted line. The help sees it coming and has a full second to rotate." },
   { me: false, text: "Keep the live dribble one step longer, then decide: finish, or kick to the wing that just got open." },
   { me: true, text: "What do I practice?" },
-  { me: false, text: "Two-dribble attack, 5 sets of 10. Cue: eyes up on the second dribble. Then record it — Drill Check will tell you if you fixed it." },
+  { me: false, text: "Two-dribble attack, 5 sets of 10. Cue: eyes up on the second dribble. Then record it, Drill Check will tell you if you fixed it." },
 ];
 
 function CoachSection() {
@@ -460,14 +472,17 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
 
       {/* Hero */}
       <section id="main" tabIndex={-1} ref={heroRef} className="outline-none relative flex min-h-[92vh] items-center justify-center overflow-hidden px-4 pb-10 pt-28 sm:px-6">
-        <motion.div style={reduce ? {} : { y: heroY, opacity: heroOpacity }} className="relative mx-auto w-full max-w-3xl text-center">
+        {/* A warm wash under the hero so the paper page isn't flat behind the
+            board. Atmospheric only, nothing reads against it. */}
+        <GradientMesh />
+        <motion.div style={reduce ? {} : { y: heroY, opacity: heroOpacity }} className="relative z-10 mx-auto w-full max-w-3xl text-center">
           {/* The scoreboard shows the score, then what it never shows:
               how you played. */}
           <motion.div {...rise(0.05)}>
             <HeroBoard />
           </motion.div>
           <motion.div {...rise(0.2)} className="mt-10 sm:mt-12">
-            <Heading as="h1" a="Every game has a score." b="Reel grades how you played." className="text-4xl sm:text-6xl" />
+            <Heading as="h1" kinetic a="Every game has a score." b="Reel grades how you played." className="text-4xl sm:text-6xl" />
           </motion.div>
           <motion.p {...rise(0.3)} className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Paste a YouTube link. Reel grades the decisions it sees, builds the box score, and gives you the drill that fixes what it found.
@@ -500,7 +515,7 @@ export default function Landing({ onStart, onSignIn, onEnterApp, signingIn, auth
       {/* Closing */}
       <section className="px-4 pb-32 pt-10 text-center sm:px-6">
         <Reveal>
-          <Heading a="Your next game is on film." b="Find out what it says." className="text-4xl sm:text-6xl" />
+          <Heading kinetic a="Your next game is on film." b="Find out what it says." className="text-4xl sm:text-6xl" />
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <button onClick={onStart} disabled={signingIn} className="btn-pill btn-dark !px-6 !py-3.5">Start free <ArrowRight className="h-4 w-4" /></button>
             <button onClick={onSignIn} disabled={signingIn} className="btn-pill btn-light !px-6 !py-3.5">Log in</button>

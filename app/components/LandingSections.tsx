@@ -11,6 +11,8 @@ import {
 //   SeasonScoreboard — the season adds up (numbers count up into place)
 //   GiantGrade       — you get better (a huge grade climbs as you scroll)
 
+import { SplitFlap } from "./ui/motion";
+
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 function Heading({ a, b, className = "" }: { a: string; b: string; className?: string }) {
@@ -227,12 +229,11 @@ export function GiantGrade() {
             </p>
           </div>
           <div className="surface flex flex-col items-center p-6 sm:p-8">
-            <div className="relative h-40 w-full overflow-hidden sm:h-48">
-              <motion.p key={grade} initial={reduce ? false : { y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.45, ease: EASE }}
-                className={`absolute inset-0 text-center font-display text-[8.5rem] leading-[1.15] tabular-nums sm:text-[10.5rem] ${done ? "text-foreground" : "text-quiet"}`}>
-                {grade}
-              </motion.p>
+            {/* The grade flips over as the season climbs, like the board in a
+                gym changing between games. */}
+            <div className="relative flex h-40 w-full items-center justify-center overflow-hidden sm:h-48">
+              <SplitFlap text={grade}
+                className={`text-center font-display text-[8.5rem] leading-[1.15] sm:text-[10.5rem] ${done ? "text-foreground" : "text-quiet"}`} />
             </div>
             <svg viewBox="0 0 300 170" className="mt-2 w-full max-w-xs" aria-hidden>
               <polyline points={pts} fill="none" stroke={done ? "var(--court)" : "currentColor"} strokeOpacity={done ? 1 : 0.4} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" className="text-foreground" />

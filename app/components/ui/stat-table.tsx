@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 
 // One table look for every stat surface in the app — game box scores,
 // season ledgers, game logs — so numbers always read the same way:
@@ -37,6 +38,7 @@ export function StatTable<R>({
   // matches its background instead of showing as a white block.
   tone?: "card" | "muted";
 }) {
+  const reduce = useReducedMotion();
   const pin = tone === "muted" ? "bg-muted" : "bg-card";
   // Leader per column: the single highest value, only when it's above zero
   // and not tied — a "leader" among four players on 1 is noise.
@@ -59,12 +61,17 @@ export function StatTable<R>({
           </tr>
         </thead>
         <tbody>
-          {rows.map(r => {
+          {rows.map((r, ri) => {
             const hi = isHighlighted?.(r);
             const open = isExpanded?.(r);
             return (
               <Fragment key={rowKey(r)}>
-                <tr onClick={onRowClick ? () => onRowClick(r) : undefined}
+                <motion.tr onClick={onRowClick ? () => onRowClick(r) : undefined}
+                  initial={reduce ? false : { opacity: 0, y: 6 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-20px" }}
+                  // Capped so a long box score still finishes quickly.
+                  transition={{ duration: 0.34, delay: Math.min(ri, 10) * 0.03, ease: [0.22, 1, 0.36, 1] }}
                   // Keyboard users: Tab to a clickable row, Enter/Space to toggle it.
                   {...(onRowClick ? {
                     tabIndex: 0, role: "button", "aria-expanded": renderExpanded ? !!open : undefined,
@@ -83,7 +90,7 @@ export function StatTable<R>({
                       </td>
                     );
                   })}
-                </tr>
+                </motion.tr>
                 {open && renderExpanded && (
                   <tr><td colSpan={cols.length + 1} className="border-t border-border bg-muted p-0">{renderExpanded(r)}</td></tr>
                 )}
@@ -121,16 +128,21 @@ export function StatHeader({ title, sub, right }: { title: ReactNode; sub?: Reac
 
 // "86% of points accounted for" — a thin meter instead of a warning badge.
 export function CoverageMeter({ tracked, total, label }: { tracked: number; total: number; label?: string }) {
+  const reduce = useReducedMotion();
   if (total <= 0) return null;
   const pct = Math.min(100, Math.round((tracked / total) * 100));
   return (
     <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground" title="Points in the box score vs points on the scoreboard">
       <div className="h-1 w-16 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-foreground/70" style={{ width: `${pct}%` }} />
+        {/* The meter fills to its share, so coverage reads as measured. */}
+        <motion.div className="h-full rounded-full bg-foreground/70"
+          initial={reduce ? false : { width: 0 }} whileInView={{ width: `${pct}%` }}
+          viewport={{ once: true }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          style={reduce ? { width: `${pct}%` } : undefined} />
       </div>
       <span><span className="text-foreground">{Math.min(tracked, total)}</span> of {total} {label ?? "points"} tracked</span>
     </div>
   );
 }
 
-export const pctText = (made: number, att: number) => att > 0 ? `${Math.round((made / att) * 100)}%` : "—";
+export const pctText = (made: number, att: number) => att > 0 ? `${Math.round((made / att) * 100)}%` : "-";

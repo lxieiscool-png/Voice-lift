@@ -217,19 +217,19 @@ export function buildSeasonLedger(games: Review[], roster: TeamMember[] = [], sp
 }
 
 export function perGame(total: number, gp: number): string {
-  return gp > 0 ? (total / gp).toFixed(1) : "—";
+  return gp > 0 ? (total / gp).toFixed(1) : "-";
 }
 
 export function pct(made: number, att: number): string {
-  return att > 0 ? `${Math.round((made / att) * 100)}%` : "—";
+  return att > 0 ? `${Math.round((made / att) * 100)}%` : "-";
 }
 
 // Share of logged decisions graded good, ignoring neutral ones.
 export function goodDecisionPct(d: DecisionCounts): string {
   const graded = d.good + d.poor;
-  return graded > 0 ? `${Math.round((d.good / graded) * 100)}%` : "—";
+  return graded > 0 ? `${Math.round((d.good / graded) * 100)}%` : "-";
 }
 
 export function hittingPct(k: number, e: number, ta: number): string {
-  return ta > 0 ? ((k - e) / ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
+  return ta > 0 ? ((k - e) / ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "-";
 }

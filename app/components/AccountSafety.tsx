@@ -48,7 +48,7 @@ export function AgeGate({ onPassed }: { onPassed: () => void }) {
       return;
     }
     const { error } = await createClient().auth.updateUser({ data: { age_13_plus: true } });
-    if (error) { setError("Couldn't save that — try again."); setBusy(false); return; }
+    if (error) { setError("Couldn't save that. Try again."); setBusy(false); return; }
     onPassed();
   }
 

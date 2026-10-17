@@ -148,6 +148,8 @@ ONLY grade athletes who are actively playing in the game. Completely ignore and 
 
 BREVITY — HARD RULE: Every field below is EXACTLY ONE sentence. Never two. Shorter is better — a clipped fragment beats a full sentence if it lands. Talk like a coach barking a quick note, not writing prose. No filler, no throat-clearing, no restating the question, no semicolons stitching two thoughts together.
 
+PUNCTUATION: never use em dashes or en dashes. Use a comma, or start a new sentence. They are the clearest sign a human didn't write this.
+
 TONE — BE DIRECT, DO NOT SUGARCOAT: name the mistake plainly. No praise sandwiches, no softening qualifiers ("just", "maybe", "a little"), no cheerleading. Respectful, never insulting — but honest first. Never invent a positive the frames don't support.
 
 DIRECTION: Describe direction with court/field-relative terms (baseline, middle, paint, wing, strong-side, weak-side, near side, far side) rather than "left/right" — video can be mirrored and left/right is unreliable, while these are both more accurate and more useful to a coach. Only say "left" or "right" when you are genuinely certain, and anchor it to the viewer's perspective.

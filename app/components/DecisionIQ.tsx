@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, Clapperboard, Dumbbell, Loader2, Lock, MoreVertical, Upload, Users, Video, VideoOff, X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { CountUp, FilmScan, Reveal, SplitFlap } from "./ui/motion";
 import type { Profile, Review, PlayerDecision, GameReport, ChunkSummary, TeamComparison, Team, PlayerBoxStat, PlayerVolleyStat } from "../lib/types";
 import { gradeClass, formatTime, formatDate, gameResult, openDrillCheck, playedAt } from "../lib/decisioniq-helpers";
 import { createClient } from "../lib/supabase/client";
@@ -151,7 +153,7 @@ async function extractFramesAdaptive(file: File, deep = false): Promise<{ frames
       const SIG_W = 32, SIG_H = 18;
       const MOTION_THRESHOLD = 9;  // mean per-pixel grayscale delta (0–255) to count as "changed"
       const MAX_GAP = 20;          // force-keep at least this often (s) so static stretches still get sampled
-      const GAME_MAX_FRAMES = 240; // frame budget (was 400) — biggest lever on per-game cost; same model, so read quality per frame is unchanged
+      const GAME_MAX_FRAMES = 240; // frame budget (was 400), biggest lever on per-game cost; same model, so read quality per frame is unchanged
       const sigCanvas = document.createElement("canvas");
       sigCanvas.width = SIG_W; sigCanvas.height = SIG_H;
       const sigCtx = sigCanvas.getContext("2d", { willReadFrequently: true });
@@ -440,7 +442,7 @@ async function shareGradeCard(opts: {
 
   if (navigator.share && navigator.canShare?.({ files: [new File([blob], "grade.png", { type: "image/png" })] })) {
     await navigator.share({
-      title: `${opts.name || "Player"} — ${opts.grade} | Reel`,
+      title: `${opts.name || "Player"}, ${opts.grade} | Reel`,
       text: `Check out my grade card on Reel`,
       files: [new File([blob], "reel-grade.png", { type: "image/png" })],
     }).catch(() => {});
@@ -473,7 +475,9 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
 function GradeBadge({ grade, large }: { grade: string; large?: boolean }) {
   return (
     <span className={`inline-flex items-center justify-center rounded-md font-bold tabular-nums ${gradeClass(grade, "bg")} ${gradeClass(grade, "text")} ${large ? "px-3 py-1 text-base" : "px-2 py-0.5 text-xs"}`}>
-      {grade}
+      {/* The large badge is the result of a multi-minute wait, so it flips in
+          like a board. The small one is a list item and just sits there. */}
+      {large ? <SplitFlap text={grade} riffle /> : grade}
     </span>
   );
 }
@@ -572,10 +576,10 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
         });
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
-        if (data.error || !res.ok) { setError(data.error || "Couldn't build drills — try again."); return; }
+        if (data.error || !res.ok) { setError(data.error || "Couldn't build drills. Try again."); return; }
         setDrills(parseDrills(data.drills ?? ""));
       } catch {
-        if (!cancelled) setError("Couldn't build drills — check your connection.");
+        if (!cancelled) setError("Couldn't build drills. Check your connection.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -586,7 +590,7 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
   const name = decision.player.replace(/\s*\([^)]*\)/, "").trim() || "This player";
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/30 backdrop-blur-sm p-4 sm:p-8" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/30 backdrop-blur-sm p-4 sm:p-8 modal-in" onClick={onClose}>
       <div className="surface mx-auto max-w-lg p-5 sm:p-6" onClick={e => e.stopPropagation()}>
         <div className="mb-1 flex items-start justify-between gap-3">
           <div>
@@ -630,7 +634,7 @@ function DrillsOverlay({ decision, onClose }: { decision: PlayerDecision; onClos
               </div>
             )}
             {drills.solo.length === 0 && drills.team.length === 0 && (
-              <p className="py-4 text-sm text-muted-foreground">No drills came back — try again.</p>
+              <p className="py-4 text-sm text-muted-foreground">No drills came back. Try again.</p>
             )}
           </div>
         )}
@@ -681,7 +685,7 @@ function PlayerCard({ decision, defaultOpen = false }: {
       <div className="flex gap-3">
         <div className="w-[46px] shrink-0 pt-3.5 text-right">
           <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
-            {decision.timestamp || "—"}
+            {decision.timestamp || "-"}
           </span>
         </div>
 
@@ -793,7 +797,7 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
     return (
       <div className="space-y-0">
         {decisions.map((d, i) => (
-          <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
+          <Reveal key={i} index={i} step={0.04}><PlayerCard decision={d} defaultOpen={i === 0} /></Reveal>
         ))}
       </div>
     );
@@ -816,7 +820,7 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
     return (
       <div className="space-y-3">
         {decisions.map((d, i) => (
-          <PlayerCard key={i} decision={d} defaultOpen={i === 0} />
+          <Reveal key={i} index={i} step={0.04}><PlayerCard decision={d} defaultOpen={i === 0} /></Reveal>
         ))}
       </div>
     );
@@ -833,7 +837,7 @@ export function PlayerCardList({ decisions }: { decisions: PlayerDecision[] }) {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{capitalize(s.label)} · {s.decisions.length}</p>
           </div>
           {s.decisions.map((d, i) => (
-            <PlayerCard key={i} decision={d} defaultOpen={si === 0 && i === 0} />
+            <Reveal key={i} index={i} step={0.04}><PlayerCard decision={d} defaultOpen={si === 0 && i === 0} /></Reveal>
           ))}
         </div>
       ))}
@@ -882,7 +886,7 @@ function VolleyBoxPanel({ rows, report }: { rows: PlayerVolleyStat[]; report?: G
   const [active, setActive] = useState(0);
   const team = teams[Math.min(active, teams.length - 1)];
   if (!team) return null;
-  const hit = (k: number, e: number, ta: number) => ta > 0 ? ((k - e) / ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "—";
+  const hit = (k: number, e: number, ta: number) => ta > 0 ? ((k - e) / ta).toFixed(3).replace(/^(-?)0\./, "$1.") : "-";
   const sorted = [...team.rows].sort((a, b) => (+!!b.jersey - +!!a.jersey) || b.k - a.k || b.ta - a.ta);
   const sum = (k: keyof PlayerVolleyStat) => team.rows.reduce((n, r) => n + (r[k] as number), 0);
   const cols: StatCol<PlayerVolleyStat>[] = [
@@ -936,7 +940,7 @@ function BoxScorePanel({ rows, report, roster = [], onPlayer }: { rows: PlayerBo
       const p = who(r);
       return p && p.good + p.poor > 0
         ? <span className="inline-flex items-center gap-1.5 text-[12px]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{p.good}<span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />{p.poor}</span>
-        : <span className="text-muted-foreground">—</span>;
+        : <span className="text-muted-foreground">-</span>;
     } },
   ];
   return (
@@ -948,7 +952,7 @@ function BoxScorePanel({ rows, report, roster = [], onPlayer }: { rows: PlayerBo
         onRowClick={onPlayer ? r => { const p = who(r); if (p) onPlayer(p); } : undefined}
         footer={{ name: "Team", cells: [t.pts, t.reb, t.ast, t.stl, t.blk,
           ...([[t.fgm, t.fga], [t.tpm, t.tpa], [t.ftm, t.fta]] as const).map(([m, a], i) => (
-            <span key={i} className="inline-flex flex-col items-end leading-tight">{m}–{a}<span className="text-[11px] font-normal text-muted-foreground">{pctText(m, a)}</span></span>
+            <span key={i} className="inline-flex flex-col items-end leading-tight">{m}-{a}<span className="text-[11px] font-normal text-muted-foreground">{pctText(m, a)}</span></span>
           )), t.tov, t.pf, ""] }} />
     </section>
   );
@@ -975,7 +979,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
   const notes = GAME_SECTIONS.filter(({ key }) => report[key]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-background screen-in">
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -991,7 +995,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
             )}
             <span title="Overall decision grade"
               className={`flex h-9 min-w-9 items-center justify-center rounded-full px-2.5 text-sm font-semibold ${gradeClass(report.overallGrade, "bg")} ${gradeClass(report.overallGrade, "text")}`}>
-              {report.overallGrade}
+              <SplitFlap text={report.overallGrade} riffle />
             </span>
           </div>
         </div>
@@ -1005,7 +1009,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
           </div>
         )}
 
-        {/* What the player actually did — drawn from the counted decisions. */}
+        {/* What the player actually did, drawn from the counted decisions. */}
         {((report.didWell?.length ?? 0) > 0 || (report.workOn?.length ?? 0) > 0) && (
           <div className="surface grid sm:grid-cols-2">
             {[["Did well", report.didWell ?? [], "bg-emerald-500"], ["Work on", report.workOn ?? [], "bg-court"]].map(([label, items, dot], i) => (
@@ -1025,7 +1029,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
           </div>
         )}
 
-        {/* Box score — the builders are sport-exclusive, so at most one renders */}
+        {/* Box score, the builders are sport-exclusive, so at most one renders */}
         {hasBox && (report.volleyBox && report.volleyBox.length > 0
           ? <VolleyBoxPanel rows={report.volleyBox} report={report} />
           : <BoxScorePanel rows={report.boxScore!} report={report} roster={teams} onPlayer={setFocus} />)}
@@ -1033,7 +1037,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
         {/* Team stat comparison */}
         {tc && tc.stats.length > 0 && <TeamStatBars tc={tc} />}
 
-        {/* Players by team — only when there's no box score to carry them
+        {/* Players by team, only when there's no box score to carry them
             (volleyball, or a game where no stat events were logged). */}
         {!(report.boxScore?.length) && teams.some(t => t.players.length > 0) && (
           <section className="surface p-5 sm:p-6">
@@ -1090,8 +1094,8 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
         {/* Coaching notes */}
         {(notes.length > 0 || report.strengths.length > 0 || report.improvements.length > 0) && (
           <section className="surface divide-y divide-border">
-            {notes.map(({ key, label }) => (
-              <div key={key} className="grid gap-2 p-5 sm:grid-cols-[11rem_1fr] sm:gap-6 sm:p-6">
+            {notes.map(({ key, label }, ni) => (
+              <Reveal key={key} index={ni} step={0.05} className="grid gap-2 p-5 sm:grid-cols-[11rem_1fr] sm:gap-6 sm:p-6">
                 <p className="text-[13px] text-muted-foreground">{label}</p>
                 <div>
                   <p className="text-[15px] leading-relaxed text-foreground">{report[key] as string}</p>
@@ -1101,7 +1105,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
                     </button>
                   )}
                 </div>
-              </div>
+              </Reveal>
             ))}
             {[["Strengths", report.strengths, "bg-emerald-500"], ["Areas to improve", report.improvements, "bg-court"]].map(([label, items, dot]) => (
               (items as string[]).length > 0 && (
@@ -1123,7 +1127,7 @@ export function GameResultsView({ report, onClose, backLabel = "New analysis", s
 
       {/* Player detail modal */}
       {focus && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" onClick={() => setFocus(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm modal-in" onClick={() => setFocus(null)}>
           <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-lift" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center gap-4">
               <span className="font-display text-5xl tabular-nums leading-none text-foreground">#{focus.jersey}</span>
@@ -1223,6 +1227,17 @@ function TeamComparisonPanel({ tc, hasScoreboard = false, teams = [] }: { tc: Te
   );
 }
 
+// A bar that grows to its share the first time it's seen.
+function GrowBar({ pct }: { pct: number }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div className="rounded-full bg-foreground"
+      initial={reduce ? false : { width: 0 }} whileInView={{ width: `${pct}%` }}
+      viewport={{ once: true, margin: "-20px" }} transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+      style={reduce ? { width: `${pct}%` } : undefined} />
+  );
+}
+
 // Team stats side by side: numbers either end, a thin two-shade bar between.
 function TeamStatBars({ tc }: { tc: TeamComparison }) {
   const nameOf = (s: string) => s.replace(/\s*\([^)]*\)/, "");
@@ -1234,22 +1249,22 @@ function TeamStatBars({ tc }: { tc: TeamComparison }) {
         <span className="text-foreground">{nameOf(tc.teamB)}</span>
       </div>
       <div className="space-y-3.5">
-        {tc.stats.map(({ label, a, b }) => {
+        {tc.stats.map(({ label, a, b }, si) => {
           const total = a + b;
           const aPct = total > 0 ? (a / total) * 100 : 50;
           return (
-            <div key={label}>
+            <Reveal key={label} index={si} step={0.05}>
               <div className="mb-1.5 flex items-baseline justify-between text-[14px] tabular-nums">
-                <span className={a > b ? "font-semibold text-foreground" : "text-foreground/70"}>{a}</span>
+                <span className={a > b ? "font-semibold text-foreground" : "text-foreground/70"}><CountUp value={a} /></span>
                 <span className="text-[13px] text-muted-foreground">{label}</span>
-                <span className={b > a ? "font-semibold text-foreground" : "text-foreground/70"}>{b}</span>
+                <span className={b > a ? "font-semibold text-foreground" : "text-foreground/70"}><CountUp value={b} /></span>
               </div>
               {/* Team shades, not green/red: more turnovers isn't "winning" the bar. */}
               <div className="flex h-1 gap-1">
-                <div className="rounded-full bg-foreground" style={{ width: `${aPct}%` }} />
+                <GrowBar pct={aPct} />
                 <div className="flex-1 rounded-full bg-foreground/15" />
               </div>
-            </div>
+            </Reveal>
           );
         })}
       </div>
@@ -1301,33 +1316,35 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
 
   return (
-    <div className="flex flex-col items-center justify-center py-10 gap-8">
-      {/* Animated orb */}
-      <div className="relative flex items-center justify-center">
-        <div className="h-16 w-16 rounded-full border-2 border-border animate-ping absolute opacity-20" />
-        <div className="h-10 w-10 rounded-full bg-primary/10 border border-border flex items-center justify-center">
-          <div className="h-3 w-3 rounded-full bg-primary animate-pulse" />
+    <div className="flex flex-col gap-6 py-6">
+      {/* The film itself, a dot per segment: lit as each one is read. The
+          grid is the progress bar, there's nothing else to look at for
+          several minutes, so it may as well show real work. */}
+      <div className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <p className="text-[13px] text-muted-foreground">
+            {total > 1 ? `Reading segment ${Math.min(current + 1, total)} of ${total}` : "Reading your film"}
+          </p>
+          <SplitFlap text={`${pct}%`} className="font-mono text-sm font-semibold text-foreground" />
         </div>
+        <FilmScan current={current} total={total} />
       </div>
 
       {/* Steps */}
-      <div className="w-full space-y-2">
+      <div className="space-y-1">
         {ANALYSIS_STEPS.map((step, i) => {
-          const done    = i < stepIndex;
-          const active  = i === stepIndex;
-          const pending = i > stepIndex;
+          const done   = i < stepIndex;
+          const active = i === stepIndex;
           return (
-            <div key={step.key} className={`flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all ${active ? "border border-border bg-muted" : "opacity-30"}`}>
-              <div className={`h-4 w-4 shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${ done ? "bg-primary text-primary-foreground" : active ? "border border-white" : "border border-border"
+            <div key={step.key} className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-300 ${active ? "bg-muted" : "opacity-40"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors ${
+                done ? "bg-court text-white" : active ? "border border-foreground" : "border border-border"
               }`}>
-                {done ? "✓" : active ? <span className="animate-pulse">●</span> : ""}
+                {done ? "✓" : active ? <span className="h-1.5 w-1.5 rounded-full bg-foreground [animation:pulse_1.4s_ease-in-out_infinite]" /> : ""}
               </div>
-              <span className={`text-sm ${active ? "text-foreground font-semibold" : pending ? "text-muted-foreground" : "text-muted-foreground"}`}>
+              <span className={`text-sm ${active ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                 {step.label}
               </span>
-              {active && total > 1 && (
-                <span className="ml-auto text-xs text-muted-foreground tabular-nums">{pct}%</span>
-              )}
             </div>
           );
         })}
@@ -1335,7 +1352,7 @@ function AnalysisLoader({ label, current, total }: { label: string; current: num
 
       {/* Sub-label for segment progress */}
       {label && total > 1 && (
-        <p className="text-xs text-muted-foreground text-center">{label}</p>
+        <p className="text-center text-xs text-muted-foreground">{label}</p>
       )}
     </div>
   );
@@ -1359,7 +1376,7 @@ function jobCheckpoints(job: JobProgressState): { target: number; ceiling: numbe
   if (progress_label?.startsWith("Double")) return { target: 88, ceiling: 92, label: "Double-checking the score…" };
   if (progress_label?.startsWith("Watching") && total > 0) {
     const at = (n: number) => 8 + 82 * Math.min(n, total) / total;
-    return { target: at(cur), ceiling: at(cur + JOB_BATCH), label: `Watching the game — ${cur} of ${total} segments done` };
+    return { target: at(cur), ceiling: at(cur + JOB_BATCH), label: `Watching the game, ${cur} of ${total} segments done` };
   }
   return { target: 3, ceiling: 8, label: "Measuring the video…" };
 }
@@ -1381,10 +1398,10 @@ function JobProgressBar({ job, compact = false }: { job: JobProgressState; compa
     <div className="w-full">
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <span className={`truncate text-muted-foreground ${compact ? "text-xs" : "text-sm"}`}>{label}</span>
-        <span className={`font-mono tabular-nums text-foreground ${compact ? "text-xs" : "text-sm font-semibold"}`}>{pct}%</span>
+        <SplitFlap text={`${pct}%`} className={`font-mono text-foreground ${compact ? "text-xs" : "text-sm font-semibold"}`} />
       </div>
       <div className={`w-full overflow-hidden rounded-full bg-border ${compact ? "h-1" : "h-1.5"}`}>
-        <div className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-court transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -1843,7 +1860,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
         const isNotSports  = msg.toLowerCase().includes("sports clip") || msg.toLowerCase().includes("can't analyze");
         setAnalyzeError(
           isNotSports  ? msg
-          : isRateLimit ? "Too many requests — the AI is busy. Wait a moment and try again."
+          : isRateLimit ? "Too many requests, the AI is busy. Wait a moment and try again."
           : "Analysis failed. Check your connection and try again.");
         setPendingRetry(() => doAnalyze);
       }
@@ -1941,7 +1958,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 }} />
                 <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-accent/80 transition-transform group-hover:scale-110"><Clapperboard className="h-6 w-6 text-foreground" strokeWidth={1.75} /></div>
                 <p className="text-sm font-bold text-foreground">Tap to choose video</p>
-                <p className="mt-1 text-xs text-muted-foreground">Clip or full game — adapts automatically</p>
+                <p className="mt-1 text-xs text-muted-foreground">Clip or full game, adapts automatically</p>
               </label>
               {videoUrl && <video className="mt-4 w-full rounded-lg border border-border" src={videoUrl} controls />}
               {fileName && <p className="mt-2 text-xs text-muted-foreground truncate">{fileName}</p>}
@@ -2003,7 +2020,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   {needsTeamInfo && (
                     <input
                       className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
-                      placeholder={profile.jersey ? `Your jersey color (required) — you're #${profile.jersey}` : "Your jersey color this game (required)"}
+                      placeholder={profile.jersey ? `Your jersey color (required), you're #${profile.jersey}` : "Your jersey color this game (required)"}
                       value={teamColor}
                       onChange={e => setTeamColor(e.target.value)}
                     />
@@ -2025,7 +2042,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                         Film not on public YouTube? Capture your screen instead
                       </summary>
                       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                        For unlisted videos, HUDL, or anything behind a login. Open your film in another tab, start the capture, pick that tab, and press play — 2x speed works. Hit stop when the play is over.
+                        For unlisted videos, HUDL, or anything behind a login. Open your film in another tab, start the capture, pick that tab, and press play, 2x speed works. Hit stop when the play is over.
                       </p>
                       <button
                         onClick={() => startScreenCapture()}
@@ -2036,7 +2053,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     </details>
                   ) : (
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      If your film isn&apos;t on public YouTube, use the Upload tab — screen capture needs a laptop or desktop.
+                      If your film isn&apos;t on public YouTube, use the Upload tab, screen capture needs a laptop or desktop.
                     </p>
                   )}
                 </>
@@ -2067,7 +2084,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   {gameFootageToggle}
                   <input
                     className="w-full rounded-xl border border-input bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 transition-shadow"
-                    placeholder={(needsTeamInfo ? "Your jersey color (required) — " : "") + (profile.jersey ? `Your jersey color this game (e.g. White, Blue) — you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)")}
+                    placeholder={(needsTeamInfo ? "Your jersey color (required), " : "") + (profile.jersey ? `Your jersey color this game (e.g. White, Blue), you're #${profile.jersey}` : "Your jersey color this game (e.g. White, Blue, Red)")}
                     value={teamColor}
                     onChange={e => setTeamColor(e.target.value)}
                   />
@@ -2106,7 +2123,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               </p>
               {resultMode === "clip" && !loading && decisions.length > 0 && !myClipPlayer && (
                 <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-                  Couldn&apos;t match your jersey in this clip, so no grade was saved for you — every player below is still graded.
+                  Couldn&apos;t match your jersey in this clip, so no grade was saved for you, every player below is still graded.
                 </p>
               )}
             </div>
@@ -2133,8 +2150,9 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                 <p className="text-sm text-red-600 dark:text-red-400 max-w-sm leading-relaxed">{activeJob.error || "Something went wrong. Your game credit was refunded."}</p>
               </>) : (<>
                 <p className="text-base font-semibold text-foreground">Analyzing your game</p>
-                <div className="w-full max-w-sm">
+                <div className="w-full max-w-sm space-y-3">
                   <JobProgressBar job={activeJob ?? { status: "queued", progress_label: null, progress_current: 0, progress_total: 0 }} />
+                  <FilmScan current={activeJob?.progress_current ?? 0} total={activeJob?.progress_total ?? 0} />
                 </div>
                 <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
                   A full game takes about 4–5 minutes. It runs in the background, so you can close this tab. The finished review lands in your Library.
@@ -2159,7 +2177,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
           {!loading && !analyzeError && !resultMode && !jobStarted && (
             <div className="rounded-lg border border-dashed border-border p-5">
               <p className="mb-4 text-xs text-muted-foreground">
-                {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]} — here's what a review looks like:` : "Upload a clip and every player gets a card like this:"}
+                {profile.name ? `Ready when you are, ${profile.name.split(" ")[0]}, here's what a review looks like:` : "Upload a clip and every player gets a card like this:"}
               </p>
               {/* Ghost preview of a graded player card */}
               <div className="pointer-events-none select-none space-y-2 opacity-60">
@@ -2178,7 +2196,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                     </div>
                     <div className="rounded-lg bg-muted p-2.5">
                       <div className="text-[12px] text-muted-foreground mb-1">Next Time</div>
-                      <div className="text-xs text-muted-foreground">Same read, half a beat earlier — before help commits.</div>
+                      <div className="text-xs text-muted-foreground">Same read, half a beat earlier, before help commits.</div>
                     </div>
                   </div>
                 </div>
@@ -2196,10 +2214,10 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
               <VideoOff className="h-9 w-9 text-muted-foreground" strokeWidth={1.5} />
               <p className="text-base font-semibold text-foreground">This clip was a little too unclear to break down</p>
               <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-                Nothing's broken — the analysis ran fine, but the footage was too blurry, too far away, or too fast to read the plays confidently. We'd rather tell you that than make something up.
+                Nothing's broken, the analysis ran fine, but the footage was too blurry, too far away, or too fast to read the plays confidently. We'd rather tell you that than make something up.
               </p>
               <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                Try a clearer clip where the players and the ball are clearly visible — closer footage and steady framing work best.
+                Try a clearer clip where the players and the ball are clearly visible, closer footage and steady framing work best.
               </p>
               <div className="mt-2 flex flex-wrap justify-center gap-2">
                 <button onClick={() => (videoFile ? analyzeVideo(true) : analyzeYouTube(true))}
@@ -2214,7 +2232,7 @@ export default function DecisionIQ({ profile, reviews, onReviewsChange, userId, 
                   Try another clip
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground">"Analyze anyway" gives a best-effort read — uncertain calls are marked low confidence.</p>
+              <p className="text-[11px] text-muted-foreground">"Analyze anyway" gives a best-effort read. Uncertain calls are marked low confidence.</p>
             </div>
           )}
           {!loading && resultMode === "clip" && decisions.length > 0 && (
@@ -2390,7 +2408,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
       ))}
       {failedJobs.map(job => (
         <div key={job.id} className="rounded-lg border border-red-500/25 bg-red-500/[0.07] px-4 py-3">
-          <p className="text-sm font-semibold text-foreground">{job.file_name || "Untitled game"} — analysis failed</p>
+          <p className="text-sm font-semibold text-foreground">{job.file_name || "Untitled game"}, analysis failed</p>
           <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">{job.error || "Something went wrong."}</p>
         </div>
       ))}
@@ -2465,7 +2483,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
   const gameCount = reviews.filter(r => r.mode === "game").length;
   return (
     <div>
-      {/* Toolbar: search, type, grade — one row */}
+      {/* Toolbar: search, type, grade, one row */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <input
           value={search}
@@ -2509,7 +2527,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
               <section key={group.key} className="border-t border-border pt-2">
                 <TeamSectionHeader
                   name={group.name}
-                  initials={group.teamId ? teamInitials(group.name) : "—"}
+                  initials={group.teamId ? teamInitials(group.name) : "-"}
                   colorClass={group.teamId ? teamAvatarColor(group.key) : "bg-muted-foreground"}
                   subtitle={subtitle}
                   record={record}
@@ -2519,9 +2537,9 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
                 />
                 {!isCollapsed && (
                   <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {group.jobs.map(job => (
+                    {group.jobs.map((job, ji) => (
+                      <Reveal key={job.id} index={ji}>
                       <GameCard
-                        key={job.id}
                         thumbnailUrl={job.thumbnail_url}
                         sport={job.sport || ""}
                         dateLabel={job.opponent_name ? `vs ${job.opponent_name}` : "Processing"}
@@ -2530,10 +2548,11 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
                           ? { label: "Failed", tone: "failed" }
                           : { label: job.progress_label || "Analyzing…", tone: "processing" }}
                       />
+                      </Reveal>
                     ))}
-                    {group.reviews.map(review => (
+                    {group.reviews.map((review, ri) => (
+                      <Reveal key={review.id} index={ri}>
                       <GameCard
-                        key={review.id}
                         thumbnailUrl={review.thumbnailUrl}
                         sport={review.sport}
                         dateLabel={dateLabel(review)}
@@ -2554,6 +2573,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
                           />
                         }
                       />
+                      </Reveal>
                     ))}
                   </div>
                 )}
@@ -2565,7 +2585,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
 
       {/* Rename modal */}
       {renamingId && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={() => setRenamingId(null)}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 modal-in" onClick={() => setRenamingId(null)}>
           <div className="surface w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
             <p className="mb-3 text-sm font-bold text-foreground">Rename</p>
             <input
@@ -2588,7 +2608,7 @@ export function FilmLibrary({ reviews, onReviewsChange, userId }: {
         openReview.mode === "game" && openReview.gameReport
           ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back to library" sourceName={openReview.fileName} />
           : (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-background screen-in">
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
                 <div className="flex items-center justify-between">
                   <button onClick={() => setOpenReview(null)}

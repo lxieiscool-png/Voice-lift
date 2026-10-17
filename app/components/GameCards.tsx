@@ -92,7 +92,7 @@ export function GameCard({ thumbnailUrl, sport, dateLabel, title, grade, result,
     // No overflow-hidden on the root: the card's ⋮ menu is an absolutely
     // positioned dropdown that must be free to extend past the card edge.
     // Rounded-corner clipping lives on the thumbnail button instead.
-    <div className="surface">
+    <div className={`surface ${onClick ? "card-lift" : ""}`}>
       {/* Thumbnail */}
       <button onClick={onClick} disabled={!onClick} aria-label={`Open ${title}`} className="group relative block aspect-video w-full overflow-hidden rounded-t-xl bg-muted disabled:cursor-default">
         {thumbnailUrl ? (

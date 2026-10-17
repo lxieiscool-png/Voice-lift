@@ -107,9 +107,9 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
         body: JSON.stringify({ drill: drill.trim(), sport: profile?.sport }),
       });
       const data = await res.json().catch(() => ({}));
-      setHowto(data.howto || data.error || "Couldn't build instructions — try again.");
+      setHowto(data.howto || data.error || "Couldn't build instructions. Try again.");
     } catch {
-      setHowto("Couldn't build instructions — check your connection and try again.");
+      setHowto("Couldn't build instructions. Check your connection and try again.");
     } finally {
       setHowtoLoading(false);
     }
@@ -127,7 +127,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
         try {
           frames = await blurFacesInFrames(frames);
         } catch {
-          setError("Couldn't blur faces on your device (your browser may not support it). Nothing was sent — turn off face blur to continue, or try Chrome.");
+          setError("Couldn't blur faces on your device (your browser may not support it). Nothing was sent. Turn off face blur to continue, or try Chrome.");
           setLoading(false);
           return;
         }
@@ -163,7 +163,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
         <Dumbbell className="h-4 w-4 text-muted-foreground" />
         <div>
           <p className="text-sm font-semibold text-foreground">Drill Check</p>
-          <p className="text-xs text-muted-foreground">Record yourself doing a drill — get instant form feedback.</p>
+          <p className="text-xs text-muted-foreground">Record yourself doing a drill, get instant form feedback.</p>
         </div>
       </div>
 
@@ -171,7 +171,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
       <textarea
         value={drill}
         onChange={e => setDrill(e.target.value)}
-        placeholder="Paste the drill from your report, or describe it — e.g. 'Form shooting: one-hand follow-through, 3 sets of 20, hold the finish.'"
+        placeholder="Paste the drill from your report, or describe it, e.g. 'Form shooting: one-hand follow-through, 3 sets of 20, hold the finish.'"
         rows={2}
         className="mb-3 w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40"
       />
@@ -195,7 +195,7 @@ export default function DrillCheck({ profile, userId, initialDrill = "", onShowU
           className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-500" />
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-foreground">Blur faces before analyzing <span className="rounded bg-accent px-1 py-0.5 text-[12px] text-muted-foreground">Beta</span></span>
-          <span className="block text-[11px] leading-relaxed text-muted-foreground">Faces are blurred on your device before anything is sent. Best-effort — works well on close-up clips; verify your first result. If blurring can't run, nothing is sent.</span>
+          <span className="block text-[11px] leading-relaxed text-muted-foreground">Faces are blurred on your device before anything is sent. Best-effort. Works well on close-up clips; verify your first result. If blurring can't run, nothing is sent.</span>
         </span>
       </label>
 

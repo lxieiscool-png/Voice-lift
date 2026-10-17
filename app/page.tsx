@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useInView, useReducedMotion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import type { Profile, Review } from "./lib/types";
 import { averageGrade, gradeClass, formatDate, GRADE_VALUE } from "./lib/shared";
@@ -14,6 +14,7 @@ import { Segmented } from "./components/ui/segmented";
 import { AgeGate, DeleteAccountSection } from "./components/AccountSafety";
 import { Clapperboard, Brain, ClipboardList, TrendingUp, MessageCircle, Dumbbell, Target, Flame, Film, Library as LibraryIcon, Users, Settings, type LucideIcon } from "lucide-react";
 import Landing from "./components/Landing";
+import { CountUpText, Reveal, SplitFlap } from "./components/ui/motion";
 
 const DecisionIQ  = dynamic(() => import("./components/DecisionIQ"), { ssr: false });
 const CoachIQ     = dynamic(() => import("./components/CoachIQ"),    { ssr: false });
@@ -149,7 +150,7 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
     const s = (r.sport || "Unknown").toLowerCase();
     sportCounts[s] = (sportCounts[s] ?? 0) + 1;
   }
-  const topSport = Object.entries(sportCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+  const topSport = Object.entries(sportCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
   const streak = calcStreak(reviews);
 
   const stats = [
@@ -161,14 +162,14 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
 
   return (
     <div className="surface grid grid-cols-2 gap-y-6 p-5 sm:grid-cols-4 sm:p-6">
-      {stats.map(({ label, value, grade, fire }) => (
-        <div key={label}>
+      {stats.map(({ label, value, grade, fire }, i) => (
+        <Reveal key={label} index={i} step={0.07}>
           {grade
-            ? <span className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-lg ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}>{value}</span>
-            : <p className="flex items-center gap-1.5 font-display text-4xl capitalize leading-none text-foreground">{value}{fire ? <Flame className="h-5 w-5 text-court" /> : null}</p>
+            ? <span className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-lg ${gradeClass(value, "bg")} ${gradeClass(value, "text")}`}><SplitFlap text={value} riffle /></span>
+            : <p className="flex items-center gap-1.5 font-display text-4xl capitalize leading-none text-foreground"><CountUpText text={value} />{fire ? <Flame className="h-5 w-5 text-court" /> : null}</p>
           }
           <p className="mt-2 text-[12px] text-muted-foreground">{label}</p>
-        </div>
+        </Reveal>
       ))}
     </div>
   );
@@ -177,6 +178,7 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
 // ─── Grade Trend Chart ────────────────────────────────────────────────────────
 
 function GradeTrendChart({ reviews }: { reviews: Review[] }) {
+  const reduceChart = useReducedMotion();
   const recent = [...reviews].reverse().slice(-20);
   if (recent.length < 2) return null;
 
@@ -201,8 +203,17 @@ function GradeTrendChart({ reviews }: { reviews: Review[] }) {
             <text x={PL - 5} y={yp(v) + 4} textAnchor="end" fill="var(--muted-foreground)" fontSize="9">{l}</text>
           </g>
         ))}
-        <polyline points={poly} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} stroke="var(--card)" strokeWidth="2" />)}
+        {/* The trend draws itself left to right, so it reads as a season
+            building up rather than a finished picture. */}
+        <motion.polyline points={poly} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
+          initial={reduceChart ? false : { pathLength: 0 }} whileInView={{ pathLength: 1 }}
+          viewport={{ once: true, margin: "-40px" }} transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }} />
+        {pts.map((p, i) => (
+          <motion.circle key={i} cx={p.x} cy={p.y} r="3.5" fill={color} stroke="var(--card)" strokeWidth="2"
+            initial={reduceChart ? false : { opacity: 0, scale: 0 }} whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.3, delay: 0.25 + (i / Math.max(1, pts.length - 1)) * 0.85, ease: [0.22, 1, 0.36, 1] }} />
+        ))}
         {[0, Math.floor((recent.length - 1) / 2), recent.length - 1].map(i => (
           <text key={i} x={xp(i)} y={H - 4} textAnchor="middle" fill="var(--muted-foreground)" fontSize="9">
             {new Date(recent[i].timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -319,7 +330,7 @@ function SettingsPanel({ open, onClose, profile, onSaveProfile, reviews, onClear
   return (
     <>
       {/* Backdrop */}
-      {open && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />}
+      {open && <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm modal-in" onClick={onClose} />}
 
       {/* Drawer */}
       <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-card border-l border-border transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}>
@@ -500,7 +511,7 @@ function OnboardingOverlay({ name, onDone }: { name: string; onDone: () => void 
   const isLast = step === slides.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-6 modal-in">
       <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-8 shadow-2xl">
         {/* Progress */}
         <div className="mb-8 flex gap-1.5">
@@ -618,7 +629,7 @@ function SignUpModal({ onContinue, onClose }: { onContinue: (data: { name: strin
   const isLast  = step === steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 backdrop-blur-sm backdrop-blur-sm p-0 sm:p-4 modal-in">
       <div className="relative w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto">
         {/* Close */}
         <button onClick={onClose} aria-label="Close" className="absolute right-5 top-5 text-muted-foreground hover:text-foreground transition-colors text-xl leading-none">✕</button>
@@ -962,8 +973,12 @@ export default function Reel() {
               const Icon = mod.icon;
               return (
                 <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-all ${active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                  <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}
+                  className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors ${active ? "text-background" : "text-muted-foreground hover:text-foreground"}`}>
+                  {/* One shared pill across the tabs, so it travels to the
+                      tab you picked rather than blinking out and back in. */}
+                  {active && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-foreground"
+                    transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
+                  <span className="relative z-10 flex items-center gap-2"><Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}</span>
                 </button>
               );
             })}
@@ -992,8 +1007,10 @@ export default function Reel() {
             const Icon = mod.icon;
             return (
               <button key={mod.id} onClick={() => setActiveModule(mod.id)} data-module={mod.id}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] transition-colors ${activeModule === mod.id ? "bg-foreground text-background" : "bg-card text-muted-foreground shadow-soft"}`}>
-                <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}
+                className={`relative flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] transition-colors ${activeModule === mod.id ? "text-background" : "bg-card text-muted-foreground shadow-soft"}`}>
+                {activeModule === mod.id && <motion.span layoutId="nav-pill-sm" className="absolute inset-0 rounded-full bg-foreground"
+                  transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
+                <span className="relative z-10 flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}</span>
               </button>
             );
           })}
@@ -1042,7 +1059,7 @@ export default function Reel() {
         </motion.div>
       </div>
 
-      {/* Help / support assistant — floating, available across the app */}
+      {/* Help / support assistant, floating, available across the app */}
       <SupportWidget />
     </main>
   );

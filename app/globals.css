@@ -115,11 +115,15 @@ body {
 }
 @utility btn-dark {
   background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-soft);
-  &:hover { opacity: 0.88; }
+  /* A button that lifts under the cursor and presses on click reads as a
+     physical control rather than a coloured rectangle. */
+  &:hover { opacity: 0.88; transform: translateY(-1px); }
+  &:active { transform: scale(0.97); }
 }
 @utility btn-light {
   background: var(--card); color: var(--foreground); box-shadow: var(--shadow-soft);
-  &:hover { box-shadow: var(--shadow-lift); }
+  &:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+  &:active { transform: scale(0.97); }
 }
 
 /* A white surface that floats on the paper page. */
@@ -130,8 +134,52 @@ body {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
+/* ─── Motion keyframes ──────────────────────────────────────────────────────
+   Used by app/components/ui/motion.tsx. Kept here rather than inline so the
+   reduced-motion block below neutralises all of them in one place. */
+
+/* Split-flap: the glyph drops into its slot, which is clipped, so it reads as
+   a flap landing. Deliberately a 2D translate — rotateX promotes the glyph to
+   a 3D compositing layer that this renderer leaves collapsed to a flat line
+   once the animation ends, even though the computed transform reads "none". */
+@keyframes flap {
+  0%   { transform: translateY(-58%); opacity: 0.3; }
+  60%  { transform: translateY(6%);   opacity: 1; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* Film scan: an unlit dot briefly brightens as the scan line passes over it.
+   The dot carries its resting opacity inline, so with motion reduced (no
+   animation) it still sits at the same faint grey. */
+@keyframes sweep {
+  0%, 72%, 100% { opacity: 0.08; }
+  82%           { opacity: 0.3; }
+}
+
 /* Visible keyboard focus everywhere (mouse clicks don't trigger it). */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
+
+/* Any clickable card. Lifts toward the cursor, settles when released. */
+@utility card-lift {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  &:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+  &:active { transform: translateY(-1px); }
+}
+
+/* Modal entrance. One class on the overlay: the backdrop fades and its direct
+   child (the panel) rises into place, so every dialog in the app opens the
+   same way without each one wiring up its own animation. */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.975); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@utility modal-in {
+  animation: fade-in 180ms ease-out;
+  & > * { animation: pop-in 280ms cubic-bezier(0.22, 1, 0.36, 1); }
+}
+/* Full-screen views (report, film room, team page) just fade up as a whole. */
+@utility screen-in { animation: pop-in 320ms cubic-bezier(0.22, 1, 0.36, 1); }

@@ -104,7 +104,7 @@ export default function FilmRoom({ videoId, decisions, timeline = [], onClose }:
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-background">
+    <div className="fixed inset-0 z-[70] flex flex-col bg-background screen-in">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <button onClick={onClose}
           className="btn-pill btn-light px-3 py-1.5 text-xs">

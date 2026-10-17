@@ -10,6 +10,7 @@ import { Segmented } from "./ui/segmented";
 import { GameResultsView, PlayerCardList } from "./DecisionIQ";
 import { SeasonStatsPanel, saveReviewTeamColor } from "./SeasonStats";
 import { buildSeasonLedger } from "../lib/analysis/seasonStats";
+import { Reveal } from "./ui/motion";
 
 function rowToTeam(r: any): Team {
   return {
@@ -138,7 +139,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
   }
 
   async function setGameColor(review: Review, color: string) {
-    if (!await saveReviewTeamColor(userId, review, color)) { alert("Couldn't save that — try again."); return; }
+    if (!await saveReviewTeamColor(userId, review, color)) { alert("Couldn't save that. Try again."); return; }
     onReviewsChange(reviews.map(r => r.id === review.id ? { ...r, teamColor: color } : r));
   }
 
@@ -147,7 +148,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
         openReview.mode === "game" && openReview.gameReport
           ? <GameResultsView report={openReview.gameReport} onClose={() => setOpenReview(null)} backLabel="Back" />
           : (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-background screen-in">
               <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6">
                 <div className="flex items-center justify-between">
                   <button onClick={() => setOpenReview(null)}
@@ -304,7 +305,7 @@ export default function Teams({ userId, sport, reviews, onReviewsChange, isPro, 
 
       {teams.length > 0 && (
         <div className="border-b border-border">
-          {teams.map(t => {
+          {teams.map((t, ti) => {
             const record = computeSeasonRecord(t, reviews);
             const games = reviews.filter(r => r.teamId === t.id);
             const { team: totals, sport: statSport } = buildSeasonLedger(games, [], t.sport);
@@ -354,17 +355,17 @@ function RosterEditor({ members, onAdd, onRemove }: {
   return (
     <div>
       {members.length === 0 ? (
-        <p className="mb-3 text-sm text-muted-foreground">No players added yet. Jersey number is enough — a name is optional.</p>
+        <p className="mb-3 text-sm text-muted-foreground">No players added yet. Jersey number is enough, a name is optional.</p>
       ) : (
         <div className="mb-4 divide-y divide-border border-y border-border">
-          {[...members].sort((a, b) => Number(a.jerseyNumber ?? 999) - Number(b.jerseyNumber ?? 999)).map(m => (
-            <div key={m.id} className="flex items-center justify-between gap-2 px-1 py-2 text-sm">
+          {[...members].sort((a, b) => Number(a.jerseyNumber ?? 999) - Number(b.jerseyNumber ?? 999)).map((m, mi) => (
+            <Reveal key={m.id} index={mi} step={0.03} className="flex items-center justify-between gap-2 px-1 py-2 text-sm">
               <div className="flex items-center gap-3">
-                <span className="w-8 font-mono text-muted-foreground">{m.jerseyNumber ? `#${m.jerseyNumber}` : "—"}</span>
+                <span className="w-8 font-mono text-muted-foreground">{m.jerseyNumber ? `#${m.jerseyNumber}` : "-"}</span>
                 <span className="text-muted-foreground">{m.displayName || "Unnamed player"}</span>
               </div>
               <button onClick={() => onRemove(m.id)} className="text-xs font-semibold text-muted-foreground hover:text-red-400">Remove</button>
-            </div>
+            </Reveal>
           ))}
         </div>
       )}
@@ -397,11 +398,11 @@ function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
   const [level, setLevel] = useState(initial?.level || "");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 modal-in" onClick={onClose}>
       <div className="surface w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <h3 className="mb-4 text-lg font-bold text-foreground">{title || "Create Team"}</h3>
         <div className="space-y-3">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Team name — e.g. Titanium 14U"
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Team name, e.g. Titanium 14U"
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           <div className="grid grid-cols-2 gap-3">
             <input value={city} onChange={e => setCity(e.target.value)} placeholder="City"
@@ -409,7 +410,7 @@ function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
             <input value={state} onChange={e => setState(e.target.value)} placeholder="State"
               className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           </div>
-          <input value={season} onChange={e => setSeason(e.target.value)} placeholder="Season — e.g. 2025-26"
+          <input value={season} onChange={e => setSeason(e.target.value)} placeholder="Season, e.g. 2025-26"
             className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           <div className="grid grid-cols-2 gap-3">
             <select value={gender} onChange={e => setGender(e.target.value)}
@@ -419,7 +420,7 @@ function CreateTeamModal({ title, defaultSport, initial, onClose, onCreate }: {
               <option value="Girls">Girls</option>
               <option value="Coed">Coed</option>
             </select>
-            <input value={ageGroup} onChange={e => setAgeGroup(e.target.value)} placeholder="Age group — e.g. 14U"
+            <input value={ageGroup} onChange={e => setAgeGroup(e.target.value)} placeholder="Age group, e.g. 14U"
               className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring/40" />
           </div>
           <select value={level} onChange={e => setLevel(e.target.value)}

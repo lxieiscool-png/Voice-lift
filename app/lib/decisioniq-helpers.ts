@@ -24,7 +24,7 @@ export function gameResult(review: Review, teamName?: string | null): { outcome:
     const theirs = ours && sb.find(t => t !== ours);
     if (ours && theirs) {
       const outcome = ours.final > theirs.final ? "W" : ours.final < theirs.final ? "L" : "T";
-      return { outcome, score: `${ours.final}–${theirs.final}` };
+      return { outcome, score: `${ours.final}-${theirs.final}` };
     }
   }
   const tc = review.gameReport?.teamComparison;

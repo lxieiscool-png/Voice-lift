@@ -1,5 +1,19 @@
 import type { PlayerDecision, GameReport, PlayerStat, TeamComparison, PlayerBoxStat, PlayerVolleyStat, DrillFeedback } from "../types";
 
+// Em and en dashes are the clearest tell that a human didn't write something,
+// and they turn up all over model prose. The prompts now ask for none, but a
+// model will still reach for them, so every report is cleaned on the way in.
+// Number ranges ("51-54") keep a plain hyphen; dashes used as punctuation
+// become commas, which is what the sentence almost always meant.
+export function plainProse(text: string): string {
+  return text
+    .replace(/(\d)\s*[\u2014\u2013]\s*(\d)/g, "$1-$2")
+    .replace(/\s*[\u2014\u2013]\s*/g, ", ")
+    .replace(/,\s*,/g, ",")
+    .replace(/,\s*([.;:!?])/g, "$1")
+    .replace(/^[ \t]*,[ \t]*/gm, "");
+}
+
 export function parseDrillFeedback(text: string, drill: string): DrillFeedback {
   const field = (l: string) => text.match(new RegExp(`^${l}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
   const v = field("Verdict").toLowerCase();
@@ -241,7 +255,8 @@ export function extractGrade(text: string) {
   return text.match(/(?:Overall\s+)?Decision\s+Grade:\s*([A-F][+-]?)/i)?.[1] ?? "N/A";
 }
 
-export function parsePlayerBlocks(text: string): PlayerDecision[] {
+export function parsePlayerBlocks(raw: string): PlayerDecision[] {
+  const text = plainProse(raw);
   return text.split(/===\s*PLAYER\s*===/i).slice(1).map((block) => {
     const clean = block.replace(/===\s*END\s*===/i, "").trim();
     const field   = (l: string) => clean.match(new RegExp(`^${l}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
@@ -269,7 +284,8 @@ export function timestampSeconds(ts?: string): number {
   return c ? +a * 3600 + +b * 60 + +c : +a * 60 + +b;
 }
 
-export function parseGameReport(text: string): GameReport {
+export function parseGameReport(raw: string): GameReport {
+  const text = plainProse(raw);
   // Lookahead must match every label the synthesis template emits — including
   // hyphenated ones like "Game-Level Practice Focus" — or the section before a
   // missed label silently swallows it.

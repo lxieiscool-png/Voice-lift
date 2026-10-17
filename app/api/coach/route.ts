@@ -3,6 +3,7 @@ import { rateLimited } from "../../lib/ratelimit";
 import { checkAndIncrementUsage, refundUsage } from "../../lib/usage";
 import { getSessionUserId } from "../../lib/supabase/server";
 import { publicErrorMessage } from "../../lib/publicError";
+import { plainProse } from "../../lib/analysis/parsers";
 
 export async function POST(req: Request) {
   if (await rateLimited(req, "coach", 40)) {
@@ -64,7 +65,7 @@ How you coach:
       temperature: 0.7,
     });
 
-    return Response.json({ reply: text || "No response." });
+    return Response.json({ reply: plainProse(text || "No response.") });
   } catch (error: any) {
     // Don't charge for a reply the user never got.
     if (metered) await refundUsage(metered, "coach");
